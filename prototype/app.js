@@ -4,6 +4,25 @@
  * 加一类条目 = 在 src/core/entries.ts 里写一个生成器，这个文件一行不用改。
  * 之前人、妻女、地方、篇目各写一套 view 函数，再加十类就是十份重复代码。
  */
+
+/**
+ * 图片地址。**取图只准走这一个函数。**
+ *
+ * ★ 出过一次事，而且是悄悄出的：
+ *   打包时要把图片内嵌成 base64，靠的是一条正则去改源码里的
+ *   图片路径那几处。可源码里有两种动态写法——
+ *       模板字面量里一段　和　字符串拼接出来的一段
+ *   那条正则的 `[^"]+` 把**整段表达式**当成文件名吃了进去，
+ *   查表查不到，替换出来的 src 就是空的。
+ *   於是**打出来的包里所有动态图片全是空的**，只剩 index.html 里
+ *   两张写死的封面还在。而打包脚本一声不吭，还报「图片 36 张」。
+ *
+ *   正则改源码这条路本身就不该走。改成走函数：
+ *   开发时 window.IMG 不存在，回退到 img/ 目录；打包时内嵌表已就位，直接取。
+ *   两边同一段代码，打包脚本不用再动源码一个字。
+ */
+const PIC = (f) => (typeof window !== 'undefined' && window.IMG && window.IMG[f])
+  || ('img/' + f);
 import { search } from '../src/core/search.ts';
 import { searchReferenced, displayName, relationLine } from '../src/core/referenced.ts';
 import { searchDocs } from '../src/core/docs.ts';
@@ -169,7 +188,7 @@ function paint(e) {
   }
   if (e.chainFrom) h += lineBar(e.chainFrom);
   if (e.alert) h += `<div class="brk">${esc(e.alert)}</div>`;
-  if (e.image) h += `<img class="pic" src="img/${esc(e.image)}" alt="${esc(e.title)}">`;
+  if (e.image) h += `<img class="pic" src="${PIC(e.image)}" alt="${esc(e.title)}">`;
 
   if (e.facts.length) {
     h += '<dl>' + e.facts.map(f => {
@@ -507,7 +526,7 @@ function showList(k) {
       + Object.entries(byKind).map(([kk, xs]) =>
         '<div class="grp2">' + esc(kk) + '　' + xs.length + ' 张</div><div class="gal">'
         + xs.map(x => `<figure onclick="open_('image','${x.id}')">`
-            + '<img src="img/' + esc(x.file) + '" loading="lazy" alt="' + esc(x.title) + '">'
+            + '<img src="' + PIC(x.file) + '" loading="lazy" alt="' + esc(x.title) + '">'
             + '<figcaption>' + esc(x.title) + '</figcaption></figure>').join('')
         + '</div>').join('')); return;
   }

@@ -161,10 +161,29 @@ const inject = `${TAG}>window.DATA=${JSON.stringify(data)};`
 let html = readFileSync('prototype/index.html', 'utf8')
   .replace(/<script type="module" src="app\.js"><\/script>/, () => script);
 
-// 图片路径换成内嵌（这几处本来就用的函数，没问题）
-html = html.replace(/src="img\/([^"]+)"/g, (m, f) => `src="${imgs[f] ?? ''}"`);
-html = html.replace(/'img\/' \+ esc\((\w+)\.file\)/g, (m, v) => `(IMG[${v}.file] || '')`);
-html = html.replace(/`img\/\$\{esc\((\w+)\.image\)\}`/g, (m, v) => `(IMG[${v}.image] || '')`);
+// 图片：**动态取图一律走 app.js 里的 PIC()**，这里一个字都不改。
+// 只把 index.html 里写死的那两张封面换成内嵌——文件名必须是干净的文件名，
+// 不能含引号、$、反引号，否则说明它其实是段表达式，那就不该在这里替。
+//
+// ★ 这里踩过坑：原来的 `[^"]+` 会把 `src="img/' + esc(x.file) + '"` 整段
+//   当成文件名吃掉，替出来是 src=""，**包里所有动态图片全空**，
+//   而脚本还照样报「图片 36 张」。所以下面加了一条硬断言。
+html = html.replace(/src="img\/([^"'`$\{}]+?)"/g, (m, f) => {
+  if (!imgs[f]) throw new Error(`打包中止：index.html 里引用了 img/${f}，但图片目录里没有`);
+  return `src="${imgs[f]}"`;
+});
+{
+  // PIC() 里那句 ('img/' + f) 是**开发时的回退**，成品里走不到，留着不算问题。
+  const left = (html.match(/["'`]img\//g) ?? [])
+    .filter(() => true);
+  const devFallback = (html.match(/\('img\/' \+ f\)/g) ?? []).length;
+  if (left.length - devFallback > 0)
+    throw new Error(`打包中止：还有 ${left.length - devFallback} 处 img/ 路径没换成内嵌`);
+  const empty = html.match(/src=""/g) ?? [];
+  if (empty.length) throw new Error(`打包中止：出现 ${empty.length} 个空的 src=""——多半是替换吃过界了`);
+  if (!/window\.IMG\[/.test(html) && !/window\.IMG&&window\.IMG\[/.test(html))
+    throw new Error('打包中止：成品里没有一处读 window.IMG——图全是死的');
+}
 
 html = html.includes('</head>')
   ? html.replace('</head>', () => inject + '</head>')
