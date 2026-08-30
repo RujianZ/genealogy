@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>张氏宗谱 · 胜二户</title>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   取色自卷首封面（Pillow 采样）：红 #660000、金 #C08C10。
+   不自己调「中国红」——封面上就是这个深枣红。配宣纸米色与墨黑。
+   宋体。不用圆角、不留大白、高密度。
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --red:#660000; --gold:#C08C10;
+  --paper:#F4EFE4; --paper-2:#EDE6D6; --paper-3:#E3DAC6;
+  --ink:#1C1A17; --ink-2:#4A453C; --ink-3:#7A7263;
+  --line:#C9BFA8;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:15px/1.7 "Noto Serif SC","Source Han Serif SC","Songti SC",SimSun,serif;
+  display:flex; flex-direction:column;
+}
+a{color:var(--red); text-decoration:none; cursor:pointer;
+  border-bottom:1px solid rgba(102,0,0,.25)}
+a:hover{background:rgba(102,0,0,.07); border-bottom-color:var(--red)}
+small{font-size:12.5px; color:var(--ink-2)}
+.dim{color:var(--ink-3)}
+.raw{color:var(--ink-2); font-size:12.5px}
+
+#top{
+  background:var(--red); color:var(--paper); padding:7px 14px;
+  display:flex; align-items:center; gap:14px; flex:none;
+  border-bottom:3px solid var(--gold);
+}
+#top .name{font-size:17px; letter-spacing:.14em; white-space:nowrap}
+#top .sub{font-size:12px; opacity:.7; letter-spacing:.1em}
+#back{
+  background:none; border:1px solid rgba(244,239,228,.45); color:var(--paper);
+  font:inherit; font-size:13px; padding:2px 11px; cursor:pointer;
+}
+#back:disabled{opacity:.3; cursor:default}
+#back:not(:disabled):hover{background:rgba(244,239,228,.14)}
+#q{
+  flex:1; max-width:470px; font:inherit; font-size:15px;
+  padding:4px 10px; border:none; background:var(--paper); color:var(--ink);
+}
+#q:focus{outline:2px solid var(--gold)}
+#qhint{font-size:12px; opacity:.65}
+
+#main{display:flex; flex:1; min-height:0}
+#main>section{overflow:auto; min-width:0}
+#chain{flex:0 0 212px; background:var(--paper-2); border-right:1px solid var(--line); padding:8px 0}
+#subject{flex:1; padding:14px 20px; position:relative}
+#side{flex:0 0 268px; background:var(--paper-2); border-left:1px solid var(--line); padding:10px 12px}
+
+h2{font-size:13px; letter-spacing:.22em; color:var(--red); margin:0 0 6px;
+   font-weight:600; border-bottom:1px solid var(--line); padding-bottom:3px}
+h2:not(:first-child){margin-top:18px}
+
+.step{padding:1px 10px 1px 12px; line-height:1.45}
+.step .gen{font-size:11px; color:var(--ink-3); display:inline-block; width:2.6em}
+.step .nm{font-size:15px}
+.step.now{background:var(--red)}
+.step.now .nm{color:var(--paper); border-bottom-color:rgba(244,239,228,.4)}
+.step.now .gen{color:rgba(244,239,228,.75)}
+.step .zi{font-size:11.5px; color:var(--ink-3); margin-left:.3em}
+.step.now .zi{color:rgba(244,239,228,.75)}
+.rail{border-left:1px solid var(--line); margin-left:24px; height:7px}
+.alt{margin:2px 8px 2px 24px; padding:3px 8px; border-left:3px solid var(--gold);
+     background:rgba(192,140,16,.12); font-size:12.5px; line-height:1.5}
+.alt.warn{border-left-color:var(--red); background:rgba(102,0,0,.08)}
+.brk{margin:5px 8px; padding:6px 8px; border:1px solid var(--red);
+     background:rgba(102,0,0,.06); font-size:12.5px; line-height:1.6}
+
+.title{font-size:30px; line-height:1.25; margin:0; font-weight:600}
+.title .gen{font-size:14px; color:var(--red); letter-spacing:.1em; margin-left:.6em; font-weight:400}
+.byline{color:var(--ink-2); font-size:13px; margin:2px 0 14px}
+dl{display:grid; grid-template-columns:4.8em 1fr; margin:0}
+dt{color:var(--ink-3); font-size:13px; padding:3px 0; border-top:1px solid var(--line)}
+dd{margin:0; padding:3px 0 3px 4px; border-top:1px solid var(--line)}
+.tag{display:inline-block; padding:0 5px; font-size:11.5px; background:var(--paper-3);
+     color:var(--ink-2); margin-right:4px}
+.tag.hot{background:var(--red); color:var(--paper)}
+.tag.gold{background:var(--gold); color:#3a2a00}
+
+.row{padding:2px 0; border-bottom:1px solid rgba(201,191,168,.5); font-size:13.5px}
+
+#results{position:absolute; inset:0; z-index:20; background:var(--paper);
+  overflow:auto; padding:12px 20px}
+#results.hide{display:none}
+.grp{margin:14px 0 4px; font-size:12px; letter-spacing:.18em; color:var(--red);
+     border-bottom:1px solid var(--line); padding-bottom:2px}
+.hit{padding:3px 0; border-bottom:1px solid rgba(201,191,168,.45)}
+.why{font-size:12px; color:var(--ink-3)}
+mark{background:var(--gold); color:#2a1e00; padding:0 1px}
+
+#raw{flex:none; height:134px; overflow:auto; background:var(--paper-3);
+  border-top:1px solid var(--line); padding:7px 20px; font-size:13px}
+#raw .src{color:var(--red); font-size:12px; letter-spacing:.06em}
+#raw pre{white-space:pre-wrap; margin:3px 0 0; font-family:inherit; color:var(--ink-2)}
+
+#splash{position:fixed; inset:0; background:var(--red); color:var(--paper);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  z-index:99; transition:opacity .5s}
+#splash .t{font-size:26px; letter-spacing:.5em; text-indent:.5em}
+#splash .s{font-size:12px; opacity:.65; letter-spacing:.3em; margin-top:10px}
+</style>
+
+<div id="splash"><div class="t">张氏宗谱</div><div class="s">胜二户 · 湖北黄梅</div></div>
+
+<div id="top">
+  <span class="name"><b>张氏宗谱</b> <span class="sub">胜二户</span></span>
+  <button id="back" onclick="goBack()" disabled>← 返回</button>
+  <input id="q" placeholder="找人、找地方、找谱上的话——名、字、讳、号都行，繁体简体都行">
+  <span id="qhint"></span>
+</div>
+
+<div id="main">
+  <section id="chain"></section>
+  <section id="subject"><div id="body"></div><div id="results" class="hide"></div></section>
+  <section id="side"></section>
+</div>
+
+<div id="raw"><div class="src">谱上原文</div><pre id="rawtext">从上面搜一个名字开始。</pre></div>
+

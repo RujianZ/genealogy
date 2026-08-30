@@ -1,0 +1,17 @@
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 依赖（这个项目零依赖，留着以防万一）
+node_modules/
+.venv/
+
+# 临时
+*.tmp
+*.bak
+*.log

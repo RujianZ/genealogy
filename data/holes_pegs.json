@@ -1,0 +1,2543 @@
+[
+ {
+  "pid": "P-册2-0023-1-1-0",
+  "name": "银公",
+  "gen": 11,
+  "src_human": "册2·卷一·有德公世系·第23页·第1行",
+  "filiation": "幼子",
+  "window": "",
+  "father_pid": "P-册2-0007-5-1-0",
+  "father_name": "有德",
+  "father_src": "册2·卷一·德厚公世系·第7页·第5行",
+  "father_window": "生 1440，殁 1484",
+  "written_as": "镮",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "锡",
+   "镮"
+  ]
+ },
+ {
+  "pid": "P-册2-0031-1-1-0",
+  "name": "懋公",
+  "gen": 11,
+  "src_human": "册2·卷一·有禄公世系·第31页·第1行",
+  "filiation": "之子",
+  "window": "生 1489，殁 1538",
+  "father_pid": "P-册2-0009-5-1-0",
+  "father_name": "有禄",
+  "father_src": "册2·卷一·德厚公世系·第9页·第5行",
+  "father_window": "生 1447，殁 1509",
+  "written_as": "七相公",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "懋",
+   "七相公"
+  ]
+ },
+ {
+  "pid": "P-册2-0301-1-1-0",
+  "name": "泽淮",
+  "gen": 21,
+  "src_human": "册2·卷四·朝寿公世系·第301页·第1行",
+  "filiation": "长子",
+  "window": "生 1777，殁 1824",
+  "father_pid": "P-册2-0046-5-0-0",
+  "father_name": "铣顺",
+  "father_src": "册2·卷一·梦楚公世系·第46页·第5行",
+  "father_window": "生 1746，殁 1808",
+  "written_as": "泽准",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "泽准",
+   "泽汝"
+  ]
+ },
+ {
+  "pid": "P-册2-0045-2-1-0",
+  "name": "启发",
+  "gen": 17,
+  "src_human": "册2·卷一·梦楚公世系·第45页·第2行",
+  "filiation": "长子",
+  "window": "生 1658，殁 1708",
+  "father_pid": "P-册2-0045-1-1-0",
+  "father_name": "朝寿",
+  "father_src": "册2·卷一·梦楚公世系·第45页·第1行",
+  "father_window": "生 1631，殁 1698",
+  "written_as": "啟发",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "啟发",
+   "啟明",
+   "啟徒"
+  ]
+ },
+ {
+  "pid": "P-册2-0052-2-0-0",
+  "name": "启明",
+  "gen": 17,
+  "src_human": "册2·卷一·梦楚公世系·第52页·第2行",
+  "filiation": "次子",
+  "window": "生 1661，殁 1718",
+  "father_pid": "P-册2-0045-1-1-0",
+  "father_name": "朝寿",
+  "father_src": "册2·卷一·梦楚公世系·第45页·第1行",
+  "father_window": "生 1631，殁 1698",
+  "written_as": "啟明",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "啟发",
+   "啟明",
+   "啟徒"
+  ]
+ },
+ {
+  "pid": "P-册2-0057-2-1-0",
+  "name": "启從",
+  "gen": 17,
+  "src_human": "册2·卷一·梦楚公世系·第57页·第2行",
+  "filiation": "幼子",
+  "window": "生 1673，殁 1743",
+  "father_pid": "P-册2-0045-1-1-0",
+  "father_name": "朝寿",
+  "father_src": "册2·卷一·梦楚公世系·第45页·第1行",
+  "father_window": "生 1631，殁 1698",
+  "written_as": "啟徒",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "啟发",
+   "啟明",
+   "啟徒"
+  ]
+ },
+ {
+  "pid": "P-册2-0077-2-1-0",
+  "name": "启祥",
+  "gen": 17,
+  "src_human": "册2·卷一·梦引公世系·第77页·第2行",
+  "filiation": "之子",
+  "window": "生 1658，殁 1686",
+  "father_pid": "P-册2-0077-1-1-0",
+  "father_name": "朝禄",
+  "father_src": "册2·卷一·梦引公世系·第77页·第1行",
+  "father_window": "生 1637，殁 1677",
+  "written_as": "啟祥",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟祥"
+  ]
+ },
+ {
+  "pid": "P-册2-0077-2-1-1",
+  "name": "启高",
+  "gen": 17,
+  "src_human": "册2·卷一·梦引公世系·第77页·第2行",
+  "filiation": "长子",
+  "window": "生 1665，殁 1727",
+  "father_pid": "P-册2-0077-1-1-1",
+  "father_name": "朝聘",
+  "father_src": "册2·卷一·梦引公世系·第77页·第1行",
+  "father_window": "生 1639，殁 1703",
+  "written_as": "啟高",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "啟高",
+   "启强",
+   "启尚"
+  ]
+ },
+ {
+  "pid": "P-册2-0081-2-1-0",
+  "name": "启常",
+  "gen": 17,
+  "src_human": "册2·卷一·梦桂公世系·第81页·第2行",
+  "filiation": "之子",
+  "window": "生 1658，殁 1689",
+  "father_pid": "P-册2-0081-1-1-0",
+  "father_name": "朝迎",
+  "father_src": "册2·卷一·梦桂公世系·第81页·第1行",
+  "father_window": "生 1637，殁 1700",
+  "written_as": "啟常",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟常"
+  ]
+ },
+ {
+  "pid": "P-册2-0082-2-0-0",
+  "name": "启仁",
+  "gen": 17,
+  "src_human": "册2·卷一·梦桂公世系·第82页·第2行",
+  "filiation": "长子",
+  "window": "生 1661，殁 1746",
+  "father_pid": "P-册2-0082-1-0-0",
+  "father_name": "朝接",
+  "father_src": "册2·卷一·梦桂公世系·第82页·第1行",
+  "father_window": "生 1640，殁 1690",
+  "written_as": "啟仁",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "啟仁",
+   "啟义"
+  ]
+ },
+ {
+  "pid": "P-册2-0087-2-1-0",
+  "name": "启义",
+  "gen": 17,
+  "src_human": "册2·卷一·楚桂公世系·第87页·第2行",
+  "filiation": "次子",
+  "window": "约生于 1634–1696 之间",
+  "father_pid": "P-册2-0082-1-0-0",
+  "father_name": "朝接",
+  "father_src": "册2·卷一·梦桂公世系·第82页·第1行",
+  "father_window": "生 1640，殁 1690",
+  "written_as": "啟义",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "啟仁",
+   "啟义"
+  ]
+ },
+ {
+  "pid": "P-册2-0087-2-1-1",
+  "name": "启礼",
+  "gen": 17,
+  "src_human": "册2·卷一·楚桂公世系·第87页·第2行",
+  "filiation": "幼子",
+  "window": "生 1681，殁 1739",
+  "father_pid": "P-册2-0082-1-0-0",
+  "father_name": "朝接",
+  "father_src": "册2·卷一·梦桂公世系·第82页·第1行",
+  "father_window": "生 1640，殁 1690",
+  "written_as": "啟义",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "啟仁",
+   "啟义"
+  ]
+ },
+ {
+  "pid": "P-册2-0092-2-0-0",
+  "name": "启通",
+  "gen": 17,
+  "src_human": "册2·卷二·梦顺公世系·第92页·第2行",
+  "filiation": "长子",
+  "window": "生 1677",
+  "father_pid": "P-册2-0092-1-0-0",
+  "father_name": "朝爱",
+  "father_src": "册2·卷二·梦顺公世系·第92页·第1行",
+  "father_window": "生 1656，殁 1729",
+  "written_as": "啟通",
+  "pos": 1,
+  "total": 5,
+  "sons": [
+   "啟通",
+   "啟达",
+   "三適付",
+   "五適樊",
+   "也"
+  ]
+ },
+ {
+  "pid": "P-册2-0095-2-1-0",
+  "name": "启达",
+  "gen": 17,
+  "src_human": "册2·卷二·梦顺公世系·第95页·第2行",
+  "filiation": "幼子",
+  "window": "生 1687，殁 1762",
+  "father_pid": "P-册2-0092-1-0-0",
+  "father_name": "朝爱",
+  "father_src": "册2·卷二·梦顺公世系·第92页·第1行",
+  "father_window": "生 1656，殁 1729",
+  "written_as": "也",
+  "pos": 5,
+  "total": 5,
+  "sons": [
+   "啟通",
+   "啟达",
+   "三適付",
+   "五適樊",
+   "也"
+  ]
+ },
+ {
+  "pid": "P-册2-0106-2-0-0",
+  "name": "启璋",
+  "gen": 17,
+  "src_human": "册2·卷一·梦吉公世系·第106页·第2行",
+  "filiation": "长子",
+  "window": "生 1677，殁 1741",
+  "father_pid": "P-册2-0106-1-0-0",
+  "father_name": "朝连",
+  "father_src": "册2·卷一·梦吉公世系·第106页·第1行",
+  "father_window": "生 1653，殁 1688",
+  "written_as": "啟璋",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "啟璋",
+   "啟从"
+  ]
+ },
+ {
+  "pid": "P-册2-0110-2-0-0",
+  "name": "启从",
+  "gen": 17,
+  "src_human": "册2·卷二·梦吉公世系·第110页·第2行",
+  "filiation": "幼子",
+  "window": "生 1685，殁 1736",
+  "father_pid": "P-册2-0106-1-0-0",
+  "father_name": "朝连",
+  "father_src": "册2·卷一·梦吉公世系·第106页·第1行",
+  "father_window": "生 1653，殁 1688",
+  "written_as": "啟从",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "啟璋",
+   "啟从"
+  ]
+ },
+ {
+  "pid": "P-册2-0111-2-1-0",
+  "name": "启浚",
+  "gen": 17,
+  "src_human": "册2·卷二·梦吉公世系·第111页·第2行",
+  "filiation": "长子",
+  "window": "生 1677，殁 1739",
+  "father_pid": "P-册2-0111-1-1-0",
+  "father_name": "朝安",
+  "father_src": "册2·卷二·梦吉公世系·第111页·第1行",
+  "father_window": "生 1655，殁 1725",
+  "written_as": "啟沪",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "啟沪",
+   "啟哲"
+  ]
+ },
+ {
+  "pid": "P-册2-0113-2-1-0",
+  "name": "启哲",
+  "gen": 17,
+  "src_human": "册2·卷二·梦吉公世系·第113页·第2行",
+  "filiation": "次子",
+  "window": "生 1687，殁 1768",
+  "father_pid": "P-册2-0111-1-1-0",
+  "father_name": "朝安",
+  "father_src": "册2·卷二·梦吉公世系·第111页·第1行",
+  "father_window": "生 1655，殁 1725",
+  "written_as": "啟哲",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "啟沪",
+   "啟哲"
+  ]
+ },
+ {
+  "pid": "P-册2-0119-2-1-0",
+  "name": "启渊",
+  "gen": 17,
+  "src_human": "册2·卷二·梦聪公世系·第119页·第2行",
+  "filiation": "长子",
+  "window": "生 1683，殁 1735",
+  "father_pid": "P-册2-0119-1-1-0",
+  "father_name": "朝选",
+  "father_src": "册2·卷二·梦聪公世系·第119页·第1行",
+  "father_window": "生 1659，殁 1717",
+  "written_as": "啟渊",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "啟渊",
+   "啟凡",
+   "啟付"
+  ]
+ },
+ {
+  "pid": "P-册2-0120-2-0-0",
+  "name": "启凡",
+  "gen": 17,
+  "src_human": "册2·卷二·梦聪公世系·第120页·第2行",
+  "filiation": "次子",
+  "window": "",
+  "father_pid": "P-册2-0119-1-1-0",
+  "father_name": "朝选",
+  "father_src": "册2·卷二·梦聪公世系·第119页·第1行",
+  "father_window": "生 1659，殁 1717",
+  "written_as": "啟凡",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "啟渊",
+   "啟凡",
+   "啟付"
+  ]
+ },
+ {
+  "pid": "P-册2-0121-2-1-0",
+  "name": "启付",
+  "gen": 17,
+  "src_human": "册2·卷二·梦聪公世系·第121页·第2行",
+  "filiation": "幼子",
+  "window": "生 1689，殁 1750",
+  "father_pid": "P-册2-0119-1-1-0",
+  "father_name": "朝选",
+  "father_src": "册2·卷二·梦聪公世系·第119页·第1行",
+  "father_window": "生 1659，殁 1717",
+  "written_as": "啟付",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "啟渊",
+   "啟凡",
+   "啟付"
+  ]
+ },
+ {
+  "pid": "P-册2-0123-2-1-0",
+  "name": "启龙",
+  "gen": 17,
+  "src_human": "册2·卷二·梦骥公世系·第123页·第2行",
+  "filiation": "长子",
+  "window": "",
+  "father_pid": "P-册2-0123-1-1-0",
+  "father_name": "朝泰",
+  "father_src": "册2·卷二·梦骥公世系·第123页·第1行",
+  "father_window": "生 1652，殁 1713",
+  "written_as": "啟龙",
+  "pos": 1,
+  "total": 5,
+  "sons": [
+   "啟龙",
+   "啟凤",
+   "啟鹏",
+   "啟鹍",
+   "幼適陈"
+  ]
+ },
+ {
+  "pid": "P-册2-0123-2-1-1",
+  "name": "启凤",
+  "gen": 17,
+  "src_human": "册2·卷二·梦骥公世系·第123页·第2行",
+  "filiation": "次子",
+  "window": "生 1680，殁 1723",
+  "father_pid": "P-册2-0123-1-1-0",
+  "father_name": "朝泰",
+  "father_src": "册2·卷二·梦骥公世系·第123页·第1行",
+  "father_window": "生 1652，殁 1713",
+  "written_as": "啟凤",
+  "pos": 2,
+  "total": 5,
+  "sons": [
+   "啟龙",
+   "啟凤",
+   "啟鹏",
+   "啟鹍",
+   "幼適陈"
+  ]
+ },
+ {
+  "pid": "P-册2-0149-2-1-0",
+  "name": "启鹏",
+  "gen": 17,
+  "src_human": "册2·卷二·梦骥公世系·第149页·第2行",
+  "filiation": "三子",
+  "window": "生 1691，殁 1747",
+  "father_pid": "P-册2-0123-1-1-0",
+  "father_name": "朝泰",
+  "father_src": "册2·卷二·梦骥公世系·第123页·第1行",
+  "father_window": "生 1652，殁 1713",
+  "written_as": "啟鹏",
+  "pos": 3,
+  "total": 5,
+  "sons": [
+   "啟龙",
+   "啟凤",
+   "啟鹏",
+   "啟鹍",
+   "幼適陈"
+  ]
+ },
+ {
+  "pid": "P-册2-0158-2-0-0",
+  "name": "启朗",
+  "gen": 17,
+  "src_human": "册2·卷二·梦骥公世系·第158页·第2行",
+  "filiation": "长子",
+  "window": "生 1670，殁 1700",
+  "father_pid": "P-册2-0158-1-0-0",
+  "father_name": "朝富",
+  "father_src": "册2·卷二·梦骥公世系·第158页·第1行",
+  "father_window": "生 1654，殁 1704",
+  "written_as": "啟朗",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟朗"
+  ]
+ },
+ {
+  "pid": "P-册2-0159-2-1-0",
+  "name": "启苏",
+  "gen": 17,
+  "src_human": "册2·卷二·梦骥公世系·第159页·第2行",
+  "filiation": "之子",
+  "window": "生 1675，殁 1730",
+  "father_pid": "P-册2-0159-1-1-0",
+  "father_name": "朝贵",
+  "father_src": "册2·卷二·梦骥公世系·第159页·第1行",
+  "father_window": "生 1656，殁 1703",
+  "written_as": "啟苏",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟苏"
+  ]
+ },
+ {
+  "pid": "P-册2-0163-2-1-0",
+  "name": "启昌",
+  "gen": 17,
+  "src_human": "册2·卷三·梦林公世系·第163页·第2行",
+  "filiation": "嗣子",
+  "window": "生 1661，殁 1713",
+  "father_pid": "P-册2-0163-1-1-0",
+  "father_name": "朝阳",
+  "father_src": "册2·卷三·梦林公世系·第163页·第1行",
+  "father_window": "生 1639，殁 1715",
+  "written_as": "啟盛",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟盛"
+  ]
+ },
+ {
+  "pid": "P-册2-0234-2-0-0",
+  "name": "启盛",
+  "gen": 17,
+  "src_human": "册2·卷三·梦林公世系·第234页·第2行",
+  "filiation": "幼子",
+  "window": "生 1667，殁 1738",
+  "father_pid": "P-册2-0163-1-1-0",
+  "father_name": "朝阳",
+  "father_src": "册2·卷三·梦林公世系·第163页·第1行",
+  "father_window": "生 1639，殁 1715",
+  "written_as": "啟盛",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟盛"
+  ]
+ },
+ {
+  "pid": "P-册2-0243-2-1-0",
+  "name": "启文",
+  "gen": 17,
+  "src_human": "册2·卷三·梦林公世系·第243页·第2行",
+  "filiation": "长子",
+  "window": "生 1658，殁 1723",
+  "father_pid": "P-册2-0243-1-1-0",
+  "father_name": "朝纪",
+  "father_src": "册2·卷三·梦林公世系·第243页·第1行",
+  "father_window": "生 1643，殁 1682",
+  "written_as": "啟文",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "啟文",
+   "啟华",
+   "啟元"
+  ]
+ },
+ {
+  "pid": "P-册2-0252-2-0-0",
+  "name": "启华",
+  "gen": 17,
+  "src_human": "册2·卷三·梦林公世系·第252页·第2行",
+  "filiation": "次子",
+  "window": "生 1661，殁 1714",
+  "father_pid": "P-册2-0243-1-1-0",
+  "father_name": "朝纪",
+  "father_src": "册2·卷三·梦林公世系·第243页·第1行",
+  "father_window": "生 1643，殁 1682",
+  "written_as": "啟华",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "啟文",
+   "啟华",
+   "啟元"
+  ]
+ },
+ {
+  "pid": "P-册2-0269-2-1-0",
+  "name": "启元",
+  "gen": 17,
+  "src_human": "册2·卷三·梦林公世系·第269页·第2行",
+  "filiation": "幼子",
+  "window": "",
+  "father_pid": "P-册2-0243-1-1-0",
+  "father_name": "朝纪",
+  "father_src": "册2·卷三·梦林公世系·第243页·第1行",
+  "father_window": "生 1643，殁 1682",
+  "written_as": "啟元",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "啟文",
+   "啟华",
+   "啟元"
+  ]
+ },
+ {
+  "pid": "P-册2-0271-2-1-0",
+  "name": "启光",
+  "gen": 17,
+  "src_human": "册2·卷三·梦文公世系·第271页·第2行",
+  "filiation": "之子",
+  "window": "生 1694，殁 1753",
+  "father_pid": "P-册2-0271-1-1-1",
+  "father_name": "朝梅",
+  "father_src": "册2·卷三·梦文公世系·第271页·第1行",
+  "father_window": "生 1673，殁 1712",
+  "written_as": "啟光",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟光"
+  ]
+ },
+ {
+  "pid": "P-册2-0272-2-0-0",
+  "name": "启源",
+  "gen": 17,
+  "src_human": "册2·卷三·梦文公世系·第272页·第2行",
+  "filiation": "之子",
+  "window": "生 1696，殁 1758",
+  "father_pid": "P-册2-0272-1-0-0",
+  "father_name": "朝南",
+  "father_src": "册2·卷三·梦文公世系·第272页·第1行",
+  "father_window": "生 1675，殁 1734",
+  "written_as": "啟源",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟源"
+  ]
+ },
+ {
+  "pid": "P-册2-0275-2-1-0",
+  "name": "启秀",
+  "gen": 17,
+  "src_human": "册2·卷三·梦元公世系·第275页·第2行",
+  "filiation": "长子",
+  "window": "生 1694，殁 1765",
+  "father_pid": "P-册2-0275-1-1-0",
+  "father_name": "朝京",
+  "father_src": "册2·卷三·梦元公世系·第275页·第1行",
+  "father_window": "生 1674，殁 1736",
+  "written_as": "啟秀",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "啟秀",
+   "啟俊"
+  ]
+ },
+ {
+  "pid": "P-册2-0280-2-0-0",
+  "name": "启俊",
+  "gen": 17,
+  "src_human": "册2·卷三·梦元公世系·第280页·第2行",
+  "filiation": "幼子",
+  "window": "生 1707，殁 1774",
+  "father_pid": "P-册2-0275-1-1-0",
+  "father_name": "朝京",
+  "father_src": "册2·卷三·梦元公世系·第275页·第1行",
+  "father_window": "生 1674，殁 1736",
+  "written_as": "啟俊",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "啟秀",
+   "啟俊"
+  ]
+ },
+ {
+  "pid": "P-册2-0288-2-0-0",
+  "name": "启后",
+  "gen": 17,
+  "src_human": "册2·卷三·梦元公世系·第288页·第2行",
+  "filiation": "长子",
+  "window": "约生于 1709–1771 之间",
+  "father_pid": "P-册2-0288-1-0-0",
+  "father_name": "朝佐",
+  "father_src": "册2·卷三·梦元公世系·第288页·第1行",
+  "father_window": "生 1676，殁 1736",
+  "written_as": "啟后",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "啟后",
+   "啟坤",
+   "啟先"
+  ]
+ },
+ {
+  "pid": "P-册2-0290-2-0-0",
+  "name": "启坤",
+  "gen": 17,
+  "src_human": "册2·卷三·梦元公世系·第290页·第2行",
+  "filiation": "次子",
+  "window": "生 1702，殁 1751",
+  "father_pid": "P-册2-0288-1-0-0",
+  "father_name": "朝佐",
+  "father_src": "册2·卷三·梦元公世系·第288页·第1行",
+  "father_window": "生 1676，殁 1736",
+  "written_as": "啟坤",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "啟后",
+   "啟坤",
+   "啟先"
+  ]
+ },
+ {
+  "pid": "P-册2-0295-2-1-0",
+  "name": "启先",
+  "gen": 17,
+  "src_human": "册2·卷三·梦文公世系·第295页·第2行",
+  "filiation": "幼子",
+  "window": "生 1704，殁 1767",
+  "father_pid": "P-册2-0288-1-0-0",
+  "father_name": "朝佐",
+  "father_src": "册2·卷三·梦元公世系·第288页·第1行",
+  "father_window": "生 1676，殁 1736",
+  "written_as": "啟先",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "啟后",
+   "啟坤",
+   "啟先"
+  ]
+ },
+ {
+  "pid": "P-册2-0299-2-1-0",
+  "name": "启仁",
+  "gen": 17,
+  "src_human": "册2·卷三·梦虎公世系·第299页·第2行",
+  "filiation": "之子",
+  "window": "生 1708，殁 1770",
+  "father_pid": "P-册2-0299-1-1-0",
+  "father_name": "朝助",
+  "father_src": "册2·卷三·梦虎公世系·第299页·第1行",
+  "father_window": "生 1659",
+  "written_as": "啟仁",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "啟仁"
+  ]
+ },
+ {
+  "pid": "P-册2-0335-3-1-0",
+  "name": "兴仁",
+  "gen": 23,
+  "src_human": "册2·卷四·朝相公世系·第335页·第3行",
+  "filiation": "长子",
+  "window": "生 1828",
+  "father_pid": "P-册2-0335-2-1-0",
+  "father_name": "梁兴",
+  "father_src": "册2·卷四·朝相公世系·第335页·第2行",
+  "father_window": "生 1806",
+  "written_as": "光仁",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "光仁",
+   "光信",
+   "光礼"
+  ]
+ },
+ {
+  "pid": "P-册2-0335-3-1-1",
+  "name": "兴信",
+  "gen": 23,
+  "src_human": "册2·卷四·朝相公世系·第335页·第3行",
+  "filiation": "次子",
+  "window": "生 1831",
+  "father_pid": "P-册2-0335-2-1-0",
+  "father_name": "梁兴",
+  "father_src": "册2·卷四·朝相公世系·第335页·第2行",
+  "father_window": "生 1806",
+  "written_as": "光信",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "光仁",
+   "光信",
+   "光礼"
+  ]
+ },
+ {
+  "pid": "P-册2-0052-4-0-0",
+  "name": "士谟",
+  "gen": 19,
+  "src_human": "册2·卷一·梦楚公世系·第52页·第4行",
+  "filiation": "长子",
+  "window": "生 1724，殁 1769",
+  "father_pid": "P-册2-0052-3-0-0",
+  "father_name": "学德",
+  "father_src": "册2·卷一·梦楚公世系·第52页·第3行",
+  "father_window": "生 1701，殁 1761",
+  "written_as": "士汉",
+  "pos": 1,
+  "total": 5,
+  "sons": [
+   "士汉",
+   "士彭",
+   "士校",
+   "士栗",
+   "次適陈"
+  ]
+ },
+ {
+  "pid": "P-册2-0163-4-1-0",
+  "name": "士兰",
+  "gen": 19,
+  "src_human": "册2·卷三·梦林公世系·第163页·第4行",
+  "filiation": "长子",
+  "window": "生 1704，殁 1778",
+  "father_pid": "P-册2-0163-3-1-0",
+  "father_name": "学仁",
+  "father_src": "册2·卷三·梦林公世系·第163页·第3行",
+  "father_window": "生 1679，殁 1754",
+  "written_as": "士蘭",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "士蘭",
+   "士桂",
+   "士重"
+  ]
+ },
+ {
+  "pid": "P-册2-0221-4-1-0",
+  "name": "上彥",
+  "gen": 19,
+  "src_human": "册2·卷三·梦林公世系·第221页·第4行",
+  "filiation": "次子",
+  "window": "生 1723，殁 1801",
+  "father_pid": "P-册2-0216-3-0-0",
+  "father_name": "学信",
+  "father_src": "册2·卷三·梦林公世系·第216页·第3行",
+  "father_window": "生 1693，殁 1739",
+  "written_as": "士彥",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "士硕",
+   "士彥"
+  ]
+ },
+ {
+  "pid": "P-册2-0253-4-1-0",
+  "name": "士鎡",
+  "gen": 19,
+  "src_human": "册2·卷三·梦林公世系·第253页·第4行",
+  "filiation": "长子",
+  "window": "生 1711",
+  "father_pid": "P-册2-0253-3-1-2",
+  "father_name": "学鲤",
+  "father_src": "册2·卷三·梦林公世系·第253页·第3行",
+  "father_window": "生 1689，殁 1754",
+  "written_as": "士镃",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "士镃",
+   "士基",
+   "士业"
+  ]
+ },
+ {
+  "pid": "P-册2-0367-4-1-1",
+  "name": "梁海",
+  "gen": 24,
+  "src_human": "册2·卷四·朝泰公世系·第367页·第4行",
+  "filiation": "次子",
+  "window": "",
+  "father_pid": "P-册2-0367-3-1-0",
+  "father_name": "光採",
+  "father_src": "册2·卷四·朝泰公世系·第367页·第3行",
+  "father_window": "生 1849",
+  "written_as": "海",
+  "pos": 2,
+  "total": 4,
+  "sons": [
+   "壁林",
+   "海",
+   "水",
+   "生"
+  ]
+ },
+ {
+  "pid": "P-册2-0031-5-1-0",
+  "name": "骥公",
+  "gen": 15,
+  "src_human": "册2·卷一·有禄公世系·第31页·第5行",
+  "filiation": "长子",
+  "window": "生 1633，殁 1686",
+  "father_pid": "P-册2-0031-4-1-0",
+  "father_name": "梓公",
+  "father_src": "册2·卷一·有禄公世系·第31页·第4行",
+  "father_window": "生 1595，殁 1679",
+  "written_as": "梦骥",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "梦骥",
+   "梦寿",
+   "梦骅"
+  ]
+ },
+ {
+  "pid": "P-册2-0034-5-0-0",
+  "name": "林公",
+  "gen": 15,
+  "src_human": "册2·卷一·有禄公世系·第34页·第5行",
+  "filiation": "之子",
+  "window": "约生于 1621–1627 之间",
+  "father_pid": "P-册2-0034-4-0-1",
+  "father_name": "榛公",
+  "father_src": "册2·卷一·有禄公世系·第34页·第4行",
+  "father_window": "生 1603，殁 1665",
+  "written_as": "梦林",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "梦林"
+  ]
+ },
+ {
+  "pid": "P-册2-0095-5-1-0",
+  "name": "铣章",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第95页·第5行",
+  "filiation": "长子",
+  "window": "生 1759，殁 1791",
+  "father_pid": "P-册2-0095-4-1-0",
+  "father_name": "士律",
+  "father_src": "册2·卷二·梦顺公世系·第95页·第4行",
+  "father_window": "生 1741，殁 1770",
+  "written_as": "銑章",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "銑章",
+   "銑名"
+  ]
+ },
+ {
+  "pid": "P-册2-0096-5-0-0",
+  "name": "铣名",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第96页·第5行",
+  "filiation": "幼子",
+  "window": "生 1764，殁 1800",
+  "father_pid": "P-册2-0095-4-1-0",
+  "father_name": "士律",
+  "father_src": "册2·卷二·梦顺公世系·第95页·第4行",
+  "father_window": "生 1741，殁 1770",
+  "written_as": "銑名",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "銑章",
+   "銑名"
+  ]
+ },
+ {
+  "pid": "P-册2-0098-5-0-0",
+  "name": "铣壹",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第98页·第5行",
+  "filiation": "长子",
+  "window": "生 1789，殁 1827",
+  "father_pid": "P-册2-0098-4-0-0",
+  "father_name": "士扬",
+  "father_src": "册2·卷二·梦顺公世系·第98页·第4行",
+  "father_window": "生 1755，殁 1811",
+  "written_as": "銑壹",
+  "pos": 1,
+  "total": 4,
+  "sons": [
+   "銑壹",
+   "銑雨",
+   "銑参",
+   "迁陕"
+  ]
+ },
+ {
+  "pid": "P-册2-0099-5-1-0",
+  "name": "铣两",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第99页·第5行",
+  "filiation": "次子",
+  "window": "生 1793，殁 1814",
+  "father_pid": "P-册2-0098-4-0-0",
+  "father_name": "士扬",
+  "father_src": "册2·卷二·梦顺公世系·第98页·第4行",
+  "father_window": "生 1755，殁 1811",
+  "written_as": "銑雨",
+  "pos": 2,
+  "total": 4,
+  "sons": [
+   "銑壹",
+   "銑雨",
+   "銑参",
+   "迁陕"
+  ]
+ },
+ {
+  "pid": "P-册2-0100-5-0-0",
+  "name": "铣参",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第100页·第5行",
+  "filiation": "幼子",
+  "window": "生 1796",
+  "father_pid": "P-册2-0098-4-0-0",
+  "father_name": "士扬",
+  "father_src": "册2·卷二·梦顺公世系·第98页·第4行",
+  "father_window": "生 1755，殁 1811",
+  "written_as": "迁陕",
+  "pos": 4,
+  "total": 4,
+  "sons": [
+   "銑壹",
+   "銑雨",
+   "銑参",
+   "迁陕"
+  ]
+ },
+ {
+  "pid": "P-册2-0104-5-0-0",
+  "name": "铣奎",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第104页·第5行",
+  "filiation": "之子",
+  "window": "",
+  "father_pid": "P-册2-0104-4-0-1",
+  "father_name": "士均",
+  "father_src": "册2·卷二·梦顺公世系·第104页·第4行",
+  "father_window": "生 1759",
+  "written_as": "銑奎",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "銑奎"
+  ]
+ },
+ {
+  "pid": "P-册2-0105-5-1-1",
+  "name": "铣崇",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第105页·第5行",
+  "filiation": "次子",
+  "window": "",
+  "father_pid": "P-册2-0105-4-1-0",
+  "father_name": "士太",
+  "father_src": "册2·卷二·梦顺公世系·第105页·第4行",
+  "father_window": "生 1764",
+  "written_as": "銑崇",
+  "pos": 2,
+  "total": 4,
+  "sons": [
+   "銑德",
+   "銑崇",
+   "銑崖",
+   "銑峻"
+  ]
+ },
+ {
+  "pid": "P-册2-0105-5-1-2",
+  "name": "铣崖",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第105页·第5行",
+  "filiation": "三子",
+  "window": "",
+  "father_pid": "P-册2-0105-4-1-0",
+  "father_name": "士太",
+  "father_src": "册2·卷二·梦顺公世系·第105页·第4行",
+  "father_window": "生 1764",
+  "written_as": "銑崖",
+  "pos": 3,
+  "total": 4,
+  "sons": [
+   "銑德",
+   "銑崇",
+   "銑崖",
+   "銑峻"
+  ]
+ },
+ {
+  "pid": "P-册2-0105-5-1-3",
+  "name": "铣峻",
+  "gen": 20,
+  "src_human": "册2·卷二·梦顺公世系·第105页·第5行",
+  "filiation": "幼子",
+  "window": "",
+  "father_pid": "P-册2-0105-4-1-0",
+  "father_name": "士太",
+  "father_src": "册2·卷二·梦顺公世系·第105页·第4行",
+  "father_window": "生 1764",
+  "written_as": "銑峻",
+  "pos": 4,
+  "total": 4,
+  "sons": [
+   "銑德",
+   "銑崇",
+   "銑崖",
+   "銑峻"
+  ]
+ },
+ {
+  "pid": "P-册2-0107-5-1-0",
+  "name": "铣远",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第107页·第5行",
+  "filiation": "之子",
+  "window": "生 1736",
+  "father_pid": "P-册2-0107-4-1-0",
+  "father_name": "士杏",
+  "father_src": "册2·卷二·梦吉公世系·第107页·第4行",
+  "father_window": "约生于 1661–1723 之间",
+  "written_as": "銑远",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "銑远"
+  ]
+ },
+ {
+  "pid": "P-册2-0108-5-0-0",
+  "name": "铣锦",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第108页·第5行",
+  "filiation": "长子",
+  "window": "生 1745",
+  "father_pid": "P-册2-0108-4-0-1",
+  "father_name": "士葵",
+  "father_src": "册2·卷二·梦吉公世系·第108页·第4行",
+  "father_window": "生 1723",
+  "written_as": "銑锦",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "銑锦",
+   "銑卓"
+  ]
+ },
+ {
+  "pid": "P-册2-0108-5-0-1",
+  "name": "铣卓",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第108页·第5行",
+  "filiation": "幼子",
+  "window": "生 1748",
+  "father_pid": "P-册2-0108-4-0-1",
+  "father_name": "士葵",
+  "father_src": "册2·卷二·梦吉公世系·第108页·第4行",
+  "father_window": "生 1723",
+  "written_as": "銑卓",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "銑锦",
+   "銑卓"
+  ]
+ },
+ {
+  "pid": "P-册2-0109-5-1-0",
+  "name": "铣仪",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第109页·第5行",
+  "filiation": "长子",
+  "window": "生 1746",
+  "father_pid": "P-册2-0109-4-1-1",
+  "father_name": "士正",
+  "father_src": "册2·卷二·梦吉公世系·第109页·第4行",
+  "father_window": "生 1726",
+  "written_as": "銑仪",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "銑仪",
+   "銑毅"
+  ]
+ },
+ {
+  "pid": "P-册2-0110-5-0-0",
+  "name": "铣毅",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第110页·第5行",
+  "filiation": "次子",
+  "window": "生 1750",
+  "father_pid": "P-册2-0109-4-1-1",
+  "father_name": "士正",
+  "father_src": "册2·卷二·梦吉公世系·第109页·第4行",
+  "father_window": "生 1726",
+  "written_as": "銑毅",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "銑仪",
+   "銑毅"
+  ]
+ },
+ {
+  "pid": "P-册2-0112-5-0-0",
+  "name": "铣辂",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第112页·第5行",
+  "filiation": "长子",
+  "window": "生 1763",
+  "father_pid": "P-册2-0112-4-0-1",
+  "father_name": "士季",
+  "father_src": "册2·卷二·梦吉公世系·第112页·第4行",
+  "father_window": "生 1738",
+  "written_as": "銑辂",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "銑辂",
+   "銑谨"
+  ]
+ },
+ {
+  "pid": "P-册2-0113-5-1-0",
+  "name": "铣谨",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第113页·第5行",
+  "filiation": "次子",
+  "window": "生 1766",
+  "father_pid": "P-册2-0112-4-0-1",
+  "father_name": "士季",
+  "father_src": "册2·卷二·梦吉公世系·第112页·第4行",
+  "father_window": "生 1738",
+  "written_as": "銑谨",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "銑辂",
+   "銑谨"
+  ]
+ },
+ {
+  "pid": "P-册2-0114-5-0-0",
+  "name": "铣薏",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第114页·第5行",
+  "filiation": "次子",
+  "window": "",
+  "father_pid": "P-册2-0113-4-1-0",
+  "father_name": "士魁",
+  "father_src": "册2·卷二·梦吉公世系·第113页·第4行",
+  "father_window": "生 1727",
+  "written_as": "銑薏",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "銑蕴",
+   "銑薏",
+   "銑苡"
+  ]
+ },
+ {
+  "pid": "P-册2-0114-5-0-1",
+  "name": "铣苡",
+  "gen": 20,
+  "src_human": "册2·卷二·梦吉公世系·第114页·第5行",
+  "filiation": "幼子",
+  "window": "生 1760，殁 1797",
+  "father_pid": "P-册2-0113-4-1-0",
+  "father_name": "士魁",
+  "father_src": "册2·卷二·梦吉公世系·第113页·第4行",
+  "father_window": "生 1727",
+  "written_as": "銑苡",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "銑蕴",
+   "銑薏",
+   "銑苡"
+  ]
+ },
+ {
+  "pid": "P-册2-0123-5-1-0",
+  "name": "铣锋",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第123页·第5行",
+  "filiation": "长子",
+  "window": "生 1748，殁 1784",
+  "father_pid": "P-册2-0123-4-1-0",
+  "father_name": "士盛",
+  "father_src": "册2·卷二·梦骥公世系·第123页·第4行",
+  "father_window": "生 1727，殁 1811",
+  "written_as": "銑锋",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "銑锋",
+   "銑镃",
+   "銑镇"
+  ]
+ },
+ {
+  "pid": "P-册2-0125-5-1-0",
+  "name": "铣镃",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第125页·第5行",
+  "filiation": "次子",
+  "window": "生 1754，殁 1791",
+  "father_pid": "P-册2-0123-4-1-0",
+  "father_name": "士盛",
+  "father_src": "册2·卷二·梦骥公世系·第123页·第4行",
+  "father_window": "生 1727，殁 1811",
+  "written_as": "銑镃",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "銑锋",
+   "銑镃",
+   "銑镇"
+  ]
+ },
+ {
+  "pid": "P-册2-0126-5-0-0",
+  "name": "铣镇",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第126页·第5行",
+  "filiation": "幼子",
+  "window": "生 1757，殁 1781",
+  "father_pid": "P-册2-0123-4-1-0",
+  "father_name": "士盛",
+  "father_src": "册2·卷二·梦骥公世系·第123页·第4行",
+  "father_window": "生 1727，殁 1811",
+  "written_as": "銑镇",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "銑锋",
+   "銑镃",
+   "銑镇"
+  ]
+ },
+ {
+  "pid": "P-册2-0127-5-1-0",
+  "name": "铣和",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第127页·第5行",
+  "filiation": "之子",
+  "window": "生 1762，殁 1791",
+  "father_pid": "P-册2-0127-4-1-0",
+  "father_name": "士茂",
+  "father_src": "册2·卷二·梦骥公世系·第127页·第4行",
+  "father_window": "生 1730，殁 1762",
+  "written_as": "銑和",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "銑和"
+  ]
+ },
+ {
+  "pid": "P-册2-0130-5-0-0",
+  "name": "铣中",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第130页·第5行",
+  "filiation": "三子",
+  "window": "生 1767，殁 1796",
+  "father_pid": "P-册2-0128-4-0-0",
+  "father_name": "士兴",
+  "father_src": "册2·卷二·梦骥公世系·第128页·第4行",
+  "father_window": "生 1739，殁 1792",
+  "written_as": "銑中",
+  "pos": 3,
+  "total": 4,
+  "sons": [
+   "銑鸣",
+   "銑德",
+   "銑中",
+   "銑义"
+  ]
+ },
+ {
+  "pid": "P-册2-0132-5-0-0",
+  "name": "铣五",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第132页·第5行",
+  "filiation": "之子",
+  "window": "",
+  "father_pid": "P-册2-0132-4-0-0",
+  "father_name": "士厚",
+  "father_src": "册2·卷二·梦骥公世系·第132页·第4行",
+  "father_window": "生 1724",
+  "written_as": "銑五",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "銑五"
+  ]
+ },
+ {
+  "pid": "P-册2-0134-5-0-0",
+  "name": "铣金",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第134页·第5行",
+  "filiation": "长子",
+  "window": "",
+  "father_pid": "P-册2-0134-4-0-0",
+  "father_name": "士耀",
+  "father_src": "册2·卷二·梦骥公世系·第134页·第4行",
+  "father_window": "生 1738",
+  "written_as": "銑金",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "銑金",
+   "銑阳",
+   "銑元"
+  ]
+ },
+ {
+  "pid": "P-册2-0134-5-0-1",
+  "name": "铣阳",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第134页·第5行",
+  "filiation": "次子",
+  "window": "",
+  "father_pid": "P-册2-0134-4-0-0",
+  "father_name": "士耀",
+  "father_src": "册2·卷二·梦骥公世系·第134页·第4行",
+  "father_window": "生 1738",
+  "written_as": "銑阳",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "銑金",
+   "銑阳",
+   "銑元"
+  ]
+ },
+ {
+  "pid": "P-册2-0135-5-1-1",
+  "name": "铣果",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第135页·第5行",
+  "filiation": "长子",
+  "window": "生 1756，殁 1818",
+  "father_pid": "P-册2-0135-4-1-0",
+  "father_name": "士礼",
+  "father_src": "册2·卷二·梦骥公世系·第135页·第4行",
+  "father_window": "生 1730，殁 1797",
+  "written_as": "銑果",
+  "pos": 1,
+  "total": 4,
+  "sons": [
+   "銑果",
+   "銑赞",
+   "銑蕊",
+   "銑时"
+  ]
+ },
+ {
+  "pid": "P-册2-0137-5-1-0",
+  "name": "铣蕊",
+  "gen": 20,
+  "src_human": "册2·卷二·梦骥公世系·第137页·第5行",
+  "filiation": "三子",
+  "window": "生 1773，殁 1799",
+  "father_pid": "P-册2-0135-4-1-0",
+  "father_name": "士礼",
+  "father_src": "册2·卷二·梦骥公世系·第135页·第4行",
+  "father_window": "生 1730，殁 1797",
+  "written_as": "銑蕊",
+  "pos": 3,
+  "total": 4,
+  "sons": [
+   "銑果",
+   "銑赞",
+   "銑蕊",
+   "銑时"
+  ]
+ },
+ {
+  "pid": "P-册2-0163-5-1-0",
+  "name": "铣辅",
+  "gen": 20,
+  "src_human": "册2·卷三·梦林公世系·第163页·第5行",
+  "filiation": "长子",
+  "window": "生 1724，殁 1801",
+  "father_pid": "P-册2-0163-4-1-0",
+  "father_name": "士兰",
+  "father_src": "册2·卷三·梦林公世系·第163页·第4行",
+  "father_window": "生 1704，殁 1778",
+  "written_as": "銑辅",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "銑辅",
+   "銑翼"
+  ]
+ },
+ {
+  "pid": "P-册2-0164-5-0-0",
+  "name": "铣翼",
+  "gen": 20,
+  "src_human": "册2·卷三·梦林公世系·第164页·第5行",
+  "filiation": "次子",
+  "window": "生 1731，殁 1786",
+  "father_pid": "P-册2-0163-4-1-0",
+  "father_name": "士兰",
+  "father_src": "册2·卷三·梦林公世系·第163页·第4行",
+  "father_window": "生 1704，殁 1778",
+  "written_as": "銑翼",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "銑辅",
+   "銑翼"
+  ]
+ },
+ {
+  "pid": "P-册2-0371-5-1-0",
+  "name": "继才",
+  "gen": 25,
+  "src_human": "册2·卷四·朝泰公世系·第371页·第5行",
+  "filiation": "幼子",
+  "window": "生 1928",
+  "father_pid": "P-册2-0368-4-0-1",
+  "father_name": "壁生",
+  "father_src": "册2·卷四·朝泰公世系·第368页·第4行",
+  "father_window": "生 1882",
+  "written_as": "次幼殁",
+  "pos": 4,
+  "total": 4,
+  "sons": [
+   "继发",
+   "和",
+   "才",
+   "次幼殁"
+  ]
+ },
+ {
+  "pid": "P-册3-0135-1-1-0",
+  "name": "泽翔",
+  "gen": 21,
+  "src_human": "册3·卷六·朝阳公世系·第135页·第1行",
+  "filiation": "长子",
+  "window": "生 1770，殁 1834",
+  "father_pid": "P-册2-0183-5-1-0",
+  "father_name": "铣信",
+  "father_src": "册2·卷三·梦林公世系·第183页·第5行",
+  "father_window": "生 1741，殁 1786",
+  "written_as": "泽翱",
+  "pos": 1,
+  "total": 4,
+  "sons": [
+   "泽翱",
+   "泽翼",
+   "泽翅",
+   "泽栩"
+  ]
+ },
+ {
+  "pid": "P-册3-0259-1-1-0",
+  "name": "泽醕",
+  "gen": 21,
+  "src_human": "册3·卷六·朝阳公世系·第259页·第1行",
+  "filiation": "四子",
+  "window": "生 1790",
+  "father_pid": "P-册2-0203-5-1-0",
+  "father_name": "铣治",
+  "father_src": "册2·卷三·梦林公世系·第203页·第5行",
+  "father_window": "生 1750，殁 1741",
+  "written_as": "泽淐",
+  "pos": 4,
+  "total": 5,
+  "sons": [
+   "泽大",
+   "泽膏",
+   "泽雅",
+   "泽淐",
+   "泽渚"
+  ]
+ },
+ {
+  "pid": "P-册3-0311-1-1-0",
+  "name": "泽灃",
+  "gen": 21,
+  "src_human": "册3·卷七·朝阳公世系·第311页·第1行",
+  "filiation": "长子",
+  "window": "生 1785，殁 1842",
+  "father_pid": "P-册2-0238-5-0-0",
+  "father_name": "铣玉",
+  "father_src": "册2·卷三·梦林公世系·第238页·第5行",
+  "father_window": "生 1758，殁 1818",
+  "written_as": "泽沣",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "泽沣",
+   "泽澡",
+   "泽澫"
+  ]
+ },
+ {
+  "pid": "P-册3-0336-1-0-0",
+  "name": "泽沂",
+  "gen": 21,
+  "src_human": "册3·卷七·朝纪公世系·第336页·第1行",
+  "filiation": "次子",
+  "window": "生 1779，殁 1807",
+  "father_pid": "P-册2-0247-5-1-0",
+  "father_name": "铣正",
+  "father_src": "册2·卷三·梦林公世系·第247页·第5行",
+  "father_window": "生 1748，殁 1830",
+  "written_as": "泽洐",
+  "pos": 2,
+  "total": 5,
+  "sons": [
+   "泽川",
+   "泽洐",
+   "泽浴",
+   "泽潮",
+   "泽国"
+  ]
+ },
+ {
+  "pid": "P-册3-0058-2-0-0",
+  "name": "梁椽",
+  "gen": 22,
+  "src_human": "册3·卷五·朝阳公世系·第58页·第2行",
+  "filiation": "三子",
+  "window": "生 1792",
+  "father_pid": "P-册3-0056-1-0-0",
+  "father_name": "泽洋",
+  "father_src": "册3·卷五·朝阳公世系·第56页·第1行",
+  "father_window": "生 1758",
+  "written_as": "梁橼",
+  "pos": 3,
+  "total": 4,
+  "sons": [
+   "梁柱",
+   "梁桾",
+   "梁橼",
+   "梁根"
+  ]
+ },
+ {
+  "pid": "P-册3-0146-2-0-0",
+  "name": "梁架",
+  "gen": 22,
+  "src_human": "册3·卷六·朝阳公世系·第146页·第2行",
+  "filiation": "次子",
+  "window": "生 1805，殁 1857",
+  "father_pid": "P-册3-0135-1-1-0",
+  "father_name": "泽翔",
+  "father_src": "册3·卷六·朝阳公世系·第135页·第1行",
+  "father_window": "生 1770，殁 1834",
+  "written_as": "架",
+  "pos": 2,
+  "total": 3,
+  "sons": [
+   "梁枸",
+   "架",
+   "柴"
+  ]
+ },
+ {
+  "pid": "P-册3-0275-2-1-1",
+  "name": "梁杠",
+  "gen": 22,
+  "src_human": "册3·卷七·朝阳公世系·第275页·第2行",
+  "filiation": "幼子",
+  "window": "生 1807",
+  "father_pid": "P-册3-0275-1-1-0",
+  "father_name": "泽宽",
+  "father_src": "册3·卷七·朝阳公世系·第275页·第1行",
+  "father_window": "生 1766",
+  "written_as": "杠",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "梁杬",
+   "杠"
+  ]
+ },
+ {
+  "pid": "P-册3-0276-2-0-1",
+  "name": "梁柘",
+  "gen": 22,
+  "src_human": "册3·卷七·朝阳公世系·第276页·第2行",
+  "filiation": "幼子",
+  "window": "生 1808，殁 1846",
+  "father_pid": "P-册3-0276-1-0-0",
+  "father_name": "泽裕",
+  "father_src": "册3·卷七·朝阳公世系·第276页·第1行",
+  "father_window": "生 1770，殁 1814",
+  "written_as": "柘",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "梁标",
+   "柘"
+  ]
+ },
+ {
+  "pid": "P-册3-0281-2-1-0",
+  "name": "梁惠",
+  "gen": 22,
+  "src_human": "册3·卷七·朝阳公世系·第281页·第2行",
+  "filiation": "嗣子",
+  "window": "生 1814",
+  "father_pid": "P-册3-0280-1-0-0",
+  "father_name": "泽沐",
+  "father_src": "册3·卷七·朝阳公世系·第280页·第1行",
+  "father_window": "生 1783，殁 1815",
+  "written_as": "惠",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "梁尧",
+   "惠"
+  ]
+ },
+ {
+  "pid": "P-册3-0286-2-0-0",
+  "name": "梁四",
+  "gen": 22,
+  "src_human": "册3·卷七·朝阳公世系·第286页·第2行",
+  "filiation": "四子",
+  "window": "生 1806，殁 1849",
+  "father_pid": "P-册3-0282-1-0-0",
+  "father_name": "泽均",
+  "father_src": "册3·卷七·朝阳公世系·第282页·第1行",
+  "father_window": "生 1772，殁 1833",
+  "written_as": "粱四",
+  "pos": 4,
+  "total": 5,
+  "sons": [
+   "梁一",
+   "梁二",
+   "梁三",
+   "粱四",
+   "梁五"
+  ]
+ },
+ {
+  "pid": "P-册3-0032-3-0-0",
+  "name": "光菇",
+  "gen": 23,
+  "src_human": "册3·卷五·朝阳公世系·第32页·第3行",
+  "filiation": "三子",
+  "window": "生 1842",
+  "father_pid": "P-册3-0030-2-0-0",
+  "father_name": "梁必",
+  "father_src": "册3·卷五·朝阳公世系·第30页·第2行",
+  "father_window": "生 1807",
+  "written_as": "光茹",
+  "pos": 3,
+  "total": 4,
+  "sons": [
+   "光翮",
+   "光远",
+   "光茹",
+   "光庆"
+  ]
+ },
+ {
+  "pid": "P-册3-0112-3-0-0",
+  "name": "光仓",
+  "gen": 23,
+  "src_human": "册3·卷五·朝阳公世系·第112页·第3行",
+  "filiation": "次子",
+  "window": "生 1829",
+  "father_pid": "P-册3-0110-2-0-0",
+  "father_name": "梁英",
+  "father_src": "册3·卷五·朝阳公世系·第110页·第2行",
+  "father_window": "生 1781",
+  "written_as": "光会",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "光彩",
+   "光会"
+  ]
+ },
+ {
+  "pid": "P-册3-0299-3-1-0",
+  "name": "光彝",
+  "gen": 23,
+  "src_human": "册3·卷七·朝阳公世系·第299页·第3行",
+  "filiation": "长子",
+  "window": "生 1813，殁 1835",
+  "father_pid": "P-册3-0299-2-1-0",
+  "father_name": "梁一",
+  "father_src": "册3·卷七·朝阳公世系·第299页·第2行",
+  "father_window": "生 1794，殁 1852",
+  "written_as": "光彛",
+  "pos": 1,
+  "total": 6,
+  "sons": [
+   "光彛",
+   "光献",
+   "光烈",
+   "光忂",
+   "光豫",
+   "光徐"
+  ]
+ },
+ {
+  "pid": "P-册3-0301-3-1-0",
+  "name": "光衢",
+  "gen": 23,
+  "src_human": "册3·卷七·朝阳公世系·第301页·第3行",
+  "filiation": "四子",
+  "window": "生 1825",
+  "father_pid": "P-册3-0299-2-1-0",
+  "father_name": "梁一",
+  "father_src": "册3·卷七·朝阳公世系·第299页·第2行",
+  "father_window": "生 1794，殁 1852",
+  "written_as": "光忂",
+  "pos": 4,
+  "total": 6,
+  "sons": [
+   "光彛",
+   "光献",
+   "光烈",
+   "光忂",
+   "光豫",
+   "光徐"
+  ]
+ },
+ {
+  "pid": "P-册3-0392-3-0-0",
+  "name": "光亮",
+  "gen": 23,
+  "src_human": "册3·卷七·朝京公世系·第392页·第3行",
+  "filiation": "嗣子",
+  "window": "生 1874，殁 1937",
+  "father_pid": "P-册3-0387-2-1-0",
+  "father_name": "梁餗",
+  "father_src": "册3·卷七·朝京公世系·第387页·第2行",
+  "father_window": "生 1846",
+  "written_as": "光梁",
+  "pos": 3,
+  "total": 4,
+  "sons": [
+   "光河",
+   "光习",
+   "光梁",
+   "光盛"
+  ]
+ },
+ {
+  "pid": "P-册3-0048-4-0-0",
+  "name": "壁机",
+  "gen": 24,
+  "src_human": "册3·卷五·朝阳公世系·第48页·第4行",
+  "filiation": "次子",
+  "window": "生 1900",
+  "father_pid": "P-册3-0048-3-0-0",
+  "father_name": "光彰",
+  "father_src": "册3·卷五·朝阳公世系·第48页·第3行",
+  "father_window": "生 1870",
+  "written_as": "梁机",
+  "pos": 2,
+  "total": 4,
+  "sons": [
+   "壁深",
+   "梁机",
+   "壁梁",
+   "兄光顽"
+  ]
+ },
+ {
+  "pid": "P-册3-0138-4-0-0",
+  "name": "梁娄",
+  "gen": 24,
+  "src_human": "册3·卷六·朝阳公世系·第138页·第4行",
+  "filiation": "四子",
+  "window": "生 1879，殁 1922",
+  "father_pid": "P-册3-0135-3-1-0",
+  "father_name": "光辉",
+  "father_src": "册3·卷六·朝阳公世系·第135页·第3行",
+  "father_window": "生 1833",
+  "written_as": "壁娄",
+  "pos": 4,
+  "total": 7,
+  "sons": [
+   "壁荣",
+   "壁书",
+   "壁富",
+   "壁娄",
+   "壁甘",
+   "壁瀛",
+   "壁韓"
+  ]
+ },
+ {
+  "pid": "P-册3-0145-4-1-0",
+  "name": "壁韩",
+  "gen": 24,
+  "src_human": "册3·卷六·朝阳公世系·第145页·第4行",
+  "filiation": "幼子",
+  "window": "生 1891，殁 1923",
+  "father_pid": "P-册3-0135-3-1-0",
+  "father_name": "光辉",
+  "father_src": "册3·卷六·朝阳公世系·第135页·第3行",
+  "father_window": "生 1833",
+  "written_as": "壁韓",
+  "pos": 7,
+  "total": 7,
+  "sons": [
+   "壁荣",
+   "壁书",
+   "壁富",
+   "壁娄",
+   "壁甘",
+   "壁瀛",
+   "壁韓"
+  ]
+ },
+ {
+  "pid": "P-册3-0186-4-0-0",
+  "name": "壁余",
+  "gen": 24,
+  "src_human": "册3·卷六·朝阳公世系·第186页·第4行",
+  "filiation": "嗣子",
+  "window": "生 1870",
+  "father_pid": "P-册3-0178-3-0-0",
+  "father_name": "光表",
+  "father_src": "册3·卷六·朝阳公世系·第178页·第3行",
+  "father_window": "生 1830",
+  "written_as": "壁馀",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "壁坚",
+   "壁固",
+   "壁馀"
+  ]
+ },
+ {
+  "pid": "P-册3-0033-5-1-0",
+  "name": "继烺",
+  "gen": 25,
+  "src_human": "册3·卷五·朝阳公世系·第33页·第5行",
+  "filiation": "三子",
+  "window": "生 1886，殁 1903",
+  "father_pid": "P-册3-0032-4-0-0",
+  "father_name": "壁鍙",
+  "father_src": "册3·卷五·朝阳公世系·第32页·第4行",
+  "father_window": "生 1860",
+  "written_as": "继朗",
+  "pos": 3,
+  "total": 6,
+  "sons": [
+   "继乾",
+   "继动",
+   "继朗",
+   "继盛",
+   "继会",
+   "继寿"
+  ]
+ },
+ {
+  "pid": "P-册3-0050-5-0-0",
+  "name": "继芍",
+  "gen": 25,
+  "src_human": "册3·卷五·朝阳公世系·第50页·第5行",
+  "filiation": "幼子",
+  "window": "生 1945",
+  "father_pid": "P-册3-0048-4-0-0",
+  "father_name": "壁机",
+  "father_src": "册3·卷五·朝阳公世系·第48页·第4行",
+  "father_window": "生 1900",
+  "written_as": "继芍殁",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "继开",
+   "继芍殁"
+  ]
+ },
+ {
+  "pid": "P-册3-0289-5-1-0",
+  "name": "继栢",
+  "gen": 25,
+  "src_human": "册3·卷七·朝阳公世系·第289页·第5行",
+  "filiation": "之子",
+  "window": "生 1936",
+  "father_pid": "P-册3-0289-4-1-0",
+  "father_name": "壁全",
+  "father_src": "册3·卷七·朝阳公世系·第289页·第4行",
+  "father_window": "生 1894，殁 1971",
+  "written_as": "继柏",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "继柏"
+  ]
+ },
+ {
+  "pid": "P-册4-0014-1-0-0",
+  "name": "开萬",
+  "gen": 26,
+  "src_human": "册4·卷八·朝纪公世系·第14页·第1行",
+  "filiation": "幼子",
+  "window": "生 1964",
+  "father_pid": "P-册3-0367-5-1-1",
+  "father_name": "继伯",
+  "father_src": "册3·卷七·朝纪公世系·第367页·第5行",
+  "father_window": "生 1917，殁 1990",
+  "written_as": "开万",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "开国",
+   "开万"
+  ]
+ },
+ {
+  "pid": "P-册4-0021-1-1-0",
+  "name": "开體",
+  "gen": 26,
+  "src_human": "册4·卷八·朝纪公世系·第21页·第1行",
+  "filiation": "幼子",
+  "window": "生 1970",
+  "father_pid": "P-册3-0370-5-0-0",
+  "father_name": "继又",
+  "father_src": "册3·卷七·朝纪公世系·第370页·第5行",
+  "father_window": "生 1926，殁 1983",
+  "written_as": "开体",
+  "pos": 3,
+  "total": 3,
+  "sons": [
+   "开德",
+   "开智",
+   "开体"
+  ]
+ },
+ {
+  "pid": "P-册4-0065-1-1-0",
+  "name": "开学",
+  "gen": 26,
+  "src_human": "册4·卷八·学仁公世系·第65页·第1行",
+  "filiation": "之子",
+  "window": "生 1964",
+  "father_pid": "P-册3-0042-5-0-0",
+  "father_name": "继神",
+  "father_src": "册3·卷五·朝阳公世系·第42页·第5行",
+  "father_window": "生 1933",
+  "written_as": "开兵",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "开兵",
+   "开先"
+  ]
+ },
+ {
+  "pid": "P-册4-0068-1-0-0",
+  "name": "开年",
+  "gen": 26,
+  "src_human": "册4·卷八·学仁公世系·第68页·第1行",
+  "filiation": "之子",
+  "window": "生 1956",
+  "father_pid": "P-册3-0045-5-1-0",
+  "father_name": "继金",
+  "father_src": "册3·卷五·朝阳公世系·第45页·第5行",
+  "father_window": "生 1928",
+  "written_as": "开言",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "开言",
+   "开再"
+  ]
+ },
+ {
+  "pid": "P-册4-0093-1-1-0",
+  "name": "开阳",
+  "gen": 26,
+  "src_human": "册4·卷八·学义公世系·第93页·第1行",
+  "filiation": "长子",
+  "window": "生 1935",
+  "father_pid": "P-册3-0081-5-1-0",
+  "father_name": "继公",
+  "father_src": "册3·卷五·朝阳公世系·第81页·第5行",
+  "father_window": "生 1909",
+  "written_as": "开洋",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "开洋",
+   "开淦"
+  ]
+ },
+ {
+  "pid": "P-册4-0133-1-1-0",
+  "name": "开利",
+  "gen": 26,
+  "src_human": "册4·卷八·学义公世系·第133页·第1行",
+  "filiation": "幼子",
+  "window": "生 1930",
+  "father_pid": "P-册3-0145-5-1-0",
+  "father_name": "继仁",
+  "father_src": "册3·卷六·朝阳公世系·第145页·第5行",
+  "father_window": "生 1893，殁 1967",
+  "written_as": "開利",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "開先",
+   "開利"
+  ]
+ },
+ {
+  "pid": "P-册4-0137-1-1-0",
+  "name": "开聪",
+  "gen": 26,
+  "src_human": "册4·卷八·学义公世系·第137页·第1行",
+  "filiation": "长子",
+  "window": "生 1914",
+  "father_pid": "P-册3-0155-5-1-0",
+  "father_name": "继林",
+  "father_src": "册3·卷六·朝阳公世系·第155页·第5行",
+  "father_window": "生 1889，殁 1949",
+  "written_as": "開恥",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "開恥",
+   "開忠",
+   "開節"
+  ]
+ },
+ {
+  "pid": "P-册4-0153-1-1-0",
+  "name": "开成",
+  "gen": 26,
+  "src_human": "册4·卷八·学义公世系·第153页·第1行",
+  "filiation": "之子",
+  "window": "生 1952",
+  "father_pid": "P-册3-0148-5-0-0",
+  "father_name": "继由",
+  "father_src": "册3·卷六·朝阳公世系·第148页·第5行",
+  "father_window": "生 1915，殁 1991",
+  "written_as": "開成",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "開成"
+  ]
+ },
+ {
+  "pid": "P-册4-0154-1-0-0",
+  "name": "开同",
+  "gen": 26,
+  "src_human": "册4·卷八·学义公世系·第154页·第1行",
+  "filiation": "长子",
+  "window": "生 1965",
+  "father_pid": "P-册3-0151-5-1-0",
+  "father_name": "继路",
+  "father_src": "册3·卷六·朝阳公世系·第151页·第5行",
+  "father_window": "生 1921，殁 1992",
+  "written_as": "開同",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "開同",
+   "開志"
+  ]
+ },
+ {
+  "pid": "P-册4-0209-1-1-1",
+  "name": "日时",
+  "gen": 26,
+  "src_human": "册4·卷九·学义公世系·第209页·第1行",
+  "filiation": "长子",
+  "window": "",
+  "father_pid": "P-册3-0246-5-0-0",
+  "father_name": "继喜",
+  "father_src": "册3·卷六·朝阳公世系·第246页·第5行",
+  "father_window": "生 1993",
+  "written_as": "长幼殁",
+  "pos": 1,
+  "total": 3,
+  "sons": [
+   "长幼殁",
+   "开荣",
+   "开奎"
+  ]
+ },
+ {
+  "pid": "P-册4-0238-1-0-1",
+  "name": "日时",
+  "gen": 26,
+  "src_human": "册4·卷九·学信公世系·第238页·第1行",
+  "filiation": "长子",
+  "window": "",
+  "father_pid": "P-册3-0390-5-0-0",
+  "father_name": "继琼",
+  "father_src": "册3·卷七·朝京公世系·第390页·第5行",
+  "father_window": "生 1944",
+  "written_as": "開宝",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "開宝",
+   "開晶"
+  ]
+ },
+ {
+  "pid": "P-册4-0270-1-0-0",
+  "name": "开斌",
+  "gen": 26,
+  "src_human": "册4·卷九·朝京公世系·第270页·第1行",
+  "filiation": "之子",
+  "window": "生 1979",
+  "father_pid": "P-册3-0388-5-0-0",
+  "father_name": "继彪",
+  "father_src": "册3·卷七·朝京公世系·第388页·第5行",
+  "father_window": "生 1952，殁 1986",
+  "written_as": "開斌",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "開斌"
+  ]
+ },
+ {
+  "pid": "P-册4-0271-1-1-0",
+  "name": "开宝",
+  "gen": 26,
+  "src_human": "册4·卷九·朝京公世系·第271页·第1行",
+  "filiation": "长子",
+  "window": "生 1972",
+  "father_pid": "P-册3-0390-5-0-0",
+  "father_name": "继琼",
+  "father_src": "册3·卷七·朝京公世系·第390页·第5行",
+  "father_window": "生 1944",
+  "written_as": "開宝",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "開宝",
+   "開晶"
+  ]
+ },
+ {
+  "pid": "P-册4-0272-1-0-0",
+  "name": "开晶",
+  "gen": 26,
+  "src_human": "册4·卷九·朝京公世系·第272页·第1行",
+  "filiation": "次子",
+  "window": "生 1976",
+  "father_pid": "P-册3-0390-5-0-0",
+  "father_name": "继琼",
+  "father_src": "册3·卷七·朝京公世系·第390页·第5行",
+  "father_window": "生 1944",
+  "written_as": "開晶",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "開宝",
+   "開晶"
+  ]
+ },
+ {
+  "pid": "P-册4-0276-1-0-0",
+  "name": "开聪",
+  "gen": 26,
+  "src_human": "册4·卷九·朝京公世系·第276页·第1行",
+  "filiation": "长子",
+  "window": "生 1982",
+  "father_pid": "P-册3-0399-5-1-0",
+  "father_name": "继盟",
+  "father_src": "册3·卷七·朝京公世系·第399页·第5行",
+  "father_window": "生 1953",
+  "written_as": "開聪",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "開聪",
+   "開珠"
+  ]
+ },
+ {
+  "pid": "P-册4-0278-1-0-0",
+  "name": "开宗",
+  "gen": 26,
+  "src_human": "册4·卷九·朝京公世系·第278页·第1行",
+  "filiation": "之子",
+  "window": "生 1985",
+  "father_pid": "P-册3-0402-5-0-0",
+  "father_name": "继再",
+  "father_src": "册3·卷七·朝京公世系·第402页·第5行",
+  "father_window": "生 1950",
+  "written_as": "開中",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "開中"
+  ]
+ },
+ {
+  "pid": "P-册4-0144-2-0-0",
+  "name": "承權",
+  "gen": 27,
+  "src_human": "册4·卷八·学义公世系·第144页·第2行",
+  "filiation": "长子",
+  "window": "生 1954",
+  "father_pid": "P-册4-0144-1-0-0",
+  "father_name": "开南",
+  "father_src": "册4·卷八·学义公世系·第144页·第1行",
+  "father_window": "生 1921",
+  "written_as": "承权",
+  "pos": 1,
+  "total": 2,
+  "sons": [
+   "承权",
+   "承军"
+  ]
+ },
+ {
+  "pid": "P-册4-0192-2-0-0",
+  "name": "承皓",
+  "gen": 27,
+  "src_human": "册4·卷九·学义公世系·第192页·第2行",
+  "filiation": "之子",
+  "window": "生 1997",
+  "father_pid": "P-册4-0192-1-0-0",
+  "father_name": "开放",
+  "father_src": "册4·卷九·学义公世系·第192页·第1行",
+  "father_window": "生 1965",
+  "written_as": "敏未字",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "皓",
+   "敏未字"
+  ]
+ },
+ {
+  "pid": "P-册4-0278-2-0-0",
+  "name": "承韩",
+  "gen": 27,
+  "src_human": "册4·卷九·朝京公世系·第278页·第2行",
+  "filiation": "之子",
+  "window": "",
+  "father_pid": "P-册4-0278-1-0-0",
+  "father_name": "开宗",
+  "father_src": "册4·卷九·朝京公世系·第278页·第1行",
+  "father_window": "生 1985",
+  "written_as": "韩",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "韩"
+  ]
+ },
+ {
+  "pid": "P-册4-0070-3-0-0",
+  "name": "宏佑",
+  "gen": 28,
+  "src_human": "册4·卷八·学仁公世系·第70页·第3行",
+  "filiation": "之子",
+  "window": "",
+  "father_pid": "P-册4-0070-2-0-0",
+  "father_name": "承欢",
+  "father_src": "册4·卷八·学仁公世系·第70页·第2行",
+  "father_window": "生 1986",
+  "written_as": "佑",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "佑"
+  ]
+ },
+ {
+  "pid": "P-册4-0088-3-0-0",
+  "name": "宏味",
+  "gen": 28,
+  "src_human": "册4·卷八·学义公世系·第88页·第3行",
+  "filiation": "之子",
+  "window": "生 1984",
+  "father_pid": "P-册4-0088-2-0-0",
+  "father_name": "承荣",
+  "father_src": "册4·卷八·学义公世系·第88页·第2行",
+  "father_window": "生 1959",
+  "written_as": "宏咪",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "宏咪"
+  ]
+ },
+ {
+  "pid": "P-册4-0092-3-0-0",
+  "name": "宏柱",
+  "gen": 28,
+  "src_human": "册4·卷八·学义公世系·第92页·第3行",
+  "filiation": "幼子",
+  "window": "生 1966",
+  "father_pid": "P-册4-0089-2-1-0",
+  "father_name": "承青",
+  "father_src": "册4·卷八·学义公世系·第89页·第2行",
+  "father_window": "生 1932",
+  "written_as": "宏桂",
+  "pos": 4,
+  "total": 4,
+  "sons": [
+   "宏求",
+   "宏文",
+   "宏平",
+   "宏桂"
+  ]
+ },
+ {
+  "pid": "P-册4-0193-3-1-1",
+  "name": "宏元",
+  "gen": 28,
+  "src_human": "册4·卷九·学义公世系·第193页·第3行",
+  "filiation": "次子",
+  "window": "生 2012",
+  "father_pid": "P-册4-0207-2-1-0",
+  "father_name": "承锋",
+  "father_src": "册4·卷九·学义公世系·第207页·第2行",
+  "father_window": "生 1976",
+  "written_as": "东煜",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "振东",
+   "东煜"
+  ]
+ },
+ {
+  "pid": "P-册4-0207-3-1-1",
+  "name": "宏煜",
+  "gen": 28,
+  "src_human": "册4·卷九·学义公世系·第207页·第3行",
+  "filiation": "次子",
+  "window": "生 2007",
+  "father_pid": "P-册4-0207-2-1-0",
+  "father_name": "承锋",
+  "father_src": "册4·卷九·学义公世系·第207页·第2行",
+  "father_window": "生 1976",
+  "written_as": "东煜",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "振东",
+   "东煜"
+  ]
+ },
+ {
+  "pid": "P-册4-0208-3-0-0",
+  "name": "宏冯",
+  "gen": 28,
+  "src_human": "册4·卷九·学义公世系·第208页·第3行",
+  "filiation": "之子",
+  "window": "生 2004",
+  "father_pid": "P-册4-0199-2-1-0",
+  "father_name": "承伟",
+  "father_src": "册4·卷九·学义公世系·第199页·第2行",
+  "father_window": "生 1985",
+  "written_as": "哲晖",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "哲晖"
+  ]
+ },
+ {
+  "pid": "P-册4-0212-3-0-1",
+  "name": "宏凡",
+  "gen": 28,
+  "src_human": "册4·卷九·学义公世系·第212页·第3行",
+  "filiation": "之子",
+  "window": "生 1998",
+  "father_pid": "P-册4-0078-2-0-0",
+  "father_name": "承兵",
+  "father_src": "册4·卷八·学仁公世系·第78页·第2行",
+  "father_window": "约生于 1909–1987 之间",
+  "written_as": "字张林",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "字张林"
+  ]
+ },
+ {
+  "pid": "P-册4-0250-3-0-1",
+  "name": "宏辉",
+  "gen": 28,
+  "src_human": "册4·卷九·学信公世系·第250页·第3行",
+  "filiation": "幼子",
+  "window": "生 1993",
+  "father_pid": "P-册4-0250-2-0-0",
+  "father_name": "承垦",
+  "father_src": "册4·卷九·学信公世系·第250页·第2行",
+  "father_window": "生 1960",
+  "written_as": "宏煇",
+  "pos": 2,
+  "total": 2,
+  "sons": [
+   "宏军",
+   "宏煇"
+  ]
+ },
+ {
+  "pid": "P-册4-0211-4-1-0",
+  "name": "绪烁",
+  "gen": 29,
+  "src_human": "册4·卷九·学义公世系·第211页·第4行",
+  "filiation": "之子",
+  "window": "",
+  "father_pid": "P-册4-0211-3-1-0",
+  "father_name": "宏能",
+  "father_src": "册4·卷九·学义公世系·第211页·第3行",
+  "father_window": "生 1990",
+  "written_as": "铭烁",
+  "pos": 1,
+  "total": 1,
+  "sons": [
+   "铭烁"
+  ]
+ }
+]
