@@ -20,6 +20,7 @@
  */
 import type { Person } from './types.ts';
 import type { EraChart } from './years.ts';
+import { continued } from './continued.ts';
 import { MIN_GAP, MAX_GAP } from './years.ts';
 
 /** 夫妻年龄差。只用来给没有本人年份的人框个很宽的窗——宁可框不住，不可框错。 */
@@ -65,7 +66,21 @@ export function buildWindows(people: Person[], chart: EraChart): Map<string, Win
 
   for (const p of people) {
     const w: Window = { born: null, died: null, lo: null, hi: null, why: [], conflict: null };
-    const b = Y(p.birth?.text), d = Y(p.death?.text);
+    // ★ 生年殁年要走**和界面同一个来源**。
+    //
+    //   谱上有两种写法会把生和殁挤在一起：
+    //     翻页断行——「生于X　殁于」在这一页末行，日期在下一页头一行
+    //     同行连写——「民国十年十一月初五日亥时殁于一九九三年八月」
+    //
+    //   继喜（第25世）就是后一种：整行被当成生年，於是他「生於 1993」，
+    //   而两个儿子生於 1956、1964——父亲比儿子小三十几岁，
+    //   两条边因此被判成「年代不可能」。
+    //
+    //   界面早就用 continued() 把它切开了，判据这边却还在读原字段——
+    //   **同一件事有两个来源，迟早对不上。** 这里接上同一个。
+    const cont = continued(p);
+    const b = Y(cont ? cont.birthText : p.birth?.text);
+    const d = Y(p.death?.text) ?? (cont ? Y(cont.tail.text) : null);
     if (b) { w.born = w.lo = w.hi = b; w.why.push('谱上写了生年'); }
     if (d) { w.died = d; w.why.push('谱上写了殁年'); }
     // 寿数倒推：殁年 − 寿数 = 生年。谱自己写的两个数，减法。
@@ -109,11 +124,23 @@ export function buildWindows(people: Person[], chart: EraChart): Map<string, Win
   }
 
   // 子女的生年：父亲一定比子女早生 13–75 年
+  //
+  // ★ **只数世次差正好 1 的边。**
+  //   浒公（第 13 世，明嘉靖年间的人）身上挂着三条指向他的边，
+  //   来自第 28 世的宏刚、宏毅、宏军（生 1983–1987）——同名撞出来的 rank5 边，
+  //   判据早就按「世次差 15 代」排掉了。可这里数子女时用的是原始 parent_edges，
+  //   没过判据，於是浒公的窗口被拖成「1908–1974」，
+  //   再拿去比他父亲磨公（生 1529），当然兜不拢。
+  //
+  //   世次是原书世代列头标死的，全谱 100% 成立——拿它当闸最稳。
+  const genOf = new Map(people.map(p => [p.pid, p.gen]));
   const kids = new Map<string, number[]>();
   for (const p of people) {
     const b = W.get(p.pid)!.born;
     if (!b) continue;
     for (const e of p.parent_edges) {
+      const fg = genOf.get(e.parent);
+      if (fg == null || p.gen == null || p.gen - fg !== 1) continue;
       (kids.get(e.parent) ?? kids.set(e.parent, []).get(e.parent)!).push(b);
     }
   }

@@ -41,7 +41,29 @@ export function continued(p: Person): Continued | null {
   const parts = raw.split('｜').map(s => s.trim()).filter(Boolean);
   const lines = p.birth?.lines ?? [];
   const i = parts.findIndex(s => MARK.some(m => NS(s).endsWith(m)));
-  if (i < 0) return null;
+
+  // ★ 另一种写法：**生和殁挤在同一行**，中间就一个「殁于」。
+  //
+  //     生于
+  //     民国十年十一月初五日亥时殁于一九九三年八月
+  //     二十九日酉时葬方坝台
+  //
+  //   继喜（第25世）就是这样。解析器把整行当成生年，
+  //   於是他「生於 1993」，而两个儿子生於 1956、1964——
+  //   父亲比儿子小三十几岁。切开就对了：生 1921、殁 1993。
+  //   全谱这样的 3 人。
+  if (i < 0) {
+    for (let k = 0; k < parts.length; k++) {
+      const m = /^(.+?)(殁于|殁於|卒于|卒於)(.+)$/.exec(NS(parts[k]));
+      if (!m || !m[3]) continue;
+      return {
+        birthText: m[1] + m[2],
+        tail: { text: m[3], page: p.src.page, seq: lines[k] ?? 0 },
+        stray: parts.filter((_, j) => j !== k),
+      };
+    }
+    return null;
+  }
 
   // 「殁于」那一行的行号。行数和段数对不上时不做——宁可不显示，也不接错。
   const at = lines.length === parts.length ? lines[i] : lines[lines.length - 1];

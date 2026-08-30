@@ -80,6 +80,7 @@ export function sameSurname(refs: Referenced[], r: Referenced): Referenced[] {
 
 // ── 搜索：她们必须能被搜到本人，而不是搜出她们的丈夫 ──────────────
 import { norm, homophoneKey, editDistance } from './norm.ts';
+import { isNotAPerson } from './fragment.ts';
 
 export interface RefMatch { field: string; text: string; score: number; why: string; snippet?: string }
 export interface RefHit { ref: Referenced; matches: RefMatch[]; score: number }
@@ -121,6 +122,12 @@ export function searchReferenced(refs: Referenced[], query: string): RefHit[] {
   };
 
   for (const r of refs) {
+    // ★ 不是人名的不该被当人搜出来。
+    //   上游从「生子N：…」名单里扫名字时，把混在名单里的句子一起扫了进来：
+    //   朝爱之子「也」、泽渭之子「迁陕」、壁贵之子「公殁于」——共 375 条。
+    //   子女栏已经改成按谱自己的格式重读，这些进不来了；搜索这一层之前忘了挡。
+    //   数据一条没删，本人卡片底部的「谱上原文」照旧完整。
+    if ((r.role === '女' || r.role.startsWith('子')) && isNotAPerson(r.name_raw)) continue;
     const ms: RefMatch[] = [];
     const push = (m: RefMatch | null) => { if (m) ms.push(m); };
 

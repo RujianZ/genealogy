@@ -42,6 +42,15 @@ export const HUSBAND = /^(?:长|次|三|四|五|六|七|八|九|十|幼|季|末)
 /** 记号：生子N／生女N（N 可省）、子N／女N（光杆的必须带数字，不然会撞进人名） */
 const MARK = /(生[子女])([一二三四五六七八九十两])?|([子女])([一二三四五六七八九十两])/;
 
+/**
+ * ★ 「养子N」「嗣子N」不是「生子N」。
+ *   铣茂（册2·卷一·第90页）写「生子一　泽蛟 ｜ **养子一**　泽龙」——
+ *   光杆的「子一」这个记号把「养子一」也当成了开块，於是谱写生子一、
+ *   我们读出两个，看着像多摆了一个人。养来的照旧要显示，
+ *   只是不该并进「生子N」这个数里。
+ */
+const NOT_BIRTH = /[养養嗣继繼过過]$/;
+
 export interface RosterName {
   /** 谱上原样的那几个字 */
   raw: string;
@@ -51,6 +60,8 @@ export interface RosterName {
   died: boolean;
   /** 嫁到哪一家（女儿） */
   husband: string | null;
+  /** 这一位是「养子N／嗣子N」块里的——是他的儿子，但不算进「生子N」那个数 */
+  adopted?: boolean;
 }
 
 export interface Roster { sons: RosterName[]; daughters: RosterName[] }
@@ -106,7 +117,21 @@ function nameOf(tok: string): RosterName | null {
 
   if (t.length > 4) return null;
   if (/[于於]/.test(t)) return null;
-  if (/[年月日时葬]/.test(t)) return null;
+  // ★ 不是人名的几种：妻子的法名、葬向的尾巴、方位词。
+  //   泽海那条把妻子的「法名尚志」读成了儿子；
+  //   壁焕那条把葬向的「丁向有碑」读成了儿子。
+  if (/^法名|向有碑|^俱|合墓|^[东南西北]/.test(t)) return null;
+  // ★ 带「年月日时」的**不能一律扔**——那也是人名用字。
+  //
+  //   铣成（册2·卷三·第283页）写「生子三　泽人　泽寿　**泽年**」，
+  //   第三个被这一条扔掉了，於是泽年（第21世 册3·卷七·第408页）
+  //   接不上父亲。上一行注释里自己举的「光月」也是同一类。
+  //
+  //   要扔的是**日期碎片**（「年十二月」「初四日寅时」），它们一定
+  //   **以时间字开头**；人名是「辈字＋名」，头一个字是辈字。
+  //   所以只看头一个字，不看整串。
+  if (/^[年月日时辰葬于於初]/.test(t)) return null;
+  if (/[年月日时]/.test(t) && t.length > 2) return null;   // 「年十二月」这种
   if (structural(t)) return null;
   return { raw: tok, name: t, died: false, husband: null };
 }
@@ -137,7 +162,7 @@ function shareGenChar(list: RosterName[]): void {
 
 export function roster(p: Person): Roster {
   const sons: RosterName[] = [], daughters: RosterName[] = [];
-  let want = 0, into: RosterName[] | null = null;
+  let want = 0, into: RosterName[] | null = null, adopted = false;
 
   const take = (tok: string): boolean => {
     if (!into || want <= 0) return false;
@@ -154,6 +179,7 @@ export function roster(p: Person): Roster {
       if (!into || want <= 0) break;
       const n = nameOf(piece);
       if (!n) continue;                   // 不像名字的**跳过、不占名额**
+      if (adopted) n.adopted = true;
       into.push(n);
       want -= 1;
       got = true;
@@ -171,6 +197,9 @@ export function roster(p: Person): Roster {
           const head = tok.slice(0, m.index);
           if (head) take(head);
           into = /女/.test(m[1] ?? m[3] ?? '') ? daughters : sons;
+          // 「养子一」「嗣子二」也会命中光杆的「子N」记号。名字照收
+          // （那确实是他的儿子），但标出来，不并进「生子N」那个数。
+          adopted = !m[1] && NOT_BIRTH.test(NS(head));
           want = NUM[m[2] ?? m[4]] ?? Infinity;   // 没写数字 → 开着收
           tok = tok.slice(m.index + m[0].length);
           continue;

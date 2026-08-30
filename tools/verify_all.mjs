@@ -5,6 +5,7 @@
  * 这份脚本任何一条红了，就说明前面某处坏了。
  */
 import { readFileSync } from 'node:fs';
+import { fname } from '../src/core/fname.ts';
 import { buildIndex, childrenOf } from '../src/core/lineage.ts';
 import { withBacklinks } from '../src/core/backlink.ts';
 import { EraChart } from '../src/core/years.ts';
@@ -20,6 +21,13 @@ import { norm } from '../src/core/norm.ts';
 
 const J = n => JSON.parse(readFileSync(`data/${n}.json`, 'utf8'));
 const NS = s => (s || '').replace(/[\s　]/g, '');
+// 谱写下的儿子名，**两份取并集**：roster 按格式重读（会补辈字），
+// sons_claimed 是上游原样存的（会漏辈字，但另有 roster 读不到的）。
+// backlink 用的就是这把尺，断言必须用同一把——否则量出来的是尺子的差。
+const sonNames = f => new Set([
+  ...rosterOf(f).sons.filter(x => !x.died).map(x => norm(x.name || x.raw)),
+  ...(f.sons_claimed ?? []).map(norm),
+].filter(Boolean));
 let pass = 0, fail = 0;
 const ok = (cond, name, detail = '') => {
   if (cond) { pass++; console.log(`  ✔ ${name}`); }
@@ -182,9 +190,13 @@ console.log('\n══ 三、三条原则 ══\n');
     for (const e of p.parent_edges) {
       if (e.rank !== 1) continue;
       const f = idx.get(e.parent);
-      const sons = (f?.sons_claimed ?? []).map(norm);
+      // ★ 断言要跟判据用**同一把尺**。
+      //   sons_claimed 是上游原样存的，谱上兄弟连排时辈字只写一次
+      //   （「生子三　梁枸　架　柴」），所以里面躺着「架」「柴」这种半截名字。
+      //   roster() 才是按谱的格式读出来的那份。用旧字段量新判据，量出来的是尺子的差。
+      const sons = f ? sonNames(f) : new Set();
       const me = [norm(p.name), ...p.aliases.map(a => norm(a.form))];
-      if (!me.some(x => sons.includes(x))) {
+      if (!me.some(x => sons.has(x))) {
         bad.push(`${p.name}（${p.src_human}）→ ${e.parent_name}`);
       }
     }
@@ -198,7 +210,10 @@ console.log('\n══ 三、三条原则 ══\n');
     for (const e of p.parent_edges) {
       if (!e.derived || e.rank !== 1) continue;
       const f = idx.get(e.parent);
-      const w = norm(p.father_name);
+      // 册4 写「承华之长子」，前三册写「光量长子」——句末那个「之」是虚词，
+      // 比对时要去掉（src/core/fname.ts）。断言跟判据必须用同一把尺，
+      // 不然改对了代码，反倒是检验先报错。
+      const w = fname(p.father_name);
       if (!w || !f || (norm(f.name) !== w && !f.aliases.some(a => norm(a.form) === w))) {
         bad.push(`${p.name}（${p.src_human}）→ ${e.parent_name}`);
       }
@@ -210,17 +225,22 @@ console.log('\n══ 三、三条原则 ══\n');
 {
   const bad = [];
   for (const f of people) {
-    const n = (f.sons_claimed ?? []).length;
+    const n = sonNames(f).size;
     if (!n) continue;
     const okKids = childrenOf(people, f.pid).filter(k =>
       candidates(idx, k.child, chart, win).some(c => c.edge === k.edge && c.status === 'ok'));
     // 同名多人对得上时会多出行来，那是「不猜」要求的全列；
     // 这里查的是**不同名字的人数**不得超过名单长度。
-    const listed = new Set((f.sons_claimed ?? []).map(norm));
+    const listed = sonNames(f);
     // 名单外还挂着的，只有一种情况不允许：
     // **这条边是反查靠名字撞出来的，而本人条目里一个父亲都没写。**
     // （父边来自过继语句 stated_adopt、或本人写了父名的，都算谱明说过，照留。）
-    const strays = okKids.filter(k => !listed.has(norm(k.child.name))
+    // ★ 比对要连**字、讳、号**一起比，不能只比谱名。
+    //   谱上父亲写儿子，未必写谱名：开荣（册4·卷八·第78页第1行）那条
+    //   整行挤成一句「…娶章白枝…生子一**用兵**」，而第2行的承兵
+    //   **字就是用兵**。父子同页、正下一行，这是真关系，不是多出来的。
+    const nameForms = c => [norm(c.name), ...c.aliases.map(a => norm(a.form))];
+    const strays = okKids.filter(k => !nameForms(k.child).some(x => listed.has(x))
       && k.edge.derived && !k.child.father_name);
     if (strays.length) {
       bad.push(`${f.name}（${f.src_human}）多出 ${strays.map(k => k.child.name).join('、')}`);

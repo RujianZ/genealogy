@@ -17,6 +17,7 @@
  */
 import type { Person } from './types.ts';
 import { norm, homophoneKey, editDistance } from './norm.ts';
+import { isFragment } from './fragment.ts';
 
 /** 一个人身上的一处命中 */
 export interface Match {
@@ -75,6 +76,11 @@ export function search(people: Person[], query: string): Hit[] {
   const hits: Hit[] = [];
 
   for (const p of people) {
+    // ★ 解析残渣不是人，搜索里不该出现。
+    //   谱把不知道的月日时留空（「生于民国二十一年　月　日　时」），
+    //   解析器在「…日　时」处断出了一条记录，把这两个字当成了名字。
+    //   全谱 26 条。判断层早就不认它们了，搜索这一层之前忘了挡。
+    if (isFragment(p)) continue;
     const ms: Match[] = [];
     const push = (field: string, text: string, r: Omit<Match, 'field' | 'text'> | null) => {
       if (r) ms.push({ field, text, ...r });

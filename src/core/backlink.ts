@@ -29,6 +29,8 @@
  *
  * ★ people.json 一个字没动。补出来的边只活在内存里，标着 derived:true。
  */
+import { roster } from './roster.ts';
+import { fname } from './fname.ts';
 import type { Person, ParentEdge } from './types.ts';
 import { norm } from './norm.ts';
 
@@ -51,8 +53,42 @@ export function withBacklinks(people: Person[]): Person[] {
   // 谁被谁点了名
   const claims = new Map<string, Person[]>();
   for (const f of people) {
-    for (const son of f.sons_claimed ?? []) {
-      const k = NS(son);
+    // ★ 走 roster，不用原始的 sons_claimed。
+    //
+    //   谱上兄弟连排时**辈字只写一次**：「生子三　梁枸　架　柴」。
+    //   上游原样存成 ["梁枸","架","柴"]，於是「梁柴」永远配不上「柴」——
+    //   梁柴（第22世 册3·卷六·第157页）因此一条父边都没有，
+    //   而他父亲泽翔那一条明明白白把他列在名单里。
+    //
+    //   roster() 早就按谱的格式把辈字补回去了（shareGenChar），
+    //   而且顺手把混进名单的女儿（「次適吕」）和杂串（「公殁于」）洗掉。
+    //   这里接上同一个，两处别再各读各的。
+    // ★ 两份名单**取并集**，因为两边各有各的漏，而两边都是谱写的。
+    //
+    //   sons_claimed（上游原样存的）漏在**辈字共用**：
+    //     谱写「生子三　梁枸　架　柴」，辈字只写一次，存下来就是
+    //     ["梁枸","架","柴"]，於是「梁柴」永远配不上「柴」——
+    //     梁柴（第22世 册3·卷六·第157页）因此一条父边都没有，
+    //     而他父亲泽翔那一条明明白白把他列在名单里。
+    //
+    //   roster（按谱格式重读的）漏在**另一头**：
+    //     启俊（册2·卷三·第280页）谱写「生子3」，roster 只读出 1 个，
+    //     学日、学月两条 rank1 的边就没了。
+    //
+    //   取并集不会多造人——两边的名字都是谱上白纸黑字写着的。
+    //   只有一处例外，见下面的 died。
+    const names = new Set<string>();
+    for (const s of roster(f).sons) {
+      // ★ 谱上标了「殁」的（夭折）不收。
+      //   开萌那条写「生子三　承达**幼殁**　承光**幼殁**　承荣」——
+      //   夭折的孩子谱上不另立条目，所以全谱叫这个名字的**一定是别人**。
+      //   拿它去配，只会把无关的人接过来：学信公世系第238页那个承光
+      //   自己写着「开田长子」，却被接到了开萌名下。
+      if (s.died) continue;
+      names.add(NS(s.name || s.raw));
+    }
+    for (const son of f.sons_claimed ?? []) names.add(NS(son));
+    for (const k of names) {
       if (!k) continue;
       (claims.get(k) ?? claims.set(k, []).get(k)!).push(f);
     }
@@ -96,7 +132,7 @@ export function withBacklinks(people: Person[]): Person[] {
     //     · 儿子写了父名且对得上　→ rank 1 claim_named
     //     · 没写父名、全谱只有一位点了这个名字 → rank 2 sole_homonym
     //     · 没写父名、好几位都点了这个名字　　→ rank 5 homonym_one_of（最弱，界面上要显眼）
-    const wrote = NS(p.father_name ?? '');
+    const wrote = fname(p.father_name);
     const twoWay = (f: Person) =>
       !!wrote && (NS(f.name) === wrote || f.aliases.some(a => NS(a.form) === wrote));
 
@@ -123,7 +159,71 @@ export function withBacklinks(people: Person[]): Person[] {
     return { ...p, parent_edges: edges };
   });
   (out as any).__backlinked = n;
-  return out;
+  return withWrittenAdoption(out);
+}
+
+/**
+ * 本人写了「X嗣子／X祧子」，可谁也没接上——补这一条。
+ *
+ * ★ 上面那一遍是**从父亲那边过来**的：父亲的生子名单点了本人的名。
+ *   过继的人接不上，正因为嗣父的名单里**本来就不会有他**——
+ *   嗣父那条常写「生子一 幼殁」，立祧子的理由恰恰是亲生的没了。
+ *
+ * ★ 承贵（第27世 册4·卷八·学义公世系·第137页第2行）：
+ *       他自己那条  「开聪公之祧子」
+ *       开聪        第137页**第1行**  生子「幼殁」
+ *   同页、正上一行、亲子夭折——谱把话说全了，我们一条边都没给他。
+ *   （接不上的直接原因是册4 写「开聪公**之**祧子」，
+ *     上游按前三册的「X祧子」切，把「之」留在了名字里。见 fname.ts）
+ *
+ * ★ 四个条件全部来自谱，缺一不补：
+ *     ① 本人条目写了父名
+ *     ② 排行写的是「嗣子／祧子／嗣男」——谱明说这是过继
+ *     ③ 同册同房、上一世，叫这个名字的**只有一位**
+ *     ④ 那一位就印在本人的正上一行
+ *   四条都满足才算「谱写死了」，不是我们挑的。全谱 2 人。
+ */
+function withWrittenAdoption(people: Person[]): Person[] {
+  const ADOPT = /^(嗣子|祧子|嗣男|继子|承嗣子)$/;
+  const byKey = new Map<string, Person[]>();
+  for (const p of people) {
+    if (p.gen == null) continue;
+    for (const f of new Set([NS(p.name), ...p.aliases.map(a => NS(a.form))])) {
+      if (!f) continue;
+      const k = `${p.src.vol}|${p.src.section}|${p.gen}|${f}`;
+      (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(p);
+    }
+  }
+  return people.map(p => {
+    if (p.gen == null || !p.father_name) return p;
+    if (!ADOPT.test((p.filiation ?? '').trim())) return p;
+    const w = fname(p.father_name).replace(/公$/, '');
+    if (!w) return p;
+    // 已经有边指向这个名字，就不重复补
+    const hit = (k: string) => {
+      const set = byKey.get(k);
+      return set ? [...new Set(set)] : [];
+    };
+    const cand = hit(`${p.src.vol}|${p.src.section}|${p.gen - 1}|${w}`);
+    if (cand.length !== 1) return p;
+    const f = cand[0];
+    if (p.parent_edges.some(e => e.parent === f.pid)) return p;
+    if (f.src.row !== p.src.row - 1) return p;       // 必须印在正上一行
+    const edge: ParentEdge = {
+      parent: f.pid,
+      parent_name: f.name,
+      kind: '嗣父',
+      evidence: 'stated_adopt',
+      rank: 3,
+      evidence_cn: '本人条目原文写明是他的' + p.filiation,
+      matched_as: `本人条目写「${p.father_name}${p.filiation}」；`
+        + `${f.name}在同房上一世且仅此一位，就印在本人的正上一行`
+        + `（第${f.src.page}页第${f.src.row}行 → 第${p.src.page}页第${p.src.row}行）`,
+      parent_src: f.src_human,
+      derived: true,
+    } as ParentEdge;
+    return { ...p, parent_edges: [...p.parent_edges, edge] };
+  });
 }
 
 /** 补了几个人——给启动日志用。 */

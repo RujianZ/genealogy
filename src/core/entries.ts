@@ -4,6 +4,7 @@
  * 界面只认 Entry，不认 people.json / places.json 的字段。
  * 加一类条目 = 在这里加一个 build 函数 + 注册到 registry，界面一行不用改。
  */
+import { fname } from './fname.ts';
 import type { Person, ParentEdge } from './types.ts';
 import type { Referenced } from './referenced.ts';
 import type { PlaceRec, ShouDoc } from './places.ts';
@@ -24,6 +25,7 @@ import { continued } from './continued.ts';
 import { roster } from './roster.ts';
 import { ownerAt, burialOwner, trimBleed, agesOf } from './owner.ts';
 import { fullRecordOf } from './seealso.ts';
+import { isStory } from './story.ts';
 
 /** 原文里标出来的一处要素：谁 / 在哪 / 什么时候 */
 export interface Ent {
@@ -144,18 +146,29 @@ export function makeRegistry(d0: Data) {
     r => [r.surname!]);
   const byHusbandSurname = group(d.refs.filter(r => r.role === '女' && r.husband_surname),
     r => [r.husband_surname!]);
-  const byPassageHost = group(d.passages, x => [x.host]);
+  // ★ 「事迹」只留真事迹。
+  //
+  //   1,667 段里，696 段是**这条记录自己的字段连排在一起**（葬＋立嗣＋妣殁），
+  //   864 段是不到 12 字的碎片（「元至正辛巳年七」这种日期尾巴），
+  //   真正有叙述的只有 64 段。和「假人」是同一个根因：
+  //   解析器切不开字段，剩下的就被当成了一个新东西。
+  //
+  //   数据一条没删——原文照旧在本人卡片底部的「谱上原文」里，一个字不少；
+  //   已经建好的 passage 条目也照样打得开（旧链接不会断）。
+  //   这里只决定**摆不摆出来当事迹**。见 story.ts。
+  const stories = d.passages.filter(isStory);
+  const byPassageHost = group(stories, x => [x.host]);
   // 一段文字**按 id** 指到了谁——抽取要素那一步已经解析成 pid 了。
   // 「别人的条目里提到他」只认这个，不做字符串扫描。
-  const byEntTarget = group(d.passages, x => {
+  const byEntTarget = group(stories, x => {
     const pids = new Set<string>();
     for (const e of x.ents ?? []) for (const t of e.targets) if (t.pid) pids.add(t.pid);
     return [...pids];
   });
-  const byPassageKind = group(d.passages, x => x.kinds);
+  const byPassageKind = group(stories, x => x.kinds);
   // 谁写过文字——署名认得出的才算。「男寿堂谨撰」→ 壁万（字寿堂）写的。
   const byAuthor = group(
-    d.passages.filter(x => x.author?.targets?.some(t => t.strong)),
+    stories.filter(x => x.author?.targets?.some(t => t.strong)),
     x => x.author!.targets.filter(t => t.strong).map(t => t.pid));
 
   /**
@@ -197,12 +210,25 @@ export function makeRegistry(d0: Data) {
           // 显示谱名；谱上名单里写的若是别的叫法（开赛那条写的是承健的字
           // 「儒健」），把原文写法放在注里，别拿字当名头。
           const asWritten = r.raw.replace(/[\s　]+/g, '');
+          // ★ 这个孩子自己有几个候选父亲？
+          //
+          //   不对称是这么来的：孩子那张卡片上明说了「我有两个候选父亲，
+          //   两条都画出来」，可翻到父亲的子女栏，他就变成确定的了。
+          //   於是父亲看着像是多了个儿子——继均名下三个开志、
+          //   壁火名下多个继盟，都是这个不对称的表现。
+          //
+          //   孩子那边说了不知道，父亲这边就不能说知道。两边都标。
+          const hisDads = candidates(idx, k.child, chart, win)
+            .filter(c => c.status === 'ok' && c.edge.kind === '生父');
+          const forked = hisDads.length > 1;
           rows.push({ ...P(k.child),
             note: [`第${k.child.gen}世 ${k.edge.kind}`,
                    NSx(asWritten) === NSx(k.child.name) ? '' : `谱上名单写「${asWritten}」`,
-                   hit.length > 1 ? `同名对得上的有 ${hit.length} 位，这是其中之一` : '']
+                   hit.length > 1 ? `同名对得上的有 ${hit.length} 位，这是其中之一` : '',
+                   forked ? `他自己那一条也可能是另外 ${hisDads.length - 1} 位的儿子——`
+                          + `谱上只写了名字，没说是哪一个` : '']
               .filter(Boolean).join('　'),
-            warn: hit.length > 1 });
+            warn: hit.length > 1 || forked });
         }
         return;
       }
@@ -320,7 +346,7 @@ export function makeRegistry(d0: Data) {
       });
       // 「开赛　之子　开赛　生父」——同一个名字写两遍，读着别扭。
       // 只要有一个候选就叫这个名字，谱上写的那个名就不用再重复一遍。
-      const sameAsWritten = links.some(l => NS(l.label) === NS(p.father_name));
+      const sameAsWritten = links.some(l => NS(l.label) === fname(p.father_name));
       const one = good.length === 1;
       facts.push({
         label: '父',

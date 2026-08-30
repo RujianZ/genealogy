@@ -30,6 +30,7 @@
  *     房支血统（追得到页眉那位祖先）63.51%　—— 循环论证，追不到往往是链本身断了
  *   版面位置只作为**摆给人看的旁证**（layoutNote），不参与排除。
  */
+import { fname } from './fname.ts';
 import type { Person, ParentEdge } from './types.ts';
 import type { EraChart } from './years.ts';
 import type { Window } from './activity.ts';
@@ -57,14 +58,46 @@ export type CandStatus = 'ok' | 'gen' | 'age' | 'named' | 'ord' | 'slot' | 'adop
  *   所以从后往前取两三个字去比对——比对用 norm，繁简都认。
  */
 const ADOPT_RE = /(?:立|以)([^立以，。；、]{0,14}?)(?:为嗣|為嗣|承嗣|入嗣|为祧|為祧|祧)/g;
-const ADOPTEES = new WeakMap<Person, Set<string>>();
-function adoptees(p: Person): Set<string> {
+
+/**
+ * ★ 语句里的**本生父名**不能扔。
+ *
+ *   壁福那一条写的是「立**壁温次子**继华为嗣」——它写明了是**壁温的**次子继华。
+ *   原来只把最后两三个字（「继华」）抠出来当索引，前面的「壁温次子」全丢了，
+ *   於是全谱**每一个**叫继华的人都会被这句话认领。
+ *
+ *   结果：壁林的儿子继华（字东华，生1955，兼祧长兄壁洲、二兄壁银，
+ *   册2·卷四·朝泰公世系）被册3·卷七·朝阳公世系的壁福认了去，
+ *   而那边的继华字金龙、生1920，是壁温的次子——两个人差 35 岁、
+ *   字不同、房不同。
+ *
+ *   写法固定：立 ＋〔胞／亲／堂＋兄弟叔伯〕＋〔本生父名〕＋〔排行〕子 ＋ 名 ＋ 为嗣
+ *   把本生父名一并记下，比对时要求**本人写的父名也对得上**，才算这句话说的是他。
+ *   语句里没写本生父名的（「立长兄次子士礼为嗣」只给了关系不给名），
+ *   father 记空，照旧只按名字比——不因为要求变严而漏掉。
+ */
+const REL = /^(?:胞|亲|堂|嫡|从)?(?:兄|弟|叔|伯|姪|侄|长兄|次兄|三兄|四兄|五兄)?/;
+const ORDSON = /(长|次|三|四|五|六|七|八|九|十|幼|季|末)子$/;
+export interface Adoptee { names: Set<string>; father: string }
+const ADOPTEES = new WeakMap<Person, Adoptee[]>();
+function adoptees(p: Person): Adoptee[] {
   let s = ADOPTEES.get(p);
   if (s) return s;
-  s = new Set<string>();
+  s = [];
   for (const m of NS(p.raw_text ?? '').matchAll(ADOPT_RE)) {
     const seg = m[1];
-    for (let n = 2; n <= 3; n++) if (seg.length >= n) s.add(seg.slice(-n));
+    const names = new Set<string>();
+    for (let n = 2; n <= 3; n++) if (seg.length >= n) names.add(seg.slice(-n));
+    // 名字前面若是「…X排行子」，X 就是本生父名
+    let father = '';
+    for (const nm of names) {
+      const head = seg.slice(0, seg.length - nm.length);
+      const om = ORDSON.exec(head);
+      if (!om) continue;
+      const cand = head.slice(0, head.length - om[0].length).replace(REL, '');
+      if (cand.length >= 2 && cand.length <= 3) { father = cand; break; }
+    }
+    s.push({ names, father });
   }
   ADOPTEES.set(p, s);
   return s;
@@ -88,8 +121,8 @@ function selfDeclared(idx: Map<string, Person>): Map<string, Person[]> {
     if (!q.father_name || q.gen == null) continue;
     // ★ 折叠后是空串的不进索引。否则「空名字」会跟「空名字」匹配上，
     //   把两条过继（stated_adopt，parent_name 本来就是空的）边误排掉。
-    if (!NS(q.father_name)) continue;
-    const k = `${NS(q.father_name)}|${q.gen}`;
+    if (!fname(q.father_name)) continue;
+    const k = `${fname(q.father_name)}|${q.gen}`;
     (m.get(k) ?? m.set(k, []).get(k)!).push(q);
   }
   SELF_DECLARED.set(idx, m);
@@ -209,7 +242,7 @@ function siblingGroups(idx: Map<string, Person>): Map<string, Person[]> {
   m = new Map();
   for (const q of idx.values()) {
     if (!q.father_name || q.gen == null || isFragment(q)) continue;
-    const k = `${q.src.vol}|${q.src.section}|${q.gen}|${NS(q.father_name)}`;
+    const k = `${q.src.vol}|${q.src.section}|${q.gen}|${fname(q.father_name)}`;
     (m.get(k) ?? m.set(k, []).get(k)!).push(q);
   }
   SIBS.set(idx, m);
@@ -236,8 +269,16 @@ export function candidates(
   //   在 396 个「谱自己点了名」的真同名案例上，**指对 396／396 = 100%**。
   //   （早先测得 93.45% 是错的：样本有偏，而且名单没洗——
   //     女儿「次适程」和杂串「公殁于」混在里面，位置全算错。）
+  //
+  // ★ **排行只管生父那条线。**
+  //   朝纪（第16世）栽在这：林公原文末句写着「幼子朝纪出祠梦楚」——
+  //   他是林公的幼子（生父），同时是梦楚的嗣子（嗣父）。
+  //   「幼子」说的是本生家的位置，跟嗣父家没关系。
+  //   拿它去卡嗣父边，等於用生父家的排行否掉谱明写的过继，
+  //   把 CLAUDE.md 里启昌那种「双记」的第二条线抹掉。全谱 51 条。
   const myOrd = ordOf(p.filiation);
   const ordFits = myOrd == null ? null : p.parent_edges.filter(e => {
+    if (e.kind !== '生父') return false;
     const sons = cleanSons(idx.get(e.parent));
     const i = sons.indexOf(NS(p.name));
     return i >= 0 && i + 1 === (myOrd === -1 ? sons.length : myOrd);
@@ -270,17 +311,41 @@ export function candidates(
   const statesMe = (e: ParentEdge) => {
     const f = idx.get(e.parent);
     if (!f) return false;
-    const names = adoptees(f);
-    for (const x of myForms) if (names.has(x)) return true;
+    for (const a of adoptees(f)) {
+      let nameHit = false;
+      for (const x of myForms) if (a.names.has(x)) { nameHit = true; break; }
+      if (!nameHit) continue;
+      // 语句里写明了本生父（「立**壁温**次子继华为嗣」）：
+      // 那本人写的父名也得是他，才算说的是这个人。
+      if (a.father) {
+        const w = fname(p.father_name);
+        const bareF = a.father.replace(/公$/, '');
+        if (w && w.replace(/公$/, '') !== bareF) continue;
+      }
+      return true;
+    }
     return false;
+  };
+  // ★ 统计「谁写明过继了本人」时，**必须先过世次这道闸**。
+  //
+  //   梁一（第22世）栽在这：铣贵（第20世）那一条里也写着一句「立…为嗣」，
+  //   比本人早两代，世次早就把这条边排掉了。可这里统计时没过闸，
+  //   于是一个**不可能的候选**独占了「写明过继」这个名额，
+  //   反过来把真正的泽霖（第21世，就印在梁一正上一行）顶掉了——
+  //   最后梁一一条父边都没有，成了 23 个人的卡点。
+  //
+  //   世次是原书列头标死的，是全谱最硬的一条，任何统计都该先过它。
+  const genOk = (e: ParentEdge) => {
+    const f = idx.get(e.parent);
+    return !!f && f.gen != null && p.gen != null && p.gen - f.gen === 1;
   };
   const statedBy = new Map<string, number>();
   for (const e of p.parent_edges) {
-    if (statesMe(e)) statedBy.set(e.kind, (statedBy.get(e.kind) ?? 0) + 1);
+    if (genOk(e) && statesMe(e)) statedBy.set(e.kind, (statedBy.get(e.kind) ?? 0) + 1);
   }
 
   // 谱上写的父名，和这个候选的名字（含字号、含「X公」敬称）对不对得上
-  const wrote = NS(p.father_name ?? '');
+  const wrote = fname(p.father_name);
   const fitsWritten = (e: ParentEdge) => {
     const f = idx.get(e.parent);
     if (!f || !wrote) return false;
@@ -293,6 +358,19 @@ export function candidates(
   //   可光玉早已被「生子名单点了别人」那条排掉。已经出局的不该再participate。
   const outByNamed = (e: ParentEdge) =>
     (namedBy.get(e.kind) ?? 0) >= 1 && !namesMe(e);
+  // 同一种关系里，年代算得通的有哪几条——只在**有好几个候选**时才用来分辨。
+  // ★ 必须**按关系分开数，而且只数世次差 1 的**。
+  //   第一版一股脑全数，把嗣父边、还有世次差不为 1 的（梁映和本人同辈）
+  //   也算了进去，於是「只有一个算得通」永远凑不齐，规则等於没写。
+  const ageFitsBy = new Map<string, ParentEdge[]>();
+  for (const e of p.parent_edges) {
+    const f0 = idx.get(e.parent);
+    if (!f0 || f0.gen == null || p.gen == null || p.gen - f0.gen !== 1) continue;
+    // 同上：嗣父不受年代约束，别拿它去做「只有一个年代对得上」的判断
+    if (e.kind === '生父' && !canFather(win?.get(e.parent), win?.get(p.pid)).ok) continue;
+    (ageFitsBy.get(e.kind) ?? ageFitsBy.set(e.kind, []).get(e.kind)!).push(e);
+  }
+
   const nameFits = new Map<string, number>();
   for (const e of p.parent_edges) {
     if (outByNamed(e)) continue;
@@ -303,7 +381,7 @@ export function candidates(
   //   他们里面已经定了的若都指向同一位，本人跟着定。
   const sibPick = new Map<string, string>();
   if (!noSib && p.father_name && !isFragment(p)) {
-    const k = `${p.src.vol}|${p.src.section}|${p.gen}|${NS(p.father_name)}`;
+    const k = `${p.src.vol}|${p.src.section}|${p.gen}|${fname(p.father_name)}`;
     const bros = (siblingGroups(idx).get(k) ?? []).filter(q => q.pid !== p.pid);
     const dads = new Map<string, Set<string>>();
     let ordClash = false;
@@ -342,8 +420,9 @@ export function candidates(
             : `他是第 ${f.gen} 世，比本人早 ${d} 代`,
       };
     }
-    // 排行只对上一个候选时，其余的排掉——位置是谱自己写的，数出来的
-    if (ordFits && ordFits.length === 1 && !ordFits.includes(edge)) {
+    // 排行只对上一个候选时，其余的排掉——位置是谱自己写的，数出来的。
+    // 只排生父：嗣父那条线跟本生家的排行无关（见上面 ordFits 处）。
+    if (edge.kind === '生父' && ordFits && ordFits.length === 1 && !ordFits.includes(edge)) {
       const w = idx.get(ordFits[0].parent);
       const sons = cleanSons(w);
       return {
@@ -363,7 +442,16 @@ export function candidates(
     //
     //   比对带上字、号（谱上写父名，写的可能是字），也认「X公」这种敬称写法。
     //   只管同一种关系——嗣父那条本来就该是另一个名字，不受这条影响。
-    if (p.father_name && nameFits.get(edge.kind) === 1 && !fitsWritten(edge)) {
+    // ★ 但**对方写明「立本人为嗣」的那一条，不能用这条规则排掉**。
+    //   两处都是谱自己写的，写在不同的地方，说法不一致：
+    //       继华那一条写「壁洲公嗣子」
+    //       壁福那一条写「立壁温次子继华为嗣」
+    //   下面这条规则会因为「本人写的是壁洲」排掉壁福，
+    //   再下面那条会因为「壁福写明立本人为嗣」排掉壁洲——
+    //   **两条规则互相消，最后一个嗣父都不剩**，而谱明明写了两次。
+    //   谱自相矛盾时，两条都留、并排摆着，让人自己看。这就是不猜。
+    if (p.father_name && nameFits.get(edge.kind) === 1 && !fitsWritten(edge)
+        && !statesMe(edge)) {
       const w = idx.get(p.parent_edges.find(e => e.kind === edge.kind && !outByNamed(e) && fitsWritten(e))!.parent);
       return {
         edge, person: f, status: 'wrote' as const, layoutNote,
@@ -373,10 +461,11 @@ export function candidates(
       };
     }
     // ★ 谱自己写明「立某某为嗣」的那一位——别的候选排掉。
-    if (statedBy.get(edge.kind) === 1 && !statesMe(edge)) {
+    // 同上：**本人自己写了这个名字的那一条，不能用这条规则排掉。**
+    if (statedBy.get(edge.kind) === 1 && !statesMe(edge) && !fitsWritten(edge)) {
       const winner = p.parent_edges.find(e => e.kind === edge.kind && statesMe(e))!;
       const w = idx.get(winner.parent);
-      const stmt = (NS(w?.raw_text ?? '').match(ADOPT_RE) ?? [])[0] ?? '';
+      const stmt = (NS(w?.raw_text ?? "").match(ADOPT_RE) ?? [])[0] ?? "";
       return {
         edge, person: f, status: 'adopt' as const, layoutNote,
         printedAbove: above.has(edge.parent),
@@ -432,8 +521,19 @@ export function candidates(
       };
     }
     // ★ 兄弟已经定了，本人跟着定——谱把兄弟连着印在一起。
+    // ★ 兄弟连排是**推断**（「你兄弟都定了，你跟着定」），
+    //   绝不能盖过谱自己两处白纸黑字的互相点名。
+    //
+    //   光云（册3·卷五·第54页第3行）写「梁福之子」，
+    //   梁福（同页**第2行**）生子名单写「光云、光贵」——两边互相点名、
+    //   同页正上一行，rank1，全谱最硬的一种。可他被兄弟连排排掉了，
+    //   理由是「同写梁福的兄弟都定成了另一个梁福（卷六·第241页）」。
+    //   壁进（第198页）也是同一回事。
+    //
+    //   这跟今天修掉的几条同一个毛病：**弱规则盖过强规则**。
+    //   两边都写了的边，任何推断都不许动它。
     const pick = sibPick.get(edge.kind);
-    if (pick && pick !== edge.parent) {
+    if (pick && pick !== edge.parent && !(edge.rank === 1 && namesMe(edge) && fitsWritten(edge))) {
       const w = idx.get(pick);
       return {
         edge, person: f, status: 'sib' as const, layoutNote,
@@ -444,8 +544,45 @@ export function candidates(
     }
     // 活跃时间段：生年、殁年、寿数、配偶年份、子女生年，全用上。
     // **最有力的是殁年**——「他殁于 1789，本人生于 1826」，那是硬的。
-    const a = canFather(win?.get(edge.parent), win?.get(p.pid));
+    //
+    // ★ **但年代只管生父那条线。**
+    //
+    //   立嗣的定义就是「这个人死了、没有儿子，所以过继一个来承祧」。
+    //   嗣子生在嗣父身后是**常态，不是矛盾**：
+    //       梁柯　生1821 殁1835   十四岁殁，生子名单空
+    //       光耀　生1838          「梁柯嗣子」——比嗣父去世还晚三年
+    //   拿生育年龄去卡宗法关系，等於把「立嗣」这件事本身判成不可能。
+    //   全谱 83 条嗣父边栽在这，跟上午那条「拿排行卡嗣父」是同一类错：
+    //   **生父的判据套到了嗣父头上。**
+    //
+    //   嗣父那条线只剩一道闸：世次必须差 1（原书列头标死的，上面已经卡过）。
+    const a = edge.kind === '生父'
+      ? canFather(win?.get(edge.parent), win?.get(p.pid))
+      : { ok: true, text: '' };
     if (!a.ok) {
+      // ★ 分清两件事：
+      //
+      //   一、**只有这一个候选**，年代却兜不拢 → 是谱自己前后矛盾。
+      //       保留，并把矛盾摆出来（泽富八岁生子那种，见下）。
+      //
+      //   二、**好几个同名候选，只有一个算得通** → 年代不是在推翻谱，
+      //       是在**补上谱没说的那一句**。谱只写「泽贵之子梁玉」，
+      //       没说哪个泽贵；减法说了：
+      //
+      //         梁玉(338页 生1822)  泽贵(338页 生1783) 早39年 ✓　泽贵(366页 生1825) 早-3年 ✗
+      //         梁玉(366页 生1871)  泽贵(338页 殁1833) 晚38年 ✗　泽贵(366页 生1825) 早46年 ✓
+      //
+      //       两个梁玉各自只有一个算得通的泽贵，而且正好是同页那个。
+      //       这是减法，不是意见。
+      const fits = ageFitsBy.get(edge.kind) ?? [];
+      if (fits.length === 1 && !fits.includes(edge)) {
+        const w = idx.get(fits[0].parent);
+        return {
+          edge, person: f, status: 'age' as const, layoutNote,
+          printedAbove: above.has(edge.parent),
+          note: `${a.text}；同名的${w?.name}（${w?.src_human.split('·').slice(1, 4).join('·')}）年代对得上`,
+        };
+      }
       // ★ **谱两边都写明的话，不许被年代推翻。**
       //
       //   梁馥那一条写「泽富公长子」，泽富那一条的生子名单第一个就是梁馥——

@@ -18,6 +18,7 @@
  *
  * 不做的：不按生卒年份筛（那要换算），不按辈分推断，不按相似度打分。
  */
+import { fname } from './fname.ts';
 import type { Person } from './types.ts';
 import type { PlaceRec } from './places.ts';
 import { norm } from './norm.ts';
@@ -52,7 +53,7 @@ export function advancedSearch(
   // 边是解析出来的，父名是谱上写的。要最硬的那个。
   const byFather = new Map<string, Person[]>();
   for (const p of people) {
-    const f = norm(p.father_name);
+    const f = fname(p.father_name);
     if (f) (byFather.get(f) ?? byFather.set(f, []).get(f)!).push(p);
   }
   const burialOf = new Map<string, string[]>();
@@ -105,7 +106,7 @@ export function advancedSearch(
       if (r) why.push(r); else ok = false;
     }
     if (ok && c.sibling) {
-      const f = norm(p.father_name);
+      const f = fname(p.father_name);
       const sibs = f ? (byFather.get(f) ?? []).filter(x => x.pid !== p.pid) : [];
       const hit = sibs.find(x => x.aliases.some(a => has(a.form, c.sibling!)));
       if (hit) why.push({ field: '同一个父名的兄弟', matched: `${hit.name}（父名同为「${p.father_name}」）` });
