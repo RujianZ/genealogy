@@ -12,6 +12,7 @@ import { EraChart } from '../src/core/years.ts';
 import { buildWindows } from '../src/core/activity.ts';
 import { candidates } from '../src/core/candidates.ts';
 import { makeRegistry } from '../src/core/entries.ts';
+import { canonical } from '../src/core/seealso.ts';
 
 const J = n => JSON.parse(readFileSync(`data/${n}.json`, 'utf8'));
 const people = withBacklinks(J('people'));
@@ -38,7 +39,11 @@ for (const p of people) {
   const ok = candidates(idx, p, chart, win).filter(c => c.status === 'ok');
   for (const c of ok) {
     checked++;
-    if (!kidRows.get(c.edge.parent)?.has(p.pid)) {
+    // ★ 兼祧的人在谱上有好几条，界面上**折成一张卡片**（同一个人一个 id）。
+    //   所以父亲的子女栏里出现的是「完整条」那个 pid，不是每条记录各出现一次。
+    //   断言要跟着折，否则数的是折叠本身，不是丢失。
+    const want = canonical(people, p).pid;
+    if (!kidRows.get(c.edge.parent)?.has(want)) {
       lost.push({ p, kind: c.edge.kind, f: idx.get(c.edge.parent) });
     }
   }

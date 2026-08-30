@@ -88,3 +88,26 @@ export function sameAs(people: Person[], p: Person): Person[] {
   // 本人是完整条：谁的「详前」指回我
   return same.filter(q => isSeeAlso(q) && fullRecordOf(people, q).includes(p));
 }
+
+/**
+ * 这一条**该折回到谁身上**。
+ *
+ * 兼祧的人在谱上有好几条，只有一条写全（完整条），其余写「生庚俱详前」。
+ * 父边已经在 backlink 里并到完整条上了，可**列人的地方**还各列各的：
+ *     搜「继华」出来三个（其实是同一个人）
+ *     他自己那一页，兄弟姐妹里有两个「继华」——那是他自己
+ *     三个父亲的子女栏里各摆一个，看着像三个儿子
+ *
+ * ★ 承健定的规矩：**同一个人只该有一个 id、一张卡片，可以跟多人有关系。**
+ *   所以凡是「列人」的地方（搜索、兄弟姐妹、子女栏）都走这个函数折一次，
+ *   折完再按 id 去重。三个父亲那边照样各自看得见他——那是三条关系，
+ *   不是三个人。
+ *
+ * ★ 详前条本身仍然可以点开（界面上「同一个人的完整记录」指得回去），
+ *   只是不再作为独立的一个人出现在名单里。
+ */
+export function canonical(people: Person[], p: Person): Person {
+  if (!isSeeAlso(p)) return p;
+  const full = fullRecordOf(people, p);
+  return full.length === 1 ? full[0] : p;   // 指不明白的（好几条或没有）就不折
+}

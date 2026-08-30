@@ -24,7 +24,7 @@ import { norm as NSx } from './norm.ts';
 import { continued } from './continued.ts';
 import { roster } from './roster.ts';
 import { ownerAt, burialOwner, trimBleed, agesOf } from './owner.ts';
-import { fullRecordOf } from './seealso.ts';
+import { fullRecordOf, canonical } from './seealso.ts';
 import { isStory } from './story.ts';
 
 /** 原文里标出来的一处要素：谁 / 在哪 / 什么时候 */
@@ -256,6 +256,34 @@ export function makeRegistry(d0: Data) {
       rows.push({ ...P(k.child),
         note: `第${k.child.gen}世 ${k.edge.kind}　谱上「生子」名单里没写，是他自己那一条写明的` });
     }
+    // ★ 详前条折回完整条，再按 id 去重。**放在这一个出口做，兄弟姐妹栏也跟着对。**
+    //
+    //   兼祧的人在谱上有好几条：继华（字东华）在 361／362／363 页各一条。
+    //   父边已经并到完整条（361页）上了，可 childrenOf 仍会把 362 页那条
+    //   也算成壁银的一个儿子——於是壁银、壁林的子女栏里各出现两个「继华」，
+    //   而那是同一个人。
+    //
+    //   承健定的规矩：**同一个人只该有一个 id、一张卡片，可以跟多人有关系。**
+    //   三个父亲各自看得见他是对的（那是三条关系）；
+    //   同一个父亲下面出现两次，就是错的。
+    {
+      const seenId = new Set<string>();
+      const out: Link[] = [];
+      for (const r of rows) {
+        let id = r.id;
+        if (r.kind === 'person' && !r.plain) {
+          const q = idx.get(r.id);
+          if (q) id = canonical(d.people, q).pid;
+        }
+        if (r.kind === 'person' && !r.plain) {
+          if (seenId.has(id)) continue;
+          seenId.add(id);
+        }
+        out.push(id === r.id ? r : { ...r, id });
+      }
+      rows.length = 0;
+      rows.push(...out);
+    }
     return rows;
   }
 
@@ -466,7 +494,14 @@ export function makeRegistry(d0: Data) {
         const dad = idx.get(c.edge.parent);
         if (!dad) continue;
         const two = dads.length > 1;
-        for (const k of kidsOf(c.edge.parent)) {
+        for (const k0 of kidsOf(c.edge.parent)) {
+          // ★ 详前条折回完整条，再按 id 去重。
+          //   不折的话，兼祧的人在自己那一页会看到两个同名的「兄弟姐妹」——
+          //   那是他自己在别房下的另外两条记录。
+          const canonPid = k0.kind === 'person'
+            ? canonical(d.people, idx.get(k0.id) ?? ({} as any))?.pid ?? k0.id
+            : k0.id;
+          const k = canonPid === k0.id ? k0 : { ...k0, id: canonPid };
           if (k.plain) continue;                 // 谱写了名字、没连到条目的，不算一位
           if (k.id === pid || seen.has(k.id)) continue;
           seen.add(k.id);

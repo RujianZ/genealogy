@@ -3715,7 +3715,30 @@ function sameAs(people          , p        )           {
   return same.filter(q => isSeeAlso(q) && fullRecordOf(people, q).includes(p));
 }
 
-return { isSeeAlso, fullRecordOf, sameAs };
+/**
+ * 这一条**该折回到谁身上**。
+ *
+ * 兼祧的人在谱上有好几条，只有一条写全（完整条），其余写「生庚俱详前」。
+ * 父边已经在 backlink 里并到完整条上了，可**列人的地方**还各列各的：
+ *     搜「继华」出来三个（其实是同一个人）
+ *     他自己那一页，兄弟姐妹里有两个「继华」——那是他自己
+ *     三个父亲的子女栏里各摆一个，看着像三个儿子
+ *
+ * ★ 承健定的规矩：**同一个人只该有一个 id、一张卡片，可以跟多人有关系。**
+ *   所以凡是「列人」的地方（搜索、兄弟姐妹、子女栏）都走这个函数折一次，
+ *   折完再按 id 去重。三个父亲那边照样各自看得见他——那是三条关系，
+ *   不是三个人。
+ *
+ * ★ 详前条本身仍然可以点开（界面上「同一个人的完整记录」指得回去），
+ *   只是不再作为独立的一个人出现在名单里。
+ */
+function canonical(people          , p        )         {
+  if (!isSeeAlso(p)) return p;
+  const full = fullRecordOf(people, p);
+  return full.length === 1 ? full[0] : p;   // 指不明白的（好几条或没有）就不折
+}
+
+return { isSeeAlso, fullRecordOf, sameAs, canonical };
 })();
 
 M["backlink"] = (() => {
@@ -5863,7 +5886,7 @@ const { norm: NSx } = M["norm"];
 const { continued } = M["continued"];
 const { roster } = M["roster"];
 const { ownerAt, burialOwner, trimBleed, agesOf } = M["owner"];
-const { fullRecordOf } = M["seealso"];
+const { fullRecordOf, canonical } = M["seealso"];
 const { isStory } = M["story"];
 
 /** 原文里标出来的一处要素：谁 / 在哪 / 什么时候 */
@@ -6095,6 +6118,34 @@ function makeRegistry(d0      ) {
       rows.push({ ...P(k.child),
         note: `第${k.child.gen}世 ${k.edge.kind}　谱上「生子」名单里没写，是他自己那一条写明的` });
     }
+    // ★ 详前条折回完整条，再按 id 去重。**放在这一个出口做，兄弟姐妹栏也跟着对。**
+    //
+    //   兼祧的人在谱上有好几条：继华（字东华）在 361／362／363 页各一条。
+    //   父边已经并到完整条（361页）上了，可 childrenOf 仍会把 362 页那条
+    //   也算成壁银的一个儿子——於是壁银、壁林的子女栏里各出现两个「继华」，
+    //   而那是同一个人。
+    //
+    //   承健定的规矩：**同一个人只该有一个 id、一张卡片，可以跟多人有关系。**
+    //   三个父亲各自看得见他是对的（那是三条关系）；
+    //   同一个父亲下面出现两次，就是错的。
+    {
+      const seenId = new Set        ();
+      const out         = [];
+      for (const r of rows) {
+        let id = r.id;
+        if (r.kind === 'person' && !r.plain) {
+          const q = idx.get(r.id);
+          if (q) id = canonical(d.people, q).pid;
+        }
+        if (r.kind === 'person' && !r.plain) {
+          if (seenId.has(id)) continue;
+          seenId.add(id);
+        }
+        out.push(id === r.id ? r : { ...r, id });
+      }
+      rows.length = 0;
+      rows.push(...out);
+    }
     return rows;
   }
 
@@ -6305,7 +6356,14 @@ function makeRegistry(d0      ) {
         const dad = idx.get(c.edge.parent);
         if (!dad) continue;
         const two = dads.length > 1;
-        for (const k of kidsOf(c.edge.parent)) {
+        for (const k0 of kidsOf(c.edge.parent)) {
+          // ★ 详前条折回完整条，再按 id 去重。
+          //   不折的话，兼祧的人在自己那一页会看到两个同名的「兄弟姐妹」——
+          //   那是他自己在别房下的另外两条记录。
+          const canonPid = k0.kind === 'person'
+            ? canonical(d.people, idx.get(k0.id) ?? ({}       ))?.pid ?? k0.id
+            : k0.id;
+          const k = canonPid === k0.id ? k0 : { ...k0, id: canonPid };
           if (k.plain) continue;                 // 谱写了名字、没连到条目的，不算一位
           if (k.id === pid || seen.has(k.id)) continue;
           seen.add(k.id);
@@ -7176,6 +7234,7 @@ M["search"] = (() => {
                                          
 const { norm, homophoneKey, editDistance } = M["norm"];
 const { isFragment } = M["fragment"];
+const { canonical } = M["seealso"];
 
 /** 一个人身上的一处命中 */
                         
@@ -7233,7 +7292,13 @@ function search(people          , query        )        {
   const qk = homophoneKey(q);
   const hits        = [];
 
-  for (const p of people) {
+  // ★ 详前条折回完整条：兼祧的人在谱上有好几条，搜出来该是**一个人**。
+  //   搜「继华」原来出三个（361／362／363 页），其实是同一位（字东华）。
+  const seenCanon = new Set        ();
+  for (const p0 of people) {
+    const p = canonical(people, p0);
+    if (seenCanon.has(p.pid)) continue;
+    seenCanon.add(p.pid);
     // ★ 解析残渣不是人，搜索里不该出现。
     //   谱把不知道的月日时留空（「生于民国二十一年　月　日　时」），
     //   解析器在「…日　时」处断出了一条记录，把这两个字当成了名字。

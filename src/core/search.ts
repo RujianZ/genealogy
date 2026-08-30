@@ -18,6 +18,7 @@
 import type { Person } from './types.ts';
 import { norm, homophoneKey, editDistance } from './norm.ts';
 import { isFragment } from './fragment.ts';
+import { canonical } from './seealso.ts';
 
 /** 一个人身上的一处命中 */
 export interface Match {
@@ -75,7 +76,13 @@ export function search(people: Person[], query: string): Hit[] {
   const qk = homophoneKey(q);
   const hits: Hit[] = [];
 
-  for (const p of people) {
+  // ★ 详前条折回完整条：兼祧的人在谱上有好几条，搜出来该是**一个人**。
+  //   搜「继华」原来出三个（361／362／363 页），其实是同一位（字东华）。
+  const seenCanon = new Set<string>();
+  for (const p0 of people) {
+    const p = canonical(people, p0);
+    if (seenCanon.has(p.pid)) continue;
+    seenCanon.add(p.pid);
     // ★ 解析残渣不是人，搜索里不该出现。
     //   谱把不知道的月日时留空（「生于民国二十一年　月　日　时」），
     //   解析器在「…日　时」处断出了一条记录，把这两个字当成了名字。
