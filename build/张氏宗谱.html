@@ -1987,6 +1987,16 @@ const MERGED_GROUPS                           = {
 /** 每条映射的依据，界面上解释「为什么这两个字算同一个」用。 */
 // ★ 手工补的两条（自动表管不到，依据写在 VARIANT_SOURCE 里）。
 //   放在导出前面，覆盖上面自动生成的部分。
+// ★ 删掉一条**折过头**的：自动表把「浬」也映到了「里」。
+//   裏→里 是正当繁简；浬 是独立的字（海里／音译用字），不是里的异体。
+//   全谱各只有一个人用：
+//       泽浬　第21世　册3·卷七·朝阳公世系·第317页　生1810
+//       泽裏　第21世　册3·卷七·朝纪公世系·第348页　生1803
+//   不同房、生年差七年，是两个人；折叠后成了同名，
+//   於是铣光名下冒出两个「泽里」，看着像我们多摆了一个。
+//   同类的自查工具：tools/overfold.mjs（同一世里折叠后同名、折叠前不同名的组）。
+delete TRAD2SIMP['浬'];
+
 TRAD2SIMP['馀'] = '余';
 // 自动表里原有「餘 → 馀」，加上「馀 → 余」就成了两级跳（餘→馀→余），
 // 破坏幂等。把繁体那一头也直接指到「余」，三个字全部收敛到一处。
@@ -3613,6 +3623,101 @@ function roster(p        )         {
 return { HUSBAND, roster };
 })();
 
+M["seealso"] = (() => {
+/**
+ * 「详前」条：**同一个人，谱记了第二遍。**
+ *
+ *   壁鍙（册3·卷五·第32页）光茹公嗣子　字运鸿　生于咸丰十年…　生子六…
+ *   壁鍙（册3·卷五·第38页）光庆公嗣子　字运鸿　**「生庚娶氏俱详前」**
+ *
+ * 一个人两个嗣父，谱按凡例双记（「不忘所自出」）。第二条只写一句
+ * 「详前」，指回前面那条完整的。继盟更是一子三祧，三条。
+ * 全谱 25 条这样的记录。
+ *
+ * ★ 这不是错，是谱的写法。但数据里成了两个人，於是
+ *   「同一个父亲名下有两个同名的儿子」这种矛盾就冒出来了。
+ *   界面上要直接说清楚：这一条是谁的第二处记录，完整的在哪。
+ *
+ * ★ 只认**谱自己写了「详前」**的那些。没写的一律不合并——
+ *   同名同世的两个人本来就可能真是两个人。
+ */
+                                         
+const { norm } = M["norm"];
+
+const NS = (s                           ) => (s ?? '').replace(/[\s　]/g, '');
+const SEEALSO = /详前|詳前|详上|詳上|俱详|俱詳|同前|见前|見前/;
+
+/** 这一条是不是「详前」条 */
+const isSeeAlso = (p        )          => SEEALSO.test(NS(p.raw_text));
+
+/**
+ * 它指回哪一条：同名、同世、且写得更全的那条（有生年或有生子名单）。
+ * 找不到就返回空——**绝不硬凑**。
+ */
+function fullRecordOf(people          , p        )           {
+  if (!isSeeAlso(p)) return [];
+  const k = norm(p.name);
+  return people.filter(q => q.pid !== p.pid && q.gen === p.gen && norm(q.name) === k
+    && !isSeeAlso(q) && (q.birth || (q.sons_claimed ?? []).length)
+    && sameZi(p, q));
+}
+
+/**
+ * 两条记录的**字／讳／号**对不对得上。
+ *
+ * ★ 只按「同名同世」找同一个人是不够的：
+ *     继华　册2·卷四·朝泰公世系·第361页　**字东华**　生1955
+ *     继华　册3·卷七·朝阳公世系·第294页　**字金龙**　生1920
+ *   两个都是第25世、都叫继华，可字不同、生年差 35 年，**是两个人**。
+ *   不加这道闸，362 页那条详前会把 294 页也认成「自己的完整条」，
+ *   於是另一个人的父亲（壁温、壁福）混进来。
+ *
+ * ★ 兼祧会跨房（承贵的四条横跨朝寿房和学义房），所以**不能用房去分**，
+ *   只能用谱自己写在人身上的字号。两边都没写字号的，不判——放过。
+ */
+function sameZi(a        , b        )          {
+  const forms = (x        ) => new Set(
+    [x.zi?.text, x.hui?.text, x.hao?.text, x.ming?.text]
+      .filter(Boolean).map(t => norm(String(t)).replace(/[\s　]/g, '')));
+  const A = forms(a), B = forms(b);
+  if (!A.size || !B.size) return true;          // 有一边没写字号 → 不拿它排除
+  for (const x of A) if (B.has(x)) return true;
+  return false;
+}
+
+/**
+ * 同一个人的**全部记录**（不含自己）。
+ *
+ * 兼祧的人，谱在他承的每一房下各立一条：
+ *     继华　册2·卷四·朝泰公世系·第361页　「壁洲公嗣子」　生庚写全
+ *     继华　同房·第362页　「壁银公嗣子」　「生庚俱详前」
+ *     继华　同房·第363页　「壁林公之子」　「生庚俱详前」
+ * 而壁林那一条末句写着「子继华兼祧长兄壁洲　二兄壁银」——三条对得上。
+ *
+ * ★ 这三条**写的父亲加起来，就是他父亲的全部**。
+ *   谱为每一房各写了一次，不会漏；没写到的那位（比如册3 朝阳房的壁温，
+ *   那是**另一个**继华的生父，字金龙、生1920，本位字东华、生1955）
+ *   一定是同名撞进来的。
+ *
+ * ★ 只认谱自己写了「详前」的那些，一条都不多认。
+ */
+function sameAs(people          , p        )           {
+  const k = norm(p.name);
+  const same = people.filter(q => q.pid !== p.pid && q.gen === p.gen && norm(q.name) === k);
+  if (isSeeAlso(p)) {
+    // 本人是详前条：完整条 + 其余详前条，都得指得回同一条完整的
+    const full = fullRecordOf(people, p);
+    if (!full.length) return [];
+    return same.filter(q => full.includes(q)
+      || (isSeeAlso(q) && fullRecordOf(people, q).some(x => full.includes(x))));
+  }
+  // 本人是完整条：谁的「详前」指回我
+  return same.filter(q => isSeeAlso(q) && fullRecordOf(people, q).includes(p));
+}
+
+return { isSeeAlso, fullRecordOf, sameAs };
+})();
+
 M["backlink"] = (() => {
 /**
  * 反向匹配：从父亲的「生子X：…」名单把断掉的链接回去。
@@ -3646,6 +3751,7 @@ M["backlink"] = (() => {
  * ★ people.json 一个字没动。补出来的边只活在内存里，标着 derived:true。
  */
 const { roster } = M["roster"];
+const { isSeeAlso, sameAs } = M["seealso"];
 const { fname } = M["fname"];
                                                      
 const { norm } = M["norm"];
@@ -3775,7 +3881,7 @@ function withBacklinks(people          )           {
     return { ...p, parent_edges: edges };
   });
   (out       ).__backlinked = n;
-  return withWrittenAdoption(out);
+  return mergeSeeAlso(withWrittenAdoption(out));
 }
 
 /**
@@ -3845,6 +3951,47 @@ function withWrittenAdoption(people          )           {
 /** 补了几个人——给启动日志用。 */
 const backlinkCount = (augmented          )         =>
   (augmented       ).__backlinked ?? 0;
+
+/**
+ * 兼祧的人在谱上有好几条——**他是一个人，一个 id，一张卡片，父亲有几位。**
+ *
+ *   继华（字东华，生1955，册2·卷四·朝泰公世系）：
+ *       第361页　「壁洲公嗣子」　生庚写全      ← 完整条
+ *       第362页　「壁银公嗣子」　「生庚俱详前」
+ *       第363页　「壁林公之子」　「生庚俱详前」
+ *   而壁林那一条末句写着「子继华兼祧长兄壁洲　二兄壁银」，三条对得上。
+ *
+ *   谱在他承的每一房下各写一条，每条只写那一房的父亲。当成三个人，
+ *   卡片上就永远只看得见一位——可他有三位：生父壁林，兼祧壁洲、壁银。
+ *
+ * ★ 合并只做一次，做在这一层。
+ *   放到判据里做过，结果「算父亲」和「算子女」两处各算各的，
+ *   父亲卡上摆不出这个孩子（18 条）。**同一件事只能有一个来源。**
+ *
+ * ★ 只并到**完整条**上（那张正式的卡片）；详前条保持自己那一位，
+ *   界面上指回完整条。这样父亲的子女栏里同一个孩子只出现一次。
+ *
+ * ★ 认「同一个人」靠三样，全是谱写的：同名、同世、**字号对得上**。
+ *   字号是关键：继华（字东华，生1955）和另一个继华（字金龙，生1920）
+ *   同名同世，字不同——两个人。见 seealso.ts 的 sameZi。
+ */
+function mergeSeeAlso(people          )           {
+  return people.map(p => {
+    if (isSeeAlso(p)) return p;
+    const kin = sameAs(people, p);
+    if (!kin.length) return p;
+    const seen = new Set(p.parent_edges.map(e => `${e.kind}|${e.parent}`));
+    const add               = [];
+    for (const q of kin)
+      for (const e of q.parent_edges) {
+        const k = `${e.kind}|${e.parent}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        add.push(e);
+      }
+    return add.length ? { ...p, parent_edges: [...p.parent_edges, ...add] } : p;
+  });
+}
 
 return { withBacklinks, backlinkCount };
 })();
@@ -3953,8 +4100,9 @@ const { canFather, windowNote } = M["activity"];
 const { norm: NS } = M["norm"];
 const { roster } = M["roster"];
 const { isFragment } = M["fragment"];
+const { isSeeAlso, sameAs } = M["seealso"];
 
-                                                                                                     
+                                                                                                                 
 
 /**
  * 一条原文里，「立…为嗣」点到的名字。
@@ -4178,7 +4326,17 @@ function candidates(
     const hit = c.get(p.pid);
     if (hit) return hit;
   }
-  const above = p.parent_edges.length > 1 ? cellAbove(idx, p) : new Set        ();
+  // ★ 兼祧的人在谱上有好几条，**他是一个人，父亲是几位**。
+  //
+  //   继华（字东华，生1955）：壁林生父，兼祧长兄壁洲、二兄壁银。
+  //   谱在三房下各立一条，每条只写那一房的父亲。当成三个人各配一个父亲，
+  //   卡片上就永远只看得见一位——可他明明有三位。
+  //
+  //   所以先把同一个人的几条记录**并起来**，再一起走判据。
+  //   并的只是「候选」，判据一条不放松；同一位父亲只算一次。
+  const edges               = p.parent_edges;
+
+  const above = edges.length > 1 ? cellAbove(idx, p) : new Set        ();
   // ★ 排行：谱上写「幼子」，他就该排在父亲生子名单的**末位**；写「次子」就排第 2。
   //   在 396 个「谱自己点了名」的真同名案例上，**指对 396／396 = 100%**。
   //   （早先测得 93.45% 是错的：样本有偏，而且名单没洗——
@@ -4191,7 +4349,7 @@ function candidates(
   //   拿它去卡嗣父边，等於用生父家的排行否掉谱明写的过继，
   //   把 CLAUDE.md 里启昌那种「双记」的第二条线抹掉。全谱 51 条。
   const myOrd = ordOf(p.filiation);
-  const ordFits = myOrd == null ? null : p.parent_edges.filter(e => {
+  const ordFits = myOrd == null ? null : edges.filter(e => {
     if (e.kind !== '生父') return false;
     const sons = cleanSons(idx.get(e.parent));
     const i = sons.indexOf(NS(p.name));
@@ -4221,6 +4379,51 @@ function candidates(
   // ★ 候选父亲自己那一条写了「立…为嗣」并点了本人的名。谱自己的话，最硬。
   //   同一种关系里**恰好一个**这么写了，其余的就排掉；
   //   两个都写了就还是分不出，照样并排摆着（不猜）。
+  // ★ 去空格：NS（norm）只折繁简，**不去空格**。谱上写的是
+  //   「长兄壁洲　二兄壁银」，中间那个全角空格会把下面的前瞻断掉。
+  //   这个坑这个项目踩过好几次，每次都是 norm 和「去空格」被当成一回事。
+  const W0 = (t                           ) => NS(t ?? '').replace(/[\s　]/g, '');
+  const myForms0 = [W0(p.name), ...p.aliases.map(a => W0(a.form))].filter(Boolean);
+
+  /**
+   * ★ 过继语句里的**关系词**，能定死是哪一个同名的人。
+   *
+   *   壁林那一条写「子继华**兼祧长兄壁洲　二兄壁银**」——
+   *   「长兄」「二兄」说的是**壁林自己的兄长**，也就是跟壁林同一个父亲的人。
+   *   全谱两个壁银：朝泰362页（光寅次子，正是壁林的二兄）
+   *   和朝阳42页（光颂公嗣子，跟壁林毫无关系）。
+   *   关系词一用，立刻分得开。
+   *
+   *   这是谱自己的话，不是推断。谱写过继一向带关系：
+   *   胞弟、亲弟、三弟、长兄、二兄、堂弟、房伯…
+   *
+   *   做法：本人的**生父**那一条若写了这种句子，句中点到的嗣父
+   *   必须跟生父**同父**（是他兄弟）。同父与否，看两人写的父名。
+   */
+  // ★ 关系词后面**取整两个字**——这谱的人名一律是「辈字＋名」两个字
+  //   （壁洲、壁银、继华…）。曾经想用前瞻「到下一个关系词为止」，错了：
+  //   原文是「…兼祧长兄壁洲二兄壁银**妣殁于**一九六五年…」，
+  //   最后那个名字后面跟的是「妣殁于」，不是句尾也不是关系词，前瞻就断了。
+  const SIBW = '长兄|次兄|二兄|三兄|四兄|五兄|胞兄|亲兄|堂兄'
+             + '|胞弟|亲弟|长弟|次弟|三弟|四弟|五弟|堂弟';
+  const SIBREL = new RegExp(`(${SIBW})((?!为嗣|承嗣|兼祧|公|之)[^\s，。；、]{2})`, 'g');
+  const sibHint = new Map                ();   // 嗣父名 → 该跟谁同父
+  for (const q of [p, ...sameAs([...idx.values()], p)]) {
+    // 本人这一条写的生父是谁（「壁林之子」）
+    if (/嗣子|祧子|嗣男|继子/.test(q.filiation ?? '')) continue;
+    const dadName = fname(q.father_name).replace(/公$/, '');
+    if (!dadName) continue;
+    for (const w of idx.values()) {
+      if (NS(w.name).replace(/公$/, '') !== dadName || w.gen !== (q.gen ?? 0) - 1) continue;
+      const txt = W0(w.raw_text);
+      if (!myForms0.some(x => txt.includes(x))) continue;   // 句子里得点到本人
+      for (const m of txt.matchAll(SIBREL))
+        sibHint.set(m[2].replace(/公$/, ''), fname(w.father_name).replace(/公$/, ''));
+    }
+  }
+
+  // 同一个人的其余记录（兼祧时谱在每一房下各写一条）——下面好几处都要用
+  const kin = sameAs([...idx.values()], p);
   const myForms = new Set([NS(p.name), ...p.aliases.map(a => NS(a.form))]);
   const statesMe = (e            ) => {
     const f = idx.get(e.parent);
@@ -4230,11 +4433,28 @@ function candidates(
       for (const x of myForms) if (a.names.has(x)) { nameHit = true; break; }
       if (!nameHit) continue;
       // 语句里写明了本生父（「立**壁温**次子继华为嗣」）：
-      // 那本人写的父名也得是他，才算说的是这个人。
+      // 那要跟本人的**生父**对得上，才算说的是这个人。
+      //
+      // ★ 这里错过一次，记下来：曾经拿它跟 p.father_name 比——
+      //   可过继的人自己写的是**嗣父**（继华写「壁福嗣子」），
+      //   而语句里说的是**生父**（壁温）。两者本来就该不同，
+      //   一比就永远不等，於是四个同名的壁福一个也排不掉。
+      //   要比的是本人身上那条生父边指向谁。
       if (a.father) {
-        const w = fname(p.father_name);
         const bareF = a.father.replace(/公$/, '');
-        if (w && w.replace(/公$/, '') !== bareF) continue;
+        // ★ 拿**谱写的字**去比，不能拿推导出来的边去比——那会绕回来。
+        //
+        //   继华合并后身上带着壁温这条（错的，从详前条并进来的），
+        //   於是壁福那句「立**壁温**次子继华为嗣」就对上了，
+        //   反过来把真正的壁银排掉。判据吃了自己的输出。
+        //
+        //   谱写「X之子／X长子」的那一条才是生父，写「X嗣子」的是嗣父。
+        //   继华三条里，363 页写「壁林之子」——生父是壁林，不是壁温。
+        const bornDad = [p, ...kin]
+          .filter(q => !/嗣子|祧子|嗣男|继子/.test(q.filiation ?? ''))
+          .map(q => fname(q.father_name).replace(/公$/, ''))
+          .filter(Boolean);
+        if (bornDad.length && !bornDad.includes(bareF)) continue;
       }
       return true;
     }
@@ -4254,7 +4474,7 @@ function candidates(
     return !!f && f.gen != null && p.gen != null && p.gen - f.gen === 1;
   };
   const statedBy = new Map                ();
-  for (const e of p.parent_edges) {
+  for (const e of edges) {
     if (genOk(e) && statesMe(e)) statedBy.set(e.kind, (statedBy.get(e.kind) ?? 0) + 1);
   }
 
@@ -4277,7 +4497,7 @@ function candidates(
   //   第一版一股脑全数，把嗣父边、还有世次差不为 1 的（梁映和本人同辈）
   //   也算了进去，於是「只有一个算得通」永远凑不齐，规则等於没写。
   const ageFitsBy = new Map                      ();
-  for (const e of p.parent_edges) {
+  for (const e of edges) {
     const f0 = idx.get(e.parent);
     if (!f0 || f0.gen == null || p.gen == null || p.gen - f0.gen !== 1) continue;
     // 同上：嗣父不受年代约束，别拿它去做「只有一个年代对得上」的判断
@@ -4285,10 +4505,32 @@ function candidates(
     (ageFitsBy.get(e.kind) ?? ageFitsBy.set(e.kind, []).get(e.kind) ).push(e);
   }
 
+  // ★ 兼祧：同一个人在几房下各有一条，**各条写的父亲加起来就是全部**。
+  //
+  //   继华（字东华，生1955）三条分别写壁洲、壁银、壁林，
+  //   而壁林那条末句「子继华兼祧长兄壁洲二兄壁银」正好对上。
+  //   册3 朝阳房的壁温不在这三位之内——那是**另一个**继华
+  //   （字金龙，生1920，壁温次子出嗣壁福）的生父。
+  //
+  //   谱为每一房各写了一次，不会漏。所以写过的之外，一律是同名撞进来的。
+  const writtenSet = new Set(
+    [p, ...kin].map(q => fname(q.father_name).replace(/公$/, '')).filter(Boolean));
+  const inWritten = (e            ) => {
+    const f = idx.get(e.parent);
+    if (!f) return false;
+    for (const w of writtenSet)
+      if (NS(f.name).replace(/公$/, '') === w
+          || f.aliases.some(a => NS(a.form).replace(/公$/, '') === w)) return true;
+    return false;
+  };
+  // 一道闸：照这么排会把候选排空的，就不排（宁可说不清，不可把人抹掉）
+  const seeAlsoStrict = (kin.length > 0 || isSeeAlso(p)) && writtenSet.size > 0
+    && edges.some(e => inWritten(e));
+
   const nameFits = new Map                ();
   for (const e of p.parent_edges) {
     if (outByNamed(e)) continue;
-    if (fitsWritten(e)) nameFits.set(e.kind, (nameFits.get(e.kind) ?? 0) + 1);
+    if (inWritten(e)) nameFits.set(e.kind, (nameFits.get(e.kind) ?? 0) + 1);
   }
 
   // ★ 兄弟连排：同册同房同世、写着同一个父名的是兄弟；
@@ -4316,12 +4558,12 @@ function candidates(
       for (const [kk, set] of dads) {
         if (set.size !== 1) continue;
         const only = [...set][0];
-        if (p.parent_edges.some(e => e.kind === kk && e.parent === only)) sibPick.set(kk, only);
+        if (edges.some(e => e.kind === kk && e.parent === only)) sibPick.set(kk, only);
       }
     }
   }
 
-  const out = p.parent_edges.map(edge => {
+  const out = edges.map(edge => {
     const f = idx.get(edge.parent) ?? null;
     const layoutNote = layoutOf(p, f);
     if (f && f.gen != null && p.gen != null && p.gen - f.gen !== 1) {
@@ -4364,9 +4606,12 @@ function candidates(
     //   再下面那条会因为「壁福写明立本人为嗣」排掉壁洲——
     //   **两条规则互相消，最后一个嗣父都不剩**，而谱明明写了两次。
     //   谱自相矛盾时，两条都留、并排摆着，让人自己看。这就是不猜。
-    if (p.father_name && nameFits.get(edge.kind) === 1 && !fitsWritten(edge)
+    // ★ 合并之后，「本人写的父名」不是一个值，是**全组写过的并集**。
+    //   继华三条各写壁洲、壁银、壁林；拿 361 页那条的「壁洲」去卡，
+    //   就会把 362 页写的壁银判成「他不叫这个名字」——可那也是谱写的。
+    if (p.father_name && nameFits.get(edge.kind) === 1 && !inWritten(edge)
         && !statesMe(edge)) {
-      const w = idx.get(p.parent_edges.find(e => e.kind === edge.kind && !outByNamed(e) && fitsWritten(e)) .parent);
+      const w = idx.get(edges.find(e => e.kind === edge.kind && !outByNamed(e) && inWritten(e)) .parent);
       return {
         edge, person: f, status: 'wrote'         , layoutNote,
         printedAbove: above.has(edge.parent),
@@ -4375,9 +4620,40 @@ function candidates(
       };
     }
     // ★ 谱自己写明「立某某为嗣」的那一位——别的候选排掉。
-    // 同上：**本人自己写了这个名字的那一条，不能用这条规则排掉。**
-    if (statedBy.get(edge.kind) === 1 && !statesMe(edge) && !fitsWritten(edge)) {
-      const winner = p.parent_edges.find(e => e.kind === edge.kind && statesMe(e)) ;
+    // ★ 「详前」条：这一条只带一句父亲的话——它自己写的那句。
+    //
+    //   一个人兼祧几房，谱就在每一房下各立一条，只有一条写全，
+    //   其余写「生庚娶氏俱详前」。那种条上除了名字、这一房的父亲、
+    //   和一句「详前」，什么都没有——**别的候选全是靠名字撞进来的**。
+    //
+    //   继华（册2·卷四·第362页）写「壁银嗣子」，却挂上了册3·卷七
+    //   朝阳房的壁温、壁福——那是**另一个继华**（字金龙，生1920，
+    //   而这位字东华、生1955）的父亲。
+    //
+    //   全谱 25 条详前记录，41 条父边里 16 条跟本条写的父名对不上。
+    //
+    //   一道闸：**照这么排会把候选排空的，就不排。**
+    //   宁可说不清，不可把人抹掉（CLAUDE.md 第二节）。
+    if (seeAlsoStrict && !inWritten(edge)) {
+      return {
+        edge, person: f, status: 'seealso'         , layoutNote,
+        printedAbove: above.has(edge.parent),
+        note: `谱为他在几房下各写了一条，写到的父亲是 `
+            + `${[...writtenSet].join('、')}；他不在其中。`,
+      };
+    }
+    // 同上：本人自己写了这个名字的那一条，不能用这条规则排掉——
+    // **但只在两条规则指向的是不同名字的人时才豁免。**
+    //
+    //   继华（294页，字金龙）身上四个候选**全都叫壁福**，本人也写「壁福嗣子」。
+    //   这时候争的不是「本人写的 vs 对方写的」，而是「四个同名的哪一个」。
+    //   而壁福（294页，就印在他正上一行）那条写着
+    //   「立**壁温次子**继华为嗣」，本位生父正是壁温——只有这一位说的是他。
+    //   豁免写宽了，四个就一个都排不掉。
+    const stWinner = edges.find(e => e.kind === edge.kind && statesMe(e));
+    if (statedBy.get(edge.kind) === 1 && !statesMe(edge)
+        && !(fitsWritten(edge) && stWinner && !fitsWritten(stWinner))) {
+      const winner = stWinner ;
       const w = idx.get(winner.parent);
       const stmt = (NS(w?.raw_text ?? "").match(ADOPT_RE) ?? [])[0] ?? "";
       return {
@@ -4446,6 +4722,22 @@ function candidates(
     //
     //   这跟今天修掉的几条同一个毛病：**弱规则盖过强规则**。
     //   两边都写了的边，任何推断都不许动它。
+    // 关系词定死的：这位嗣父该跟本人的生父同父，不同父的排掉
+    if (edge.kind !== '生父' && sibHint.size) {
+      const nm = W0(f?.name).replace(/公$/, '');
+      const want = sibHint.get(nm);
+      if (want !== undefined) {
+        const his = fname(f?.father_name).replace(/公$/, '');
+        if (his && want && his !== want) {
+          return {
+            edge, person: f, status: 'wrote'         , layoutNote,
+            printedAbove: above.has(edge.parent),
+            note: `谱上写的是「兼祧／出嗣某某的兄弟」——那位跟本人生父同父（父名「${want}」），`
+                + `而他那一条写的父名是「${f?.father_name}」，不是同一房的。`,
+          };
+        }
+      }
+    }
     const pick = sibPick.get(edge.kind);
     if (pick && pick !== edge.parent && !(edge.rank === 1 && namesMe(edge) && fitsWritten(edge))) {
       const w = idx.get(pick);
@@ -5460,47 +5752,6 @@ function lineOwners(p        )              {
 }
 
 return { ownerAt, burialOwner, trimBleed, agesOf, spouseName, lineOwners };
-})();
-
-M["seealso"] = (() => {
-/**
- * 「详前」条：**同一个人，谱记了第二遍。**
- *
- *   壁鍙（册3·卷五·第32页）光茹公嗣子　字运鸿　生于咸丰十年…　生子六…
- *   壁鍙（册3·卷五·第38页）光庆公嗣子　字运鸿　**「生庚娶氏俱详前」**
- *
- * 一个人两个嗣父，谱按凡例双记（「不忘所自出」）。第二条只写一句
- * 「详前」，指回前面那条完整的。继盟更是一子三祧，三条。
- * 全谱 25 条这样的记录。
- *
- * ★ 这不是错，是谱的写法。但数据里成了两个人，於是
- *   「同一个父亲名下有两个同名的儿子」这种矛盾就冒出来了。
- *   界面上要直接说清楚：这一条是谁的第二处记录，完整的在哪。
- *
- * ★ 只认**谱自己写了「详前」**的那些。没写的一律不合并——
- *   同名同世的两个人本来就可能真是两个人。
- */
-                                         
-const { norm } = M["norm"];
-
-const NS = (s                           ) => (s ?? '').replace(/[\s　]/g, '');
-const SEEALSO = /详前|詳前|详上|詳上|俱详|俱詳|同前|见前|見前/;
-
-/** 这一条是不是「详前」条 */
-const isSeeAlso = (p        )          => SEEALSO.test(NS(p.raw_text));
-
-/**
- * 它指回哪一条：同名、同世、且写得更全的那条（有生年或有生子名单）。
- * 找不到就返回空——**绝不硬凑**。
- */
-function fullRecordOf(people          , p        )           {
-  if (!isSeeAlso(p)) return [];
-  const k = norm(p.name);
-  return people.filter(q => q.pid !== p.pid && q.gen === p.gen && norm(q.name) === k
-    && !isSeeAlso(q) && (q.birth || (q.sons_claimed ?? []).length));
-}
-
-return { isSeeAlso, fullRecordOf };
 })();
 
 M["story"] = (() => {

@@ -30,6 +30,7 @@
  * ★ people.json 一个字没动。补出来的边只活在内存里，标着 derived:true。
  */
 import { roster } from './roster.ts';
+import { isSeeAlso, sameAs } from './seealso.ts';
 import { fname } from './fname.ts';
 import type { Person, ParentEdge } from './types.ts';
 import { norm } from './norm.ts';
@@ -159,7 +160,7 @@ export function withBacklinks(people: Person[]): Person[] {
     return { ...p, parent_edges: edges };
   });
   (out as any).__backlinked = n;
-  return withWrittenAdoption(out);
+  return mergeSeeAlso(withWrittenAdoption(out));
 }
 
 /**
@@ -229,3 +230,44 @@ function withWrittenAdoption(people: Person[]): Person[] {
 /** 补了几个人——给启动日志用。 */
 export const backlinkCount = (augmented: Person[]): number =>
   (augmented as any).__backlinked ?? 0;
+
+/**
+ * 兼祧的人在谱上有好几条——**他是一个人，一个 id，一张卡片，父亲有几位。**
+ *
+ *   继华（字东华，生1955，册2·卷四·朝泰公世系）：
+ *       第361页　「壁洲公嗣子」　生庚写全      ← 完整条
+ *       第362页　「壁银公嗣子」　「生庚俱详前」
+ *       第363页　「壁林公之子」　「生庚俱详前」
+ *   而壁林那一条末句写着「子继华兼祧长兄壁洲　二兄壁银」，三条对得上。
+ *
+ *   谱在他承的每一房下各写一条，每条只写那一房的父亲。当成三个人，
+ *   卡片上就永远只看得见一位——可他有三位：生父壁林，兼祧壁洲、壁银。
+ *
+ * ★ 合并只做一次，做在这一层。
+ *   放到判据里做过，结果「算父亲」和「算子女」两处各算各的，
+ *   父亲卡上摆不出这个孩子（18 条）。**同一件事只能有一个来源。**
+ *
+ * ★ 只并到**完整条**上（那张正式的卡片）；详前条保持自己那一位，
+ *   界面上指回完整条。这样父亲的子女栏里同一个孩子只出现一次。
+ *
+ * ★ 认「同一个人」靠三样，全是谱写的：同名、同世、**字号对得上**。
+ *   字号是关键：继华（字东华，生1955）和另一个继华（字金龙，生1920）
+ *   同名同世，字不同——两个人。见 seealso.ts 的 sameZi。
+ */
+function mergeSeeAlso(people: Person[]): Person[] {
+  return people.map(p => {
+    if (isSeeAlso(p)) return p;
+    const kin = sameAs(people, p);
+    if (!kin.length) return p;
+    const seen = new Set(p.parent_edges.map(e => `${e.kind}|${e.parent}`));
+    const add: ParentEdge[] = [];
+    for (const q of kin)
+      for (const e of q.parent_edges) {
+        const k = `${e.kind}|${e.parent}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        add.push(e);
+      }
+    return add.length ? { ...p, parent_edges: [...p.parent_edges, ...add] } : p;
+  });
+}
