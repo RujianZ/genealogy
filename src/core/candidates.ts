@@ -40,6 +40,7 @@ import { norm as NS } from './norm.ts';
 import { roster } from './roster.ts';
 import { isFragment } from './fragment.ts';
 import { isSeeAlso, sameAs } from './seealso.ts';
+import { buildOutHeirIndex, sameFatherRel } from './outheir.ts';
 
 export type CandStatus = 'ok' | 'gen' | 'age' | 'named' | 'ord' | 'slot' | 'adopt' | 'wrote' | 'sib' | 'seealso';
 
@@ -236,6 +237,24 @@ function cellAbove(idx: Map<string, Person>, p: Person): Set<string> {
  *   · 解析残渣（名字是「日时」那种）不算兄弟——他们本来就不是人
  *   · 排行撞车不定案：谱写「长子」，而已定的兄弟里已经有个长子，那就不动
  */
+/**
+ * 「X子Y出嗣〔关系词〕Z」——**写在生父那一条上**的过继语句。全谱 121 条。
+ *
+ * ★ 判据原来只认「立X为嗣」（写在嗣父那一条上，160 条），
+ *   **完全没用上「出嗣」**（写在生父那一条上，121 条）。
+ *   两者是同一种证据的两个方向，丢一半等於把谱说过的话丢一半。
+ *
+ * ★ 一句话给三样：孩子是写者的第几子（生父）、出嗣给了谁（嗣父）、
+ *   那位跟写者什么关系（「胞弟」「二弟」——**同父兄弟**，能在同名里定人）。
+ *   104 条带关系词。
+ */
+const OUTHEIR = new WeakMap<Map<string, Person>, ReturnType<typeof buildOutHeirIndex>>();
+function outHeirIdx(idx: Map<string, Person>) {
+  let m = OUTHEIR.get(idx);
+  if (!m) { m = buildOutHeirIndex([...idx.values()]); OUTHEIR.set(idx, m); }
+  return m;
+}
+
 const SIBS = new WeakMap<Map<string, Person>, Map<string, Person[]>>();
 function siblingGroups(idx: Map<string, Person>): Map<string, Person[]> {
   let m = SIBS.get(idx);
@@ -322,6 +341,7 @@ export function candidates(
   //   「长兄壁洲　二兄壁银」，中间那个全角空格会把下面的前瞻断掉。
   //   这个坑这个项目踩过好几次，每次都是 norm 和「去空格」被当成一回事。
   const W0 = (t: string | null | undefined) => NS(t ?? '').replace(/[\s　]/g, '');
+  const bare0 = (t: string | null | undefined) => fname(t).replace(/公$/, '');
   const myForms0 = [W0(p.name), ...p.aliases.map(a => W0(a.form))].filter(Boolean);
 
   /**
@@ -346,6 +366,22 @@ export function candidates(
   const SIBW = '长兄|次兄|二兄|三兄|四兄|五兄|胞兄|亲兄|堂兄'
              + '|胞弟|亲弟|长弟|次弟|三弟|四弟|五弟|堂弟';
   const SIBREL = new RegExp(`(${SIBW})((?!为嗣|承嗣|兼祧|公|之)[^\s，。；、]{2})`, 'g');
+  // ★ 出嗣语句：本人被谁写成「X子〈本人〉出嗣〔关系词〕Y」。
+  //   Y 就是嗣父；关系词若是兄弟，Y 跟写者（本人的生父）**同父**——
+  //   全谱好几个梁柯／学虎／梁昌，这一句就定死了是哪个。
+  const outFacts = (outHeirIdx(idx).get(bare0(p.name)) ?? [])
+    .concat(...p.aliases.map(a => outHeirIdx(idx).get(bare0(a.form)) ?? []));
+  const outHeirName = new Set(outFacts.map(f => f.heirFatherName));
+  const outBornPid = new Set(outFacts.map(f => f.bornFather.pid));
+  // 嗣父名 → 他该跟谁同父（写者的父名）
+  const outSibHint = new Map<string, string>();
+  for (const f of outFacts) {
+    // 只有**亲兄弟**才同父；堂弟／房弟是叔伯的儿子，父亲不同（见 outheir.ts）
+    if (!sameFatherRel(f.rel)) continue;
+    const w = fname(f.bornFather.father_name).replace(/公$/, '');
+    if (w) outSibHint.set(f.heirFatherName, w);
+  }
+
   const sibHint = new Map<string, string>();   // 嗣父名 → 该跟谁同父
   for (const q of [p, ...sameAs([...idx.values()], p)]) {
     // 本人这一条写的生父是谁（「壁林之子」）
@@ -548,8 +584,11 @@ export function candidates(
     // ★ 合并之后，「本人写的父名」不是一个值，是**全组写过的并集**。
     //   继华三条各写壁洲、壁银、壁林；拿 361 页那条的「壁洲」去卡，
     //   就会把 362 页写的壁银判成「他不叫这个名字」——可那也是谱写的。
+    // ★ 出嗣语句写明的那位，也不许被这条规则排掉——**那同样是谱的原话**。
+    //   梁森那条写「幼子光林出嗣三弟梁柏」，可光林自己那条写的是生父的名字，
+    //   於是嗣父梁柏被判成「他不叫这个名字」。全谱 34 条这么丢的。
     if (p.father_name && nameFits.get(edge.kind) === 1 && !inWritten(edge)
-        && !statesMe(edge)) {
+        && !statesMe(edge) && !outHeirName.has(bare0(f?.name))) {
       const w = idx.get(edges.find(e => e.kind === edge.kind && !outByNamed(e) && inWritten(e))!.parent);
       return {
         edge, person: f, status: 'wrote' as const, layoutNote,
@@ -661,8 +700,29 @@ export function candidates(
     //
     //   这跟今天修掉的几条同一个毛病：**弱规则盖过强规则**。
     //   两边都写了的边，任何推断都不许动它。
-    // 关系词定死的：这位嗣父该跟本人的生父同父，不同父的排掉
-    if (edge.kind !== '生父' && sibHint.size) {
+    // ★ 出嗣语句定的嗣父：名字对上、且（写了关系词时）跟写者同父。
+    //   同名而父不同的排掉——这是谱的原话，不是推断。
+    // ★ 立嗣语句直接点了本人的名，比「同父兄弟」这种间接推断硬得多。
+    //   泽寿（第5页）那条写着「立亲兄泽恭次子梁宽为嗣」——白纸黑字点名，
+    //   却被下面这条同父规则排掉了。**直接点名 > 间接关系。**
+    if (edge.kind !== '生父' && outHeirName.size && !statesMe(edge)) {
+      const nm = bare0(f?.name);
+      if (outHeirName.has(nm)) {
+        const want = outSibHint.get(nm);
+        const his = bare0(f?.father_name);
+        if (want && his && his !== want) {
+          return {
+            edge, person: f, status: 'wrote' as const, layoutNote,
+            printedAbove: above.has(edge.parent),
+            note: `谱上写本人「出嗣${want ? '' : ''}${nm}」，而那位是写者的兄弟（父名「${want}」）；`
+                + `他那一条写的父名是「${f?.father_name}」，不是同一房的。`,
+          };
+        }
+      }
+    }
+    // 关系词定死的：这位嗣父该跟本人的生父同父，不同父的排掉。
+    // **但直接点名的不排**（同上）。
+    if (edge.kind !== '生父' && sibHint.size && !statesMe(edge)) {
       const nm = W0(f?.name).replace(/公$/, '');
       const want = sibHint.get(nm);
       if (want !== undefined) {
@@ -719,6 +779,31 @@ export function candidates(
       //
       //       两个梁玉各自只有一个算得通的泽贵，而且正好是同页那个。
       //       这是减法，不是意见。
+      // ★★ **父亲的生子名单点了本人的名——这条边年代一律不排。**
+      //
+      //   原来这条豁免只给 rank 1（两边都写了）。可 rank 2 是
+      //   「本人条目没写父名，但父亲名单里有他」——**父亲那一侧照样是
+      //   谱的原话**，只是本人那一格没重复写（世系表里兄弟并排，
+      //   父名写在页眉上，行内不再写）。
+      //
+      //   於是这些人被算术整批排空：
+      //       泽治、泽滺、泽纯 → 铣质　名单[泽治、泽滺、泽纯]　「晚了2年」
+      //       梁兴、梁芳、梁香、梁廷 → 泽富　名单里四个全在
+      //       光燕、光烝 → 梁桂　名单[光煦、光燕、光烝]
+      //       铣富、铣贵 → 士志　　梁餗、梁庆 → 泽膏　　继四 → 壁胜
+      //   全谱 37 个「所有候选都被排掉」的人里，一多半是这么来的。
+      //
+      //   规矩：**谱的原话 > 算术。** 年代对不上就把矛盾摆出来，
+      //   不拿一个可疑的日期去推翻谱写下的父子关系。
+      //   年代继续管那些**谱两边都没写**的弱边——那里它才是有效的。
+      if (namesMe(edge)) {
+        return {
+          edge, person: f, status: 'ok' as const, layoutNote,
+          printedAbove: above.has(edge.parent),
+          note: `谱上前后对不上：${a.text}`,
+          conflict: a.text,
+        };
+      }
       const fits = ageFitsBy.get(edge.kind) ?? [];
       if (fits.length === 1 && !fits.includes(edge)) {
         const w = idx.get(fits[0].parent);
