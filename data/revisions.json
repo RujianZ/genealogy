@@ -5,6 +5,7 @@
    {
     "title": null,
     "name": "朝爱",
+    "name_is_bare": true,
     "字": "九成",
     "raw": "朝爱  字九成",
     "role": null,
@@ -15,6 +16,7 @@
    {
     "title": null,
     "name": "朝选",
+    "name_is_bare": true,
     "字": "笃生",
     "raw": "朝选  字笃生",
     "role": null,
@@ -25,6 +27,7 @@
    {
     "title": null,
     "name": "启蒙",
+    "name_is_bare": true,
     "字": "楚先",
     "raw": "启蒙  字楚先",
     "role": null,
@@ -35,6 +38,7 @@
    {
     "title": null,
     "name": "启昌",
+    "name_is_bare": true,
     "字": "焕先",
     "raw": "启昌  字焕先",
     "role": null,
@@ -51,6 +55,7 @@
    {
     "title": null,
     "name": "学仁",
+    "name_is_bare": true,
     "字": "殿皇",
     "raw": "学仁  字殿皇",
     "role": null,
@@ -61,6 +66,7 @@
    {
     "title": null,
     "name": "学义",
+    "name_is_bare": true,
     "字": "嘉和",
     "raw": "学义  字嘉和",
     "role": null,
@@ -71,6 +77,7 @@
    {
     "title": null,
     "name": "士可",
+    "name_is_bare": true,
     "字": "显芳",
     "raw": "士可  字显芳",
     "role": null,
@@ -81,6 +88,7 @@
    {
     "title": null,
     "name": "士贞",
+    "name_is_bare": true,
     "字": "宗正",
     "raw": "士贞  字宗正",
     "role": null,
@@ -91,6 +99,7 @@
    {
     "title": null,
     "name": "士硕",
+    "name_is_bare": true,
     "字": "苍遂",
     "raw": "士硕  字苍遂",
     "role": null,
@@ -107,6 +116,7 @@
    {
     "title": "国学生",
     "name": "国茂",
+    "name_is_bare": false,
     "号": "古岩",
     "名": "国茂",
     "字": "苍遂",
@@ -119,6 +129,7 @@
    {
     "title": "国学生",
     "name": "国秀",
+    "name_is_bare": false,
     "号": "松亭",
     "名": "国秀",
     "字": "苍怀",
@@ -131,6 +142,7 @@
    {
     "title": null,
     "name": "士珍",
+    "name_is_bare": true,
     "字": "珂鸣",
     "raw": "士珍  字珂鸣",
     "role": null,
@@ -141,6 +153,7 @@
    {
     "title": null,
     "name": "士條",
+    "name_is_bare": true,
     "字": "德和",
     "raw": "士條  字德和",
     "role": null,
@@ -151,6 +164,7 @@
    {
     "title": null,
     "name": "铣文",
+    "name_is_bare": true,
     "字": "朴雅",
     "raw": "铣文  字朴雅",
     "role": null,
@@ -161,6 +175,7 @@
    {
     "title": "儒士",
     "name": "铣荣",
+    "name_is_bare": true,
     "讳": "荣",
     "字": "十朋",
     "raw": "儒士    铣荣    讳 荣  字十朋",
@@ -172,6 +187,7 @@
    {
     "title": "国学生",
     "name": "铣宽",
+    "name_is_bare": true,
     "讳": "质美",
     "字": "金玉",
     "raw": "国学生   铣宽   讳质美  字金玉",
@@ -183,6 +199,7 @@
    {
     "title": "儒士",
     "name": "铣华",
+    "name_is_bare": true,
     "讳": "毓奇",
     "字": "辉斗",
     "raw": "儒士    铣华   讳毓奇  字辉斗",
@@ -194,6 +211,7 @@
    {
     "title": "儒士",
     "name": "泽远",
+    "name_is_bare": true,
     "讳": "四维",
     "字": "泽源",
     "raw": "儒士    泽远   讳四维  字泽源",
@@ -205,6 +223,7 @@
    {
     "title": "国学生",
     "name": "铣敏",
+    "name_is_bare": true,
     "名": "赞成",
     "字": "金题",
     "raw": "国学生   铣敏   名赞成  字金题",
@@ -216,6 +235,7 @@
    {
     "title": "儒士",
     "name": "铣贵",
+    "name_is_bare": true,
     "讳": "学骞",
     "字": "万选",
     "raw": "儒士    铣贵   讳学骞  字万选",
@@ -233,6 +253,7 @@
    {
     "title": "贡生",
     "name": "拔萃",
+    "name_is_bare": false,
     "号": "默齐",
     "名": "拔萃",
     "字": "自新",
@@ -245,6 +266,7 @@
    {
     "title": null,
     "name": "士成",
+    "name_is_bare": true,
     "字": "登甲",
     "raw": "士成  字登甲",
     "role": null,
@@ -255,6 +277,7 @@
    {
     "title": null,
     "name": "士祥",
+    "name_is_bare": true,
     "字": "嘉望",
     "raw": "士祥  字嘉望",
     "role": null,
@@ -263,6 +286,7 @@
    {
     "title": null,
     "name": "士华",
+    "name_is_bare": true,
     "字": "万茂",
     "raw": "士华  字万茂",
     "role": null,
@@ -273,6 +297,7 @@
    {
     "title": null,
     "name": "士成",
+    "name_is_bare": true,
     "字": "文德",
     "raw": "士成  字文德",
     "role": null,
@@ -281,6 +306,7 @@
    {
     "title": null,
     "name": "士成",
+    "name_is_bare": true,
     "字": "灼桃",
     "raw": "士成  字灼桃",
     "role": null,
@@ -289,6 +315,7 @@
    {
     "title": null,
     "name": "士成",
+    "name_is_bare": true,
     "字": "上庆",
     "raw": "士成  字上庆",
     "role": null,
@@ -297,6 +324,7 @@
    {
     "title": "国学生",
     "name": "在田",
+    "name_is_bare": false,
     "号": "介玉",
     "讳": "在田",
     "字": "楚兰",
@@ -309,6 +337,7 @@
    {
     "title": "儒士",
     "name": "梁一",
+    "name_is_bare": true,
     "讳": "善亲",
     "字": "希仲",
     "raw": "儒士   梁一  讳善亲  字希仲",
@@ -320,6 +349,7 @@
    {
     "title": "儒士",
     "name": "梁二",
+    "name_is_bare": true,
     "讳": "省端",
     "字": "葆元",
     "raw": "儒士   梁二  讳省端  字葆元",
@@ -331,6 +361,7 @@
    {
     "title": "职员",
     "name": "泽毅",
+    "name_is_bare": true,
     "讳": "佑棋",
     "字": "义士",
     "raw": "职员   泽毅  讳佑棋  字义士",
@@ -342,6 +373,7 @@
    {
     "title": "儒士",
     "name": "弼善",
+    "name_is_bare": true,
     "讳": "善庆",
     "字": "扶禄",
     "raw": "儒士   弼善  讳善庆  字扶禄",
@@ -359,6 +391,7 @@
    {
     "title": "生员",
     "name": "必端",
+    "name_is_bare": false,
     "号": "穿杨",
     "名": "必端",
     "字": "兆楷",
@@ -371,6 +404,7 @@
    {
     "title": null,
     "name": "士祥",
+    "name_is_bare": true,
     "字": "嘉望",
     "raw": "士祥  字嘉望",
     "role": null,
@@ -379,6 +413,7 @@
    {
     "title": null,
     "name": "铣义",
+    "name_is_bare": true,
     "字": "灼桃",
     "raw": "铣义  字灼桃",
     "role": null,
@@ -387,6 +422,7 @@
    {
     "title": null,
     "name": "泽昌",
+    "name_is_bare": true,
     "字": "遇荣",
     "raw": "泽昌  字遇荣",
     "role": null,
@@ -397,6 +433,7 @@
    {
     "title": null,
     "name": "泽和",
+    "name_is_bare": true,
     "字": "叶篪",
     "raw": "泽和  字叶篪",
     "role": null,
@@ -407,6 +444,7 @@
    {
     "title": null,
     "name": "梁一",
+    "name_is_bare": true,
     "讳": "善亲",
     "字": "希仲",
     "raw": "梁一 讳善亲  字希仲",
@@ -418,6 +456,7 @@
    {
     "title": null,
     "name": "梁弼",
+    "name_is_bare": true,
     "讳": "善庆",
     "字": "扶禄",
     "raw": "梁弼 讳善庆  字扶禄",
@@ -429,6 +468,7 @@
    {
     "title": null,
     "name": "週",
+    "name_is_bare": true,
     "字": "楚华",
     "raw": "週  字楚华",
     "role": null,
@@ -439,6 +479,7 @@
    {
     "title": null,
     "name": "梁忍",
+    "name_is_bare": true,
     "字": "端木",
     "raw": "梁忍  字端木",
     "role": null,
@@ -449,6 +490,7 @@
    {
     "title": null,
     "name": "梁三",
+    "name_is_bare": true,
     "字": "正鹄",
     "raw": "梁三  字正鹄",
     "role": null,
@@ -459,6 +501,7 @@
    {
     "title": null,
     "name": "梁五",
+    "name_is_bare": true,
     "字": "以鹄",
     "raw": "梁五  字以鹄",
     "role": null,
@@ -469,6 +512,7 @@
    {
     "title": null,
     "name": "光裕",
+    "name_is_bare": true,
     "字": "光宗",
     "raw": "光裕  字光宗",
     "role": null,
@@ -477,6 +521,7 @@
    {
     "title": null,
     "name": "泽恩",
+    "name_is_bare": true,
     "字": "为隆",
     "raw": "泽恩  字为隆",
     "role": null,
@@ -485,6 +530,7 @@
    {
     "title": null,
     "name": "泽济",
+    "name_is_bare": true,
     "字": "高荣",
     "raw": "泽济  字高荣",
     "role": null,
@@ -495,6 +541,7 @@
    {
     "title": null,
     "name": "梁陞",
+    "name_is_bare": true,
     "字": "全禄",
     "raw": "梁陞  字全禄",
     "role": null,
@@ -505,6 +552,7 @@
    {
     "title": null,
     "name": "光云",
+    "name_is_bare": true,
     "字": "如墉",
     "raw": "光云  字如墉",
     "role": null,
@@ -513,6 +561,7 @@
    {
     "title": null,
     "name": "泽溶",
+    "name_is_bare": true,
     "字": "财广",
     "raw": "泽溶  字财广",
     "role": null,
@@ -523,6 +572,7 @@
    {
     "title": null,
     "name": "泽浣",
+    "name_is_bare": true,
     "字": "慎为",
     "raw": "泽浣  字慎为",
     "role": null,
@@ -539,6 +589,7 @@
    {
     "title": "职员",
     "name": "廷松",
+    "name_is_bare": false,
     "号": "蔼芝",
     "讳": "廷松",
     "字": "瑞廷",
@@ -551,6 +602,7 @@
    {
     "title": "职员",
     "name": "登瀛",
+    "name_is_bare": false,
     "号": "丹亭",
     "讳": "登瀛",
     "字": "前绪",
@@ -563,26 +615,33 @@
    {
     "title": "国学生",
     "name": "文彪",
+    "name_is_bare": false,
     "号": "汝臣",
     "讳": "文彪",
     "字": "逵达",
     "raw": "国学生  号汝臣  讳文彪  字逵达",
     "role": null,
-    "match": "谱名「文彪」全谱只此一位，可他字作「达连／汉臣／文彪」，跟名目写的「逵达」不是一个人"
+    "pid": "P-册3-0087-3-1-L3791",
+    "match": "谱名「文彪」全谱只此一位",
+    "gen": 23
    },
    {
     "title": "国学生",
     "name": "文炳",
+    "name_is_bare": false,
     "号": "盘山",
     "名": "文炳",
     "字": "肇铭",
     "raw": "国学生  号盘山  名文炳  字肇铭",
     "role": null,
-    "match": "谱名和字都对上，可名目写「文炳」——「文」是第 2 世的辈字，而他是第 23 世"
+    "pid": "P-册3-0014-3-0-L522",
+    "match": "谱名和字都对上",
+    "gen": 23
    },
    {
     "title": null,
     "name": "梁栉",
+    "name_is_bare": true,
     "字": "恒吉",
     "raw": "梁栉  字恒吉",
     "role": null,
@@ -593,6 +652,7 @@
    {
     "title": null,
     "name": "梁珍",
+    "name_is_bare": true,
     "字": "恒启",
     "raw": "梁珍  字恒启",
     "role": null,
@@ -603,6 +663,7 @@
    {
     "title": "文学生",
     "name": "璧连",
+    "name_is_bare": true,
     "号": "荆山",
     "字": "璞城",
     "raw": "文学生    璧连  号荆山  字璞城",
@@ -614,6 +675,7 @@
    {
     "title": "业儒",
     "name": "璧万",
+    "name_is_bare": true,
     "号": "立阶",
     "字": "寿堂",
     "raw": "业儒   璧万  号立阶  字寿堂",
@@ -625,6 +687,7 @@
    {
     "title": null,
     "name": "泽澄",
+    "name_is_bare": true,
     "字": "玉川",
     "raw": "泽澄  字玉川",
     "role": null,
@@ -633,6 +696,7 @@
    {
     "title": null,
     "name": "泽加",
+    "name_is_bare": true,
     "字": "起茂",
     "raw": "泽加  字起茂",
     "role": null,
@@ -643,6 +707,7 @@
    {
     "title": null,
     "name": "梁松",
+    "name_is_bare": true,
     "字": "明顺",
     "raw": "梁松  字明顺",
     "role": null,
@@ -653,6 +718,7 @@
    {
     "title": null,
     "name": "梁喜",
+    "name_is_bare": true,
     "字": "启胜",
     "raw": "梁喜  字启胜",
     "role": null,
@@ -663,6 +729,7 @@
    {
     "title": null,
     "name": "泽贵",
+    "name_is_bare": true,
     "字": "应富",
     "raw": "泽贵  字应富",
     "role": null,
@@ -673,6 +740,7 @@
    {
     "title": null,
     "name": "光表",
+    "name_is_bare": true,
     "字": "天从",
     "raw": "光表  字天从",
     "role": null,
@@ -689,6 +757,7 @@
    {
     "title": "业儒",
     "name": "壁万",
+    "name_is_bare": true,
     "名": "廉",
     "字": "寿堂",
     "raw": "业儒  壁万    名  廉  字寿堂",
@@ -700,6 +769,7 @@
    {
     "title": "业儒",
     "name": "壁鋆",
+    "name_is_bare": true,
     "名": "鋆",
     "字": "运钧",
     "raw": "业儒  壁鋆    名  鋆  字运钧",
@@ -711,6 +781,7 @@
    {
     "title": "业儒",
     "name": "壁甘",
+    "name_is_bare": true,
     "名": "敬贤",
     "字": "寿臣",
     "raw": "业儒  壁甘    名敬贤  字寿臣",
@@ -722,6 +793,7 @@
    {
     "title": null,
     "name": "佾生",
+    "name_is_bare": true,
     "号": "焕岩",
     "名": "熠德",
     "字": "烺山",
@@ -732,6 +804,7 @@
    {
     "title": null,
     "name": "壁鍙",
+    "name_is_bare": true,
     "字": "运鸿",
     "raw": "壁鍙  字运鸿",
     "role": "对阅",
@@ -742,6 +815,7 @@
    {
     "title": null,
     "name": "继权",
+    "name_is_bare": true,
     "字": "正舆",
     "raw": "继权  字正舆",
     "role": "对阅",
@@ -750,6 +824,7 @@
    {
     "title": "职员",
     "name": "梁馀",
+    "name_is_bare": true,
     "名": "尊贤",
     "字": "椿林",
     "raw": "职员    梁馀  名尊贤  字椿林",
@@ -761,6 +836,7 @@
    {
     "title": null,
     "name": "光满",
+    "name_is_bare": true,
     "字": "天祥",
     "raw": "光满  字天祥",
     "role": "总理",
@@ -771,6 +847,7 @@
    {
     "title": null,
     "name": "例授登",
+    "name_is_bare": true,
     "名": "鸣岐",
     "字": "凤山",
     "raw": "例授登仕郎梁山 名鸣岐  字凤山",
@@ -782,6 +859,7 @@
    {
     "title": null,
     "name": "登仕郎",
+    "name_is_bare": true,
     "名": "廷楷",
     "字": "天顺",
     "raw": "登仕郎  光灶  名廷楷  字天顺",
@@ -791,6 +869,7 @@
    {
     "title": null,
     "name": "登仕郎",
+    "name_is_bare": true,
     "名": "光全",
     "字": "永青",
     "raw": "登仕郎  光显  名光全  字永青",
@@ -802,6 +881,7 @@
    {
     "title": null,
     "name": "光治",
+    "name_is_bare": true,
     "字": "连登",
     "raw": "光治  字连登",
     "role": "监修",
@@ -812,6 +892,7 @@
    {
     "title": null,
     "name": "光炯",
+    "name_is_bare": true,
     "字": "炳灿",
     "raw": "光炯  字炳灿",
     "role": "监修",
@@ -822,6 +903,7 @@
    {
     "title": null,
     "name": "壁东",
+    "name_is_bare": true,
     "字": "林葵",
     "raw": "壁东  字林葵",
     "role": "监修",
@@ -830,6 +912,7 @@
    {
     "title": null,
     "name": "梁青",
+    "name_is_bare": true,
     "字": "幼安",
     "raw": "梁青  字幼安",
     "role": "经理",
@@ -840,6 +923,7 @@
    {
     "title": null,
     "name": "光合",
+    "name_is_bare": true,
     "字": "家起",
     "raw": "光合  字家起",
     "role": "经理",
@@ -850,6 +934,7 @@
    {
     "title": null,
     "name": "壁邦",
+    "name_is_bare": true,
     "字": "怀庆",
     "raw": "壁邦  字怀庆",
     "role": "经理",
@@ -860,6 +945,7 @@
    {
     "title": null,
     "name": "泽情",
+    "name_is_bare": true,
     "字": "玉发",
     "raw": "泽情  字玉发",
     "role": "房长",
@@ -870,6 +956,7 @@
    {
     "title": null,
     "name": "梁承",
+    "name_is_bare": true,
     "字": "近承",
     "raw": "梁承  字近承",
     "role": "房长",
@@ -878,6 +965,7 @@
    {
     "title": null,
     "name": "梁玉",
+    "name_is_bare": true,
     "字": "良玉",
     "raw": "梁玉  字良玉",
     "role": "房长",
@@ -886,6 +974,7 @@
    {
     "title": null,
     "name": "光作",
+    "name_is_bare": true,
     "字": "与茂",
     "raw": "光作  字与茂",
     "role": "房长",
@@ -894,6 +983,7 @@
    {
     "title": null,
     "name": "光多",
+    "name_is_bare": true,
     "字": "恭安",
     "raw": "光多  字恭安",
     "role": "房长",
@@ -904,6 +994,7 @@
    {
     "title": null,
     "name": "光焯",
+    "name_is_bare": true,
     "字": "炳林",
     "raw": "光焯  字炳林",
     "role": "房长",
@@ -912,6 +1003,7 @@
    {
     "title": null,
     "name": "光开",
+    "name_is_bare": true,
     "字": "星灿",
     "raw": "光开  字星灿",
     "role": "房长",
@@ -920,6 +1012,7 @@
    {
     "title": null,
     "name": "壁允",
+    "name_is_bare": true,
     "字": "怀茂",
     "raw": "壁允  字怀茂",
     "role": "房长",
@@ -930,6 +1023,7 @@
    {
     "title": null,
     "name": "壁协",
+    "name_is_bare": true,
     "字": "重华",
     "raw": "壁协  字重华",
     "role": "房长",
@@ -940,6 +1034,7 @@
    {
     "title": null,
     "name": "壁全",
+    "name_is_bare": true,
     "字": "林发",
     "raw": "壁全  字林发",
     "role": "房长",
@@ -954,6 +1049,7 @@
    {
     "title": null,
     "name": "光量",
+    "name_is_bare": true,
     "字": "三林",
     "raw": "光量  字三林",
     "role": "督修",
@@ -964,6 +1060,7 @@
    {
     "title": "陆军参谋",
     "name": "继和",
+    "name_is_bare": true,
     "名": "逵阶",
     "字": "慕良",
     "raw": "陆军参谋  继和  名逵阶  字慕良",
@@ -973,6 +1070,7 @@
    {
     "title": "业儒",
     "name": "继颜",
+    "name_is_bare": true,
     "名": "峻德",
     "字": "嵩甫",
     "raw": "业儒  继颜  名峻德  字嵩甫",
@@ -984,6 +1082,7 @@
    {
     "title": "业儒",
     "name": "开道",
+    "name_is_bare": true,
     "名": "毅",
     "字": "国华",
     "raw": "业儒  开道  名  毅  字国华",
@@ -993,6 +1092,7 @@
    {
     "title": null,
     "name": "继浩",
+    "name_is_bare": true,
     "名": "虚白",
     "字": "正蒙",
     "raw": "继浩  名虚白  字正蒙",
@@ -1004,6 +1104,7 @@
    {
     "title": null,
     "name": "继华",
+    "name_is_bare": true,
     "名": "郁",
     "字": "武赐",
     "raw": "继华  名  郁  字武赐",
@@ -1015,6 +1116,7 @@
    {
     "title": null,
     "name": "光烺",
+    "name_is_bare": true,
     "名": "熠德",
     "字": "朗山",
     "raw": "光烺  名熠德  字朗山",
@@ -1024,6 +1126,7 @@
    {
     "title": null,
     "name": "光禄",
+    "name_is_bare": true,
     "字": "福安",
     "raw": "光禄  字福安",
     "role": "协修",
@@ -1034,6 +1137,7 @@
    {
     "title": null,
     "name": "壁矩",
+    "name_is_bare": true,
     "字": "寿方",
     "raw": "壁矩  字寿方",
     "role": "协修",
@@ -1044,6 +1148,7 @@
    {
     "title": null,
     "name": "继会",
+    "name_is_bare": true,
     "字": "明德",
     "raw": "继会  字明德",
     "role": "总经理",
@@ -1052,6 +1157,7 @@
    {
     "title": null,
     "name": "壁焱",
+    "name_is_bare": true,
     "名": "火臣",
     "字": "腾灼",
     "raw": "壁焱  名火臣  字腾灼",
@@ -1061,6 +1167,7 @@
    {
     "title": null,
     "name": "光彰",
+    "name_is_bare": true,
     "字": "文瑞",
     "raw": "光彰  字文瑞",
     "role": "监修",
@@ -1071,6 +1178,7 @@
    {
     "title": null,
     "name": "壁轫",
+    "name_is_bare": true,
     "字": "连发",
     "raw": "壁轫  字连发",
     "role": "监修",
@@ -1081,6 +1189,7 @@
    {
     "title": null,
     "name": "继符",
+    "name_is_bare": true,
     "字": "旺玺",
     "raw": "继符  字旺玺",
     "role": "经理",
@@ -1091,6 +1200,7 @@
    {
     "title": null,
     "name": "继利",
+    "name_is_bare": true,
     "字": "仁溥",
     "raw": "继利  字仁溥",
     "role": "经理",
@@ -1101,6 +1211,7 @@
    {
     "title": null,
     "name": "壁岳",
+    "name_is_bare": true,
     "名": "广泰",
     "字": "旺生",
     "raw": "壁岳  名广泰  字旺生",
@@ -1112,6 +1223,7 @@
    {
     "title": null,
     "name": "壁慤",
+    "name_is_bare": true,
     "字": "小毛",
     "raw": "壁慤  字小毛",
     "role": "房长",
@@ -1120,6 +1232,7 @@
    {
     "title": null,
     "name": "光来",
+    "name_is_bare": true,
     "字": "泰安",
     "raw": "光来  字泰安",
     "role": "房长",
@@ -1130,6 +1243,7 @@
    {
     "title": null,
     "name": "璧泗",
+    "name_is_bare": true,
     "字": "癸酉",
     "raw": "璧泗  字癸酉",
     "role": "房长",
@@ -1138,6 +1252,7 @@
    {
     "title": null,
     "name": "光宇",
+    "name_is_bare": true,
     "字": "太丰",
     "raw": "光宇  字太丰",
     "role": "房长",
@@ -1146,6 +1261,7 @@
    {
     "title": null,
     "name": "壁芬",
+    "name_is_bare": true,
     "字": "金保",
     "raw": "壁芬  字金保",
     "role": "房长",
@@ -1154,6 +1270,7 @@
    {
     "title": null,
     "name": "壁胖",
+    "name_is_bare": true,
     "字": "广钧",
     "raw": "壁胖  字广钧",
     "role": "房长",
@@ -1164,6 +1281,7 @@
    {
     "title": null,
     "name": "继坤",
+    "name_is_bare": true,
     "字": "炳坤",
     "raw": "继坤  字炳坤",
     "role": "房长",
@@ -1172,6 +1290,7 @@
    {
     "title": null,
     "name": "继焰",
+    "name_is_bare": true,
     "字": "振高",
     "raw": "继焰  字振高",
     "role": "房长",
@@ -1182,6 +1301,7 @@
    {
     "title": null,
     "name": "光玉",
+    "name_is_bare": true,
     "字": "金珠",
     "raw": "光玉  字金珠",
     "role": "房长",
@@ -1190,6 +1310,7 @@
    {
     "title": null,
     "name": "继祐",
+    "name_is_bare": true,
     "字": "东生",
     "raw": "继祐  字东生",
     "role": "房长",
@@ -1198,6 +1319,7 @@
    {
     "title": null,
     "name": "壁金",
+    "name_is_bare": true,
     "字": "金山",
     "raw": "壁金  字金山",
     "role": "房长",
@@ -1208,6 +1330,7 @@
    {
     "title": null,
     "name": "壁定",
+    "name_is_bare": true,
     "字": "宗耀",
     "raw": "壁定  字宗耀",
     "role": "房长",
@@ -1218,6 +1341,7 @@
    {
     "title": null,
     "name": "振坊",
+    "name_is_bare": true,
     "raw": "振坊",
     "role": "房长",
     "pid": "P-册3-0083-5-1-L3578",
@@ -1233,6 +1357,7 @@
    {
     "title": null,
     "name": "继茂",
+    "name_is_bare": true,
     "字": "金山",
     "raw": "继茂  字金山",
     "role": "督修",
@@ -1241,6 +1366,7 @@
    {
     "title": null,
     "name": "开柱",
+    "name_is_bare": true,
     "字": "正柱",
     "raw": "开柱  字正柱",
     "role": "主修",
@@ -1251,16 +1377,18 @@
    {
     "title": "省教研会员",
     "name": "承武",
+    "name_is_bare": true,
     "字": "成祥",
     "raw": "省教研会员承武  字成祥",
     "role": "编校",
-    "pid": "P-册4-0094-2-0-L3986",
-    "match": "字「成祥」全谱只此一位",
+    "pid": "P-册4-0050-2-0-L2029",
+    "match": "头衔「省教研会员」全谱只此一位，谱名也对得上",
     "gen": 27
    },
    {
     "title": null,
     "name": "初中生",
+    "name_is_bare": true,
     "字": "六明",
     "raw": "初中生  开胜  字六明",
     "role": "编修",
@@ -1271,6 +1399,7 @@
    {
     "title": null,
     "name": "初中生",
+    "name_is_bare": true,
     "字": "成万",
     "raw": "初中生  承万  字成万",
     "role": "编修",
@@ -1281,6 +1410,7 @@
    {
     "title": null,
     "name": "继椿",
+    "name_is_bare": true,
     "字": "树华",
     "raw": "继椿  字树华",
     "role": "对阅",
@@ -1291,6 +1421,7 @@
    {
     "title": null,
     "name": "承祥",
+    "name_is_bare": true,
     "字": "关生",
     "raw": "承祥  字关生",
     "role": "对阅",
@@ -1301,6 +1432,7 @@
    {
     "title": null,
     "name": "继华",
+    "name_is_bare": true,
     "字": "冬华",
     "raw": "继华  字冬华",
     "role": "协修",
@@ -1309,6 +1441,7 @@
    {
     "title": null,
     "name": "开汶",
+    "name_is_bare": true,
     "字": "舟汶",
     "raw": "开汶  字舟汶",
     "role": "协修",
@@ -1317,6 +1450,7 @@
    {
     "title": null,
     "name": "开轮",
+    "name_is_bare": true,
     "字": "铁轮",
     "raw": "开轮  字铁轮",
     "role": "协修",
@@ -1327,6 +1461,7 @@
    {
     "title": null,
     "name": "开茂",
+    "name_is_bare": true,
     "字": "茂荣",
     "raw": "开茂  字茂荣",
     "role": "协修",
@@ -1337,6 +1472,7 @@
    {
     "title": null,
     "name": "承超",
+    "name_is_bare": true,
     "字": "七权",
     "raw": "承超  字七权",
     "role": "协修",
@@ -1347,6 +1483,7 @@
    {
     "title": null,
     "name": "承龙",
+    "name_is_bare": true,
     "字": "成龙",
     "raw": "承龙  字成龙",
     "role": "协修",
@@ -1357,6 +1494,7 @@
    {
     "title": null,
     "name": "承权",
+    "name_is_bare": true,
     "字": "成权",
     "raw": "承权  字成权",
     "role": "协修",
@@ -1367,6 +1505,7 @@
    {
     "title": null,
     "name": "高中生",
+    "name_is_bare": true,
     "字": "先良",
     "raw": "高中生  承先  字先良",
     "role": "协修",
@@ -1375,6 +1514,7 @@
    {
     "title": null,
     "name": "承彬",
+    "name_is_bare": true,
     "字": "海兵",
     "raw": "承彬  字海兵",
     "role": "协修",
@@ -1385,6 +1525,7 @@
    {
     "title": null,
     "name": "继文",
+    "name_is_bare": true,
     "字": "楚生",
     "raw": "继文  字楚生",
     "role": "监修",
@@ -1395,6 +1536,7 @@
    {
     "title": null,
     "name": "继良",
+    "name_is_bare": true,
     "字": "二龙",
     "raw": "继良  字二龙",
     "role": "监修",
@@ -1405,6 +1547,7 @@
    {
     "title": null,
     "name": "初中生",
+    "name_is_bare": true,
     "字": "记荣",
     "raw": "初中生  宏勤  字记荣",
     "role": "经理",
@@ -1415,6 +1558,7 @@
    {
     "title": null,
     "name": "继文",
+    "name_is_bare": true,
     "字": "楚生",
     "raw": "继文  字楚生",
     "role": "房长",
@@ -1425,6 +1569,7 @@
    {
     "title": null,
     "name": "继发",
+    "name_is_bare": true,
     "字": "宏发",
     "raw": "继发  字宏发",
     "role": "房长",
@@ -1433,6 +1578,7 @@
    {
     "title": null,
     "name": "壁兴",
+    "name_is_bare": true,
     "字": "正兴",
     "raw": "壁兴  字正兴",
     "role": "房长",
@@ -1443,6 +1589,7 @@
    {
     "title": null,
     "name": "继华",
+    "name_is_bare": true,
     "字": "冬华",
     "raw": "继华  字冬华",
     "role": "房长",
@@ -1451,6 +1598,7 @@
    {
     "title": null,
     "name": "继乔",
+    "name_is_bare": true,
     "字": "水乔",
     "raw": "继乔  字水乔",
     "role": "房长",
@@ -1461,6 +1609,7 @@
    {
     "title": null,
     "name": "开顺",
+    "name_is_bare": true,
     "字": "老寒",
     "raw": "开顺  字老寒",
     "role": "房长",
@@ -1471,6 +1620,7 @@
    {
     "title": null,
     "name": "承青",
+    "name_is_bare": true,
     "字": "淦青",
     "raw": "承青  字淦青",
     "role": "房长",
@@ -1481,6 +1631,7 @@
    {
     "title": null,
     "name": "开保",
+    "name_is_bare": true,
     "字": "保香",
     "raw": "开保  字保香",
     "role": "房长",
@@ -1491,6 +1642,7 @@
    {
     "title": null,
     "name": "开香",
+    "name_is_bare": true,
     "字": "细香",
     "raw": "开香  字细香",
     "role": "房长",
@@ -1501,6 +1653,7 @@
    {
     "title": null,
     "name": "继元",
+    "name_is_bare": true,
     "字": "元吉",
     "raw": "继元  字元吉",
     "role": "房长",
@@ -1511,6 +1664,7 @@
    {
     "title": null,
     "name": "继喜",
+    "name_is_bare": true,
     "字": "东喜",
     "raw": "继喜  字东喜",
     "role": "房长",
@@ -1521,6 +1675,7 @@
    {
     "title": null,
     "name": "继华",
+    "name_is_bare": true,
     "字": "金龙",
     "raw": "继华  字金龙",
     "role": "房长",
@@ -1537,6 +1692,7 @@
    {
     "title": null,
     "name": "继荒",
+    "name_is_bare": true,
     "字": "细荒",
     "raw": "继荒  字细荒",
     "role": "督修",
@@ -1547,6 +1703,7 @@
    {
     "title": null,
     "name": "开柱",
+    "name_is_bare": true,
     "字": "正柱",
     "raw": "开柱  字正柱",
     "role": "主修",
@@ -1557,6 +1714,7 @@
    {
     "title": null,
     "name": "承龙",
+    "name_is_bare": true,
     "字": "成龙",
     "raw": "承龙  字成龙",
     "role": "副主修",
@@ -1567,14 +1725,18 @@
    {
     "title": "省教研会员",
     "name": "承武",
+    "name_is_bare": true,
     "字": "成祥",
     "raw": "省教研会员承武  字成祥",
     "role": "编校",
-    "match": "字「成祥」全谱只此一位，可殁于 1994，修谱在 2016——人已不在"
+    "pid": "P-册4-0050-2-0-L2029",
+    "match": "头衔「省教研会员」全谱只此一位，谱名也对得上",
+    "gen": 27
    },
    {
     "title": null,
     "name": "继盟",
+    "name_is_bare": true,
     "字": "复查",
     "raw": "继盟  字复查",
     "role": "编修",
@@ -1585,6 +1747,7 @@
    {
     "title": null,
     "name": "继华",
+    "name_is_bare": true,
     "字": "冬华",
     "raw": "继华  字冬华",
     "role": "编修",
@@ -1593,6 +1756,7 @@
    {
     "title": null,
     "name": "开锡",
+    "name_is_bare": true,
     "字": "锡如",
     "raw": "开锡  字锡如",
     "role": "编修",
@@ -1603,6 +1767,7 @@
    {
     "title": null,
     "name": "承超",
+    "name_is_bare": true,
     "字": "七权",
     "raw": "承超  字七权",
     "role": "编修",
@@ -1613,6 +1778,7 @@
    {
     "title": null,
     "name": "承万",
+    "name_is_bare": true,
     "字": "成万",
     "raw": "承万  字成万",
     "role": "编修",
@@ -1623,6 +1789,7 @@
    {
     "title": null,
     "name": "宏群",
+    "name_is_bare": true,
     "字": "成群",
     "raw": "宏群  字成群",
     "role": "编修",
@@ -1633,6 +1800,7 @@
    {
     "title": null,
     "name": "继次",
+    "name_is_bare": true,
     "字": "佛次",
     "raw": "继次  字佛次",
     "role": "协修",
@@ -1643,6 +1811,7 @@
    {
     "title": null,
     "name": "继琼",
+    "name_is_bare": true,
     "字": "罗汉",
     "raw": "继琼  字罗汉",
     "role": "协修",
@@ -1653,6 +1822,7 @@
    {
     "title": null,
     "name": "开南",
+    "name_is_bare": true,
     "字": "焱南",
     "raw": "开南  字焱南",
     "role": "协修",
@@ -1663,6 +1833,7 @@
    {
     "title": null,
     "name": "开火",
+    "name_is_bare": true,
     "字": "记火",
     "raw": "开火  字记火",
     "role": "协修",
@@ -1673,6 +1844,7 @@
    {
     "title": null,
     "name": "开国",
+    "name_is_bare": true,
     "字": "保国",
     "raw": "开国  字保国",
     "role": "协修",
@@ -1683,6 +1855,7 @@
    {
     "title": null,
     "name": "开茂",
+    "name_is_bare": true,
     "字": "茂荣",
     "raw": "开茂  字茂荣",
     "role": "协修",
@@ -1693,6 +1866,7 @@
    {
     "title": null,
     "name": "开国",
+    "name_is_bare": true,
     "字": "国成",
     "raw": "开国  字国成",
     "role": "协修",
@@ -1703,6 +1877,7 @@
    {
     "title": null,
     "name": "开兴",
+    "name_is_bare": true,
     "字": "兴国",
     "raw": "开兴  字兴国",
     "role": "协修",
@@ -1713,6 +1888,7 @@
    {
     "title": null,
     "name": "开汶",
+    "name_is_bare": true,
     "字": "记汶",
     "raw": "开汶  字记汶",
     "role": "协修",
@@ -1721,6 +1897,7 @@
    {
     "title": null,
     "name": "开文",
+    "name_is_bare": true,
     "字": "舟汶",
     "raw": "开文  字舟汶",
     "role": "协修",
@@ -1729,6 +1906,7 @@
    {
     "title": null,
     "name": "开志",
+    "name_is_bare": true,
     "字": "志雄",
     "raw": "开志  字志雄",
     "role": "协修",
@@ -1739,6 +1917,7 @@
    {
     "title": null,
     "name": "开奎",
+    "name_is_bare": true,
     "字": "树奎",
     "raw": "开奎  字树奎",
     "role": "协修",
@@ -1749,6 +1928,7 @@
    {
     "title": null,
     "name": "承松",
+    "name_is_bare": true,
     "字": "海松",
     "raw": "承松  字海松",
     "role": "协修",
@@ -1759,6 +1939,7 @@
    {
     "title": null,
     "name": "承志",
+    "name_is_bare": true,
     "字": "志飞",
     "raw": "承志  字志飞",
     "role": "协修",
@@ -1769,6 +1950,7 @@
    {
     "title": null,
     "name": "承荣",
+    "name_is_bare": true,
     "字": "茂荣",
     "raw": "承荣  字茂荣",
     "role": "协修",
@@ -1779,6 +1961,7 @@
    {
     "title": null,
     "name": "承蛟",
+    "name_is_bare": true,
     "字": "金国",
     "raw": "承蛟  字金国",
     "role": "协修",
@@ -1789,6 +1972,7 @@
    {
     "title": null,
     "name": "宏雄",
+    "name_is_bare": true,
     "字": "干雄",
     "raw": "宏雄  字干雄",
     "role": "协修",
@@ -1799,6 +1983,7 @@
    {
     "title": null,
     "name": "宏勤",
+    "name_is_bare": true,
     "字": "记荣",
     "raw": "宏勤  字记荣",
     "role": "协修",
@@ -1809,6 +1994,7 @@
    {
     "title": null,
     "name": "开轮",
+    "name_is_bare": true,
     "字": "铁轮",
     "raw": "开轮  字铁轮",
     "role": "监修",
@@ -1819,6 +2005,7 @@
    {
     "title": null,
     "name": "承先",
+    "name_is_bare": true,
     "字": "先良",
     "raw": "承先  字先良",
     "role": "监修",
@@ -1827,6 +2014,7 @@
    {
     "title": null,
     "name": "承方",
+    "name_is_bare": true,
     "字": "成万",
     "raw": "承方  字成万",
     "role": "经理",
@@ -1837,6 +2025,7 @@
    {
     "title": null,
     "name": "开柱",
+    "name_is_bare": true,
     "字": "正柱",
     "raw": "开柱  字正柱",
     "role": "房长",
@@ -1847,6 +2036,7 @@
    {
     "title": null,
     "name": "开记",
+    "name_is_bare": true,
     "字": "记汶",
     "raw": "开记  字记汶",
     "role": "房长",
@@ -1855,6 +2045,7 @@
    {
     "title": null,
     "name": "继华",
+    "name_is_bare": true,
     "字": "冬华",
     "raw": "继华  字冬华",
     "role": "房长",
@@ -1863,6 +2054,7 @@
    {
     "title": null,
     "name": "继次",
+    "name_is_bare": true,
     "字": "佛次",
     "raw": "继次  字佛次",
     "role": "房长",
@@ -1873,6 +2065,7 @@
    {
     "title": null,
     "name": "承松",
+    "name_is_bare": true,
     "字": "海松",
     "raw": "承松  字海松",
     "role": "房长",
@@ -1883,6 +2076,7 @@
    {
     "title": null,
     "name": "开保",
+    "name_is_bare": true,
     "字": "保国",
     "raw": "开保  字保国",
     "role": "房长",
@@ -1893,6 +2087,7 @@
    {
     "title": null,
     "name": "开火",
+    "name_is_bare": true,
     "字": "记火",
     "raw": "开火  字记火",
     "role": "房长",
@@ -1903,6 +2098,7 @@
    {
     "title": null,
     "name": "开南",
+    "name_is_bare": true,
     "字": "焱南",
     "raw": "开南  字焱南",
     "role": "房长",
@@ -1913,6 +2109,7 @@
    {
     "title": null,
     "name": "开国",
+    "name_is_bare": true,
     "字": "全国",
     "raw": "开国  字全国",
     "role": "房长",
@@ -1923,6 +2120,7 @@
    {
     "title": null,
     "name": "承荣",
+    "name_is_bare": true,
     "字": "茂荣",
     "raw": "承荣  字茂荣",
     "role": "房长",
@@ -1933,6 +2131,7 @@
    {
     "title": null,
     "name": "继琼",
+    "name_is_bare": true,
     "字": "罗汉",
     "raw": "继琼  字罗汉",
     "role": "房长",

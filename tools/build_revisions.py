@@ -72,11 +72,16 @@ def parse_person(line: str) -> dict | None:
         pu = m.group(1)
     # 「国学生 号古岩 名国茂 字苍遂」——谱名写在「名」字段里，没有裸名。
     # 第一版只找裸名，这类全判成「谱中查无」。
+    # ★ 记下这个名字是不是**裸名**（谱名）。名目也常只写号/名/讳——
+    #   「号盘山　名文炳　字肇铭」里的「文炳」是讳，不是谱名，
+    #   拿它去查辈字会得出「文＝第 2 世」这种荒唐结论。
+    bare_name = bool(pu)
     if not pu:
         pu = fields.get("名") or fields.get("讳")
     if not pu and not fields:
         return None
-    return {"title": title, "name": pu, **fields, "raw": line.strip()}
+    return {"title": title, "name": pu, "name_is_bare": bare_name,
+            **fields, "raw": line.strip()}
 
 
 def main() -> None:

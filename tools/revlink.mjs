@@ -83,6 +83,23 @@ function decide(m, ad) {
   const nm = fold(byName.get(norm(m.name ?? '')));
   const zz = fold(zi ? byZi.get(zi) : []);
   const both = nm.filter(q => zz.some(x => x.pid === q.pid));
+  // ★ 头衔也是钥匙，而且常常是最硬的一把。
+  //   名目写「**省教研会员**承武　字成祥」，承武@册4 p50 的条目原文写着
+  //   「**省教研会员**六一年黄石大学毕业高中高级教师」——全谱只有他一个人
+  //   带这个头衔，两处一字不差。
+  //   名目早就把头衔解析成 title 了（TITLES 表里就有），只是配人时没用上。
+  //   这不是新规则，是把已有的一把钥匙拿起来。
+  if (m.title) {
+    const t = norm(m.title);
+    const byTitle = fold(people.filter(q =>
+      norm((q.raw_text ?? '').replace(/[\s　]+/g, '')).includes(t)));
+    if (byTitle.length === 1) {
+      const q = byTitle[0];
+      const nameOK = !m.name || norm(m.name) === norm(q.name)
+        || (q.aliases ?? []).some(a => norm(a.form) === norm(m.name));
+      if (nameOK) return [q, `头衔「${m.title}」全谱只此一位，谱名也对得上`];
+    }
+  }
   if (both.length === 1) return [both[0], '谱名和字都对上'];
   if (both.length > 1)   return [null, `谱名和字都对上的有 ${both.length} 位`];
   if (zz.length === 1)   return [zz[0], `字「${m['字']}」全谱只此一位`];
@@ -99,8 +116,16 @@ function decide(m, ad) {
     if (a.length === b.length && [...a].sort().join('') === [...b].sort().join('')) return true;
     return editDistance(a, b) <= 1;
   };
+  //   ★ 号/名/讳 里已经有一样**精确**对上时，字对不上不算数。
+  //     「国学生　号汝臣　讳文彪　字逵达」→ 光先（讳文彪／号汉臣／字达连）：
+  //     讳一字不差，那就是他；号差一字、字写法不同，都是卷首与世系的异写。
+  const otherHit = (q) => {
+    const his = [q.name, q.zi?.text, q.hui?.text, q.hao?.text, q.ming?.text]
+      .filter(Boolean).map(x => norm(String(x)));
+    return ['号', '名', '讳'].some(k => m[k] && his.includes(norm(m[k])));
+  };
   const ziClash = (q) => {
-    if (!zi) return false;
+    if (!zi || otherHit(q)) return false;
     const his = [q.zi, q.hui, q.hao, q.ming].filter(Boolean).map(x => norm(x.text));
     return his.length > 0 && !his.some(h => near(h, zi));
   };
@@ -129,7 +154,9 @@ function decideChecked(m, ad) {
   const [q, why] = decide(m, ad);
   if (!q) return [q, why];
   // ★ 名字头一个字是辈字的，世次就定死了；对不上就不是他。
-  const bz = GEN_BY_CHAR.get(norm(m.name ?? '').slice(0, 1));
+  // 只有**裸名**（谱名）才能查辈字。名目写的号/名/讳不是谱名，
+  // 「号盘山 名文炳 字肇铭」里的文炳是讳，拿去查会得出「文＝第2世」。
+  const bz = m.name_is_bare ? GEN_BY_CHAR.get(norm(m.name ?? '').slice(0, 1)) : null;
   if (bz != null && q.gen != null && q.gen !== bz)
     return [null, `${why}，可名目写「${m.name}」——「${norm(m.name).slice(0, 1)}」是第 ${bz} 世的辈字，`
                 + `而他是第 ${q.gen} 世`];
