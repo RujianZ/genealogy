@@ -20,11 +20,24 @@
  *   字同音（「字冬华」↔「字东华」）    → 这一谱同音换字是常事，同样只在唯一时采用
  *   兼祧的人谱上印了好几条             → 先折回同一条再数，那是一个人不是几个候选
  *   剩下的                             → **不判**，写进待核清单交给人
+ *
+ * ═══ 一道硬闸：年代 ═══
+ *
+ * **人死了就不能再修谱。** 这不是猜，是谱自己写的两个日期在打架。
+ *
+ * 名目写「省教研会员承武　字成祥」，全谱只有一位字成祥——可他**殁于 1994 年**，
+ * 而这是 2016 那一届的名目。上一版只凭「字全谱唯一」就认了他，
+ * 而谱名明明写着「承武」、跟「承祥」对不上。
+ *
+ * 所以配完还要过这一关：那一届的年份，得落在这个人**活着**的时候。
+ * 谱没写生卒的不判（不知道 ≠ 不可能）；写了的就按谱写的算。
+ * 年号→公元只在这里用来**排除**，界面上一个字都不换（CLAUDE.md 第四节）。
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
 import { norm, homophoneKey } from '../src/core/norm.ts';
 import { canonical } from '../src/core/seealso.ts';
+import { EraChart } from '../src/core/years.ts';
 
 const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url), 'utf8'));
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
@@ -50,7 +63,20 @@ const fold = list => {
   return [...seen.values()];
 };
 
-function decide(m) {
+const CHART = new EraChart(J('erachart'));
+const yearOf = (t) => CHART.lookup(t).ad;
+
+/** 这一届修谱的时候，他还活着吗。返回 null＝谱没写，判不了 */
+function aliveAt(q, ad) {
+  if (ad == null) return null;
+  const d = yearOf((q.death ?? {}).text);
+  const b = yearOf((q.birth ?? {}).text);
+  if (d != null && d < ad) return `殁于 ${d}，修谱在 ${ad}——人已不在`;
+  if (b != null && b > ad) return `生于 ${b}，修谱在 ${ad}——尚未出生`;
+  return null;
+}
+
+function decide(m, ad) {
   const zi = norm(m['字'] ?? '');
   const nm = fold(byName.get(norm(m.name ?? '')));
   const zz = fold(zi ? byZi.get(zi) : []);
@@ -68,10 +94,19 @@ function decide(m) {
   return [null, '谱名和字都对不上'];
 }
 
+/** 配出人来之后，再过一道年代关。过不去就退回，不硬认。 */
+function decideChecked(m, ad) {
+  const [q, why] = decide(m, ad);
+  if (!q) return [q, why];
+  const dead = aliveAt(q, ad);
+  if (dead) return [null, `${why}，可${dead}`];
+  return [q, why];
+}
+
 let hit = 0, miss = [];
 for (const r of D.revisions) {
   for (const m of r.members) {
-    const [q, why] = decide(m);
+    const [q, why] = decideChecked(m, yearOf(r.era + '年'));
     delete m.candidates;                 // 旧文件里的候选表，不再有
     delete m.gen;
     if (q) { m.pid = q.pid; m.match = why; m.gen = q.gen; hit++; }

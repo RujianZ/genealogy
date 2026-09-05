@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
 import { canonical } from '../src/core/seealso.ts';
+import { EraChart } from '../src/core/years.ts';
 import { norm } from '../src/core/norm.ts';
 const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url), 'utf8'));
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
@@ -92,6 +93,29 @@ console.log(`过继语句 ${ad} 条：落到 pid 的 ${adPid} 条，其余 ${ad 
     for (const x of [...onlyF.slice(0, 4), ...onlyB.slice(0, 4)]) bad.push('     ' + x);
   } else {
     console.log(`父边正反两边一一对应　${fwd.size} 条（A→B 记了，B→A 也记）`);
+  }
+}
+
+// ══ 修谱名目：人死了就不能再修谱 ══
+//
+// 这不是猜，是谱自己写的两个日期在打架。名目写「承武　字成祥」，
+// 全谱只有一位字成祥——可他殁于 1994，而那是 2016 那一届的名目。
+// 年号→公元只在这里用来**排除**，界面上一个字都不换。
+{
+  const chart = new EraChart(J('erachart'));
+  const ad = t => chart.lookup(t).ad;
+  for (const r of D.revisions) {
+    const year = ad(r.era + '年');
+    if (year == null) continue;
+    for (const m of (r.members ?? [])) {
+      const q = m.pid && R.idx.get(m.pid);
+      if (!q) continue;
+      const d = ad((q.death ?? {}).text), b = ad((q.birth ?? {}).text);
+      if (d != null && d < year)
+        bad.push(`${r.era}（${year}）名目里的「${m.raw}」指向 ${q.name}，可他殁于 ${d}`);
+      if (b != null && b > year)
+        bad.push(`${r.era}（${year}）名目里的「${m.raw}」指向 ${q.name}，可他生于 ${b}`);
+    }
   }
 }
 
