@@ -6,26 +6,30 @@
  */
 import { fname } from './fname.ts';
 import type { Person, ParentEdge } from './types.ts';
-import type { Referenced } from './referenced.ts';
 import type { PlaceRec, ShouDoc } from './places.ts';
 import type { Entry, Link, Fact, Relation } from './entry.ts';
 import { NS, srcText, unreverse, rel } from './entry.ts';
-import { buildIndex, childrenOf, edgeNote, countSameName } from './lineage.ts';
-import { buildRefIndex, householdOf, displayName, relationLine } from './referenced.ts';
+import { buildIndex, edgeNote, countSameName } from './lineage.ts';
+import { householdFromKin, displayName, relationLine } from './referenced.ts';
 import { buildPlaceTree, burialsOf, peopleAt, docsAbout, neighbours, chainOf } from './places.ts';
 import type { EraRow } from './years.ts';
 import { EraChart } from './years.ts';
 import { buildWindows } from './activity.ts';
-import { candidates, kept } from './candidates.ts';
 import { withBacklinks, backlinkCount } from './backlink.ts';
+import { parentsFrom, type Parents } from './parents.ts';
 // ★ entry.ts 里那个 NS 只去空格，**不带 947 条繁简异体折叠**。
 //   名字比对一律用这个 norm，别用那个。这个坑前后踩过五次。
 import { norm as NSx } from './norm.ts';
 import { continued } from './continued.ts';
 import { roster } from './roster.ts';
 import { ownerAt, burialOwner, trimBleed, agesOf } from './owner.ts';
-import { fullRecordOf, canonical } from './seealso.ts';
+import { fullRecordOf, canonical, sameAs, loadSameOne, type SameOne } from './seealso.ts';
 import { isStory } from './story.ts';
+import { buildFacts } from './facts.ts';
+import { resolveAll } from './resolve.ts';
+import { materialize, linkSons, type AnyPerson } from './persons.ts';
+import { applyManual, type ManualTable } from './manual.ts';
+import { buildDossier, CATS, type Dossier } from './dossier.ts';
 
 /** 原文里标出来的一处要素：谁 / 在哪 / 什么时候 */
 export interface Ent {
@@ -102,7 +106,17 @@ export interface ImageRec {
 
 export interface Data {
   people: Person[];
-  refs: Referenced[];
+  /** 人工判定表（data/人工判定.json）。看过原书的结论，盖在自动判定之上。 */
+  /**
+   * 人工核定表（data/人工判定.json）——**必填**。
+   *
+   * 早先写成可选、不传就当空表，而 prototype/app.js 的 fetch 清单里正好漏了它——
+   * 于是 **13 条人工核定在 app 里根本没生效**，工具里一个答案、app 里另一个。
+   * 看谱的人看到的和我们核过的不是同一件事。改成必填。
+   */
+  manual: ManualTable;
+  /** 人工核定的同人表（data/同一个人.json）——**必填**，理由同上 */
+  sameone: { 条目: SameOne[] };
   places: PlaceRec[];
   shou: ShouDoc[];
   era: EraRow[];
@@ -117,12 +131,87 @@ export interface Data {
 export function makeRegistry(d0: Data) {
   // 先把断掉的链接回去（父亲的生子名单点了名，只是名字写法不同）。
   // people.json 不动，补出来的边只活在内存里。见 backlink.ts。
-  const d: Data = { ...d0, people: withBacklinks(d0.people) };
-  const idx = buildIndex(d.people);
-  const { byRid, byHost } = buildRefIndex(d.refs);
-  const placeTree = buildPlaceTree(d.places);
-  const chart = new EraChart(d.era);
-  const win = buildWindows(d.people, chart);
+  // ★ 人工核定的同人表先装上——它比任何算法都先。
+  loadSameOne(d0.sameone.条目);
+  const d0b: Data = { ...d0, people: withBacklinks(d0.people) };
+  const idx0 = buildIndex(d0b.people);
+  const placeTree = buildPlaceTree(d0b.places);
+  const chart = new EraChart(d0b.era);
+  const win = buildWindows(d0b.people, chart);
+
+  // ★ **他父亲是谁——全站唯一入口。**
+  //   人物卡、世系树、关系计算、疑点清单，全部走这一个函数。
+  //   在这之前树和关系计算各算各的，312 人的上溯链里有 320 步
+  //   走的是人物卡已经排除掉的那条边。见 parents.ts 抬头。
+  // ★ **谱上关于他的每一句，按类目归好档——全站唯一入口。**
+  //   卡片、事迹栏、导出，都读这一份；归类只在 dossier.ts 做一次。
+  // 判定只在有独立条目的人上做（附记之人的父亲就是宿主，不需要判）
+  const facts0 = buildFacts(d0b.people, d0b.generations ?? []);
+  const RES0raw = resolveAll(facts0, idx0, win,
+    (x: string) => { const q = idx0.get(x); return q ? canonical(d0b.people, q).pid : x; });
+  // ★ 人工判定盖在最上面。看过原书的结论比任何自动规则都硬。
+  //   见 manual.ts；表在 data/人工判定.json，后人续修往里加行即可。
+  const RES0 = new Map(
+    [...RES0raw].map(([k, v]) => [k, applyManual(d0b.manual, k, v)]));
+
+  // ★ **谱里出现过的每一个人，一行，一个 id。**
+  //   妻、女儿、夭折没留下名字的孩子，以前只是别人卡片里的字符串，
+  //   点不开、搜不到、关系计算器算不到。现在和男人同一种 Person、同一个 idx，
+  //   下游一律不必区分。见 persons.ts 抬头。
+  //   名字串→pid 的配对就在这一步做完（linkSons），**全站只此一处**。
+  const __dads = (pid: string) => {
+    const r = RES0.get(pid);
+    return r ? [...r.birth, ...r.heir].map(x => x.pid) : [];
+  };
+  const sonSlots = linkSons(d0b.people, __dads, NSx);
+  const allPeople = materialize(d0b.people, sonSlots);
+  const d: Data = { ...d0b, people: allPeople };
+  const idx = buildIndex(allPeople);
+  const dcache = new Map<string, Dossier>();
+  const dossier = (q: Person): Dossier => {
+    let v = dcache.get(q.pid);
+    if (!v) { v = buildDossier(q, facts0.get(q.pid)); dcache.set(q.pid, v); }
+    return v;
+  };
+
+  // ★ 判定只在 resolveAll 做一次，全站读同一份结果。
+  //   candidates.ts 那套「十条排除规则赛跑」已退休。
+  const pcache = new Map<string, Parents>();
+  const parents = (q: Person): Parents => {
+    let v = pcache.get(q.pid);
+    if (!v) {
+      v = parentsFrom(idx, q, RES0.get(q.pid));
+      // ★ 兼祠：同一个人在谱上有好几条，**每条只写一家的父亲**。
+      //   继盟一子三祠：p399「壁岳公祠子」、p400「壁环公祠子」、
+      //   p401「壁火公祠子」。卡片折成一张，父亲就必须把几条**合起来**；
+      //   只取被折到的那一条，等于把另外几家抹掉——那正是「不漏」要防的事。
+      //   旧架构是 backlink 层并的，那一层换成 resolve 以后没人并了。
+      //   合并只看唯一 id，不比名字；重复的父亲在下面 fold 里按 pid 去重。
+      for (const o of sameAs(d0b.people, q)) {
+        const w = parentsFrom(idx, o, RES0.get(o.pid));
+        v = { ...v, birth: [...v.birth, ...w.birth], heir: [...v.heir, ...w.heir],
+              clan: [...v.clan, ...w.clan], alsoNamed: [...v.alsoNamed, ...w.alsoNamed] };
+      }
+      // ★ 候选也要折回本条。
+      //   兼祥的人谱会印好几遍（凡例第十三则要求双记），
+      //   不折就会对看谱的人说「叫这名字的有 4 位」——
+      //   而其中三位是同一个人。那句话本身就是错的。
+      const fold = (cs: typeof v.birth) => {
+        const out: typeof cs = [];
+        for (const c of cs) {
+          const q2 = c.person ? canonical(d0b.people, c.person) : null;
+          const pid2 = q2?.pid ?? c.edge.parent;
+          if (out.some(x => x.edge.parent === pid2)) continue;
+          out.push(pid2 === c.edge.parent ? c
+            : { ...c, person: q2, edge: { ...c.edge, parent: pid2, parent_name: q2?.name ?? c.edge.parent_name } });
+        }
+        return out;
+      };
+      v = { ...v, birth: fold(v.birth), heir: fold(v.heir), clan: fold(v.clan), alsoNamed: fold(v.alsoNamed) };
+      pcache.set(q.pid, v);
+    }
+    return v;
+  };
 
   const P = (p: Person, note = true): Link =>
     ({ kind: 'person', id: p.pid, label: p.name, note: note ? `第${p.gen}世` : undefined });
@@ -142,10 +231,17 @@ export function makeRegistry(d0: Data) {
   const byMark = group(d.people, p => p.marks.map(m => NS(m.tag)));
   // 姓：配偶娘家姓。**幽灵子不算**——build_referenced 给他们填了「张」，
   // 混进来会让「张」以 843 高居外姓第一，那是错的。
-  const bySurname = group(d.refs.filter(r => r.role === '配偶' && r.surname),
-    r => [r.surname!]);
-  const byHusbandSurname = group(d.refs.filter(r => r.role === '女' && r.husband_surname),
-    r => [r.husband_surname!]);
+  // ★ 从**附记之人自己**建，不再读 referenced.json。
+  //   她们现在各有 pid、各有一页（persons.ts::materialize），
+  //   referenced.json 那 3,192 行是同一批人的**第四套包装**：
+  //   配偶 1,559 ≡ kin 妻 1,559、女 1,040 ≡ kin 女 1,040，一个不差。
+  const attached = allPeople.filter(q => (q as AnyPerson).attached) as AnyPerson[];
+  const bySurname = group(
+    attached.filter(q => q.attached!.role === '妻' && q.attached!.kin.surname),
+    q => [q.attached!.kin.surname]);
+  const byHusbandSurname = group(
+    attached.filter(q => q.attached!.role === '女' && q.attached!.kin.surname),
+    q => [q.attached!.kin.surname]);
   // ★ 「事迹」只留真事迹。
   //
   //   1,667 段里，696 段是**这条记录自己的字段连排在一起**（葬＋立嗣＋妣殁），
@@ -186,111 +282,88 @@ export function makeRegistry(d0: Data) {
    *   连得上条目的做成链接；连不上的照样摆着，只是不能点。
    *   同一个名字有多个人对得上，**全列，不挑**（CLAUDE.md 第二节）。
    */
-  function kidsOf(fatherPid: string): Link[] {
-    const f = idx.get(fatherPid);
-    if (!f) return [];
-    const okKids = childrenOf(d.people, fatherPid).filter(k =>
-      candidates(idx, k.child, chart, win).some(c => c.edge === k.edge && c.status === 'ok'));
-    const mine = householdOf(byHost, f).filter(r => r.role !== '配偶');
-    const usedPid = new Set<string>(), usedRid = new Set<string>();
-    const rows: Link[] = [];
-
-    // ★ 名单从 roster 来，**不用 sons_claimed／daughters_claimed**。
-    //   那两个字段混进了女儿（「次適吕」）、不是人名的字（「公殁于」「迁陕」「也」）
-    //   和整段传赞文字，光 referenced 里就有 375 条被登记成了人。
-    //   roster 按谱自己的格式（生子N＋N 个名字）重读，那些自然进不来。
-    const list = roster(f);
-    const rowFor = (r: import('./roster.ts').RosterName, role: '子' | '女') => {
-      // ① 有独立条目、且父边成立的
-      const hit = okKids.filter(k => NSx(k.child.name) === NSx(r.name || r.raw)
-        || k.child.aliases.some(a => NSx(a.form) === NSx(r.name || r.raw)));
-      if (hit.length) {
-        for (const k of hit) {
-          usedPid.add(k.child.pid);
-          // 显示谱名；谱上名单里写的若是别的叫法（开赛那条写的是承健的字
-          // 「儒健」），把原文写法放在注里，别拿字当名头。
-          const asWritten = r.raw.replace(/[\s　]+/g, '');
-          // ★ 这个孩子自己有几个候选父亲？
-          //
-          //   不对称是这么来的：孩子那张卡片上明说了「我有两个候选父亲，
-          //   两条都画出来」，可翻到父亲的子女栏，他就变成确定的了。
-          //   於是父亲看着像是多了个儿子——继均名下三个开志、
-          //   壁火名下多个继盟，都是这个不对称的表现。
-          //
-          //   孩子那边说了不知道，父亲这边就不能说知道。两边都标。
-          const hisDads = candidates(idx, k.child, chart, win)
-            .filter(c => c.status === 'ok' && c.edge.kind === '生父');
-          const forked = hisDads.length > 1;
-          rows.push({ ...P(k.child),
-            note: [`第${k.child.gen}世 ${k.edge.kind}`,
-                   NSx(asWritten) === NSx(k.child.name) ? '' : `谱上名单写「${asWritten}」`,
-                   hit.length > 1 ? `同名对得上的有 ${hit.length} 位，这是其中之一` : '',
-                   forked ? `他自己那一条也可能是另外 ${hisDads.length - 1} 位的儿子——`
-                          + `谱上只写了名字，没说是哪一个` : '']
-              .filter(Boolean).join('　'),
-            warn: hit.length > 1 || forked });
-        }
-        return;
-      }
-      // ② 没有独立条目，但在 referenced 里发了 id
-      const ref = mine.find(x => !usedRid.has(x.rid)
-        && NSx(x.name_raw) === NSx(r.raw));
-      if (ref) {
-        usedRid.add(ref.rid);
-        rows.push({ kind: 'ref', id: ref.rid, label: displayName(ref),
-          note: [role === '女' ? '女' : '子', r.died ? '谱上写他殁了' : ''].filter(Boolean).join('　') });
-        return;
-      }
-      // ③ 谱上写了，但连不到任何条目——照样摆着，只是不能点
-      rows.push({ kind: 'person', id: fatherPid,
-        label: r.raw.replace(/[\s　]+/g, '') || (r.died ? '（夭殇，谱上没写名字）' : '（谱上没写名字）'),
-        plain: true,
-        note: r.died ? '谱上写他殁了' : '谱上写了这个名字，没能连到条目' });
+  /**
+   * **子女：谁的父边指向我，谁就是我的孩子。id 反查，一次都不碰名字。**
+   *
+   * 早先这里走 `roster()` ＋ `referenced.json`，拿名单上的字去配孩子的条目
+   * （`NSx(k.child.name) === NSx(r.name)`）。三个后果：
+   *
+   *   · 每建一张卡片就重配一遍，同一个名字在不同地方可能配到不同的人；
+   *   · 配不上的就不显示——壁林那两个有名字的女儿（华荣、华枝）因此
+   *     从他的子女栏里消失，而锡公、梁楙那些只有夫家姓的反而在；
+   *   · 女儿、无名子本来就没有条目，永远配不上。
+   *
+   * 现在他们全都是人、全都有 pid、全都有指向父亲的边（见 persons.ts），
+   * 反查就够了。顺序按谱印的先后：有条目的按册·页·行，附记的按源行号。
+   */
+  // 孩子 pid → 他在父亲名单里占的那个槽（谱写的字）
+  const slotOf = new Map<string, string>();
+  {
+    const byAt = new Map<string, string>();
+    for (const f of d0b.people) for (const k of ((f as any).kin ?? []) as any[]) byAt.set(k.at, k.name_raw);
+    for (const [at, childPid] of sonSlots) {
+      const w = byAt.get(at);
+      if (w) slotOf.set(childPid, w);
+    }
+  }
+  const kidsIdx = new Map<string, AnyPerson[]>();
+  {
+    const ord = (q: AnyPerson) => {
+      const at = (q as any).attached;
+      if (at) return at.kin.line_seq;
+      return q.src.page * 1000 + q.src.row * 10 + q.src.col;
     };
-    for (const s of list.sons) rowFor(s, '子');
-    for (const dg of list.daughters) rowFor(dg, '女');
-
-    // 名单上没写、但对方自己那一条写明是这位的儿子（多半是嗣子／祧子）
-    for (const k of okKids) {
-      if (usedPid.has(k.child.pid)) continue;
-      rows.push({ ...P(k.child),
-        note: `第${k.child.gen}世 ${k.edge.kind}　谱上「生子」名单里没写，是他自己那一条写明的` });
-    }
-    // ★ 详前条折回完整条，再按 id 去重。**放在这一个出口做，兄弟姐妹栏也跟着对。**
-    //
-    //   兼祧的人在谱上有好几条：继华（字东华）在 361／362／363 页各一条。
-    //   父边已经并到完整条（361页）上了，可 childrenOf 仍会把 362 页那条
-    //   也算成壁银的一个儿子——於是壁银、壁林的子女栏里各出现两个「继华」，
-    //   而那是同一个人。
-    //
-    //   承健定的规矩：**同一个人只该有一个 id、一张卡片，可以跟多人有关系。**
-    //   三个父亲各自看得见他是对的（那是三条关系）；
-    //   同一个父亲下面出现两次，就是错的。
-    {
-      const seenId = new Set<string>();
-      const out: Link[] = [];
-      for (const r of rows) {
-        let id = r.id;
-        if (r.kind === 'person' && !r.plain) {
-          const q = idx.get(r.id);
-          if (q) id = canonical(d.people, q).pid;
-        }
-        if (r.kind === 'person' && !r.plain) {
-          if (seenId.has(id)) continue;
-          seenId.add(id);
-        }
-        out.push(id === r.id ? r : { ...r, id });
+    // ★ 兼祥的人，谱把他印在好几房底下——那是**同一个人的几条记载**，
+    //   不是几个人。继华兼祥壁洲、壁银两房，于是 p361、p362、p363
+    //   各印了一条；不折回去，壁林的子女栏里就出现四个继华。
+    //   凡例第十三则本来就要求双记（「不忘所自出」），双记的是记载，人只有一个。
+    const canon = (q: AnyPerson): AnyPerson =>
+      ((q as any).attached ? q : canonical(d0b.people, q)) as AnyPerson;
+    for (const q of allPeople) {
+      const me = canon(q);
+      const ps = parents(q);
+      for (const c of [...ps.birth, ...ps.heir]) {
+        const arr = kidsIdx.get(c.edge.parent) ?? kidsIdx.set(c.edge.parent, []).get(c.edge.parent)!;
+        if (!arr.some(x => x.pid === me.pid)) arr.push(me);
       }
-      rows.length = 0;
-      rows.push(...out);
     }
-    return rows;
+    for (const arr of kidsIdx.values()) arr.sort((a, b) => ord(a) - ord(b));
+  }
+
+  function kidsOf(fatherPid: string): Link[] {
+    return (kidsIdx.get(fatherPid) ?? []).map(q => {
+      const at = (q as any).attached;
+      const ps = parents(q);
+      const kind = ps.heir.some(c => c.edge.parent === fatherPid) && !ps.birth.some(c => c.edge.parent === fatherPid)
+        ? '嗣子' : (at ? at.role : '子');
+      // 孩子那边说了不知道，父亲这边就不能说知道。两边都标。
+      const forked = ps.birth.length > 1;
+      return {
+        kind: 'person' as const, id: q.pid, label: q.name,
+        // ★ 谱在名单里写的字，和他自己条目的题名常常不一样
+        //   （朝寿的名单写「啓徒」，他那一条题作「启從」）。
+        //   人是同一个，但**谱写的那两个字不能不见**。
+        note: [`第${q.gen}世 ${kind}`,
+               NSx(slotOf.get(q.pid) ?? '') && NSx(slotOf.get(q.pid)!) !== NSx(q.name)
+                 ? `谱的名单里写「${slotOf.get(q.pid)}」` : '',
+               at && at.kin.name_raw && at.kin.name_raw !== q.name ? `谱上写「${at.kin.name_raw}」` : '',
+               at && !at.kin.named ? '谱没写名字' : '',
+               at && at.kin.died_young ? '谱写「幼殁」' : '']
+          .filter(Boolean).join('　'),
+        // ★ 分叉的完整情形在**他自己那张卡片**上，各带出处。
+        //   这一栏只标一下，不在这里替他说一遍——
+        //   「也可能是另外几位的儿子」那种话，判不出来就不该写。
+        warn: forked || undefined,
+      };
+    });
   }
 
   // ══════════════════ 人 ══════════════════
   function person(pid: string): Entry | null {
     const p = idx.get(pid);
     if (!p) return null;
+    // 全站唯一的那份父母判定，本卡片从头到尾只读它。
+    const ps0 = parents(p);
     const facts: Fact[] = [];
     const f = (label: string, v: { text: string } | null) => {
       if (v) facts.push({ label, value: v.text });
@@ -343,38 +416,132 @@ export function makeRegistry(d0: Data) {
         const n = peopleAt(placeTree, acc).length;
         return { kind: 'place', id: acc, label: s, note: n > 1 ? `${n} 人` : undefined };
       });
+      // ★ 「同墓／合墓／俱葬／合葬」——谱明说是**两个人一起葬的**，
+      //   不能只算在配偶头上。
+      //
+      //   迁梅始祖胜二那一条：
+      //       妣梅氏／生于…／殁于…／享寿七十四／**葬蔡山陈埠港同墓壬丙向有碑**
+      //   这一行落在「妣梅氏」那一段里，按行位置判就判给了梅氏，
+      //   於是**始祖自己的坟从他的名片上消失了**——而那是全谱最要紧的一处，
+      //   合户雜据、山图第一幅、蔡山陈埠港的碑，讲的都是它。
+      //
+      //   「同墓」两个字就是谱自己的答案：夫妻同穴。两边都写。
+      //   但「合墓」未必是跟配偶。谱里的写法数过一遍：
+      //       与夫合墓 61 · 与公合墓 3 · 与妇/夫妇/夫妻合墓 6 · 光杆「合墓」90 · 光杆「同墓」10
+      //       与母 6 · 与父 6 · 与嗣子 2 · 与兄 2 · 与婆 2 · 与嫂 2 · 与弟媳 2 · 与姪媳 2 …
+      //   铣贵之妻王氏那条写「葬东禅寺下手蒿墩坂庚甲向**与嗣子合墓**妣居中嗣子右」——
+      //   跟嗣子合葬，不是跟丈夫。所以要看「与」字后面跟的是谁。
+      // ★ 拿 **raw**：`text` 里的「合」字在建地名表时被剥掉了，
+      //   而「合葬」正是夫妻同穴的唯一依据。锡公那座墓因此只算到了邢氏头上，
+      //   他自己的墓从卡片上消失——和胜二公当初那个 bug 一模一样。
+      const bt = (b as any).raw ?? b.text ?? '';
+      const jm = /(?:与([^，。]{0,6}?))?(合墓|同墓|俱葬|同葬|合葬)/.exec(bt);
+      const joint = !!jm && (!jm[1] || /夫|公|妻|妇/.test(jm[1]));
       const i = whose(b.text);
       const mate = i == null ? null : p.spouses[i]?.name_raw?.replace(/[\s　]+/g, '');
       facts.push({
-        label: mate ? `葬（${mate}）` : '葬',
-        value: b.pos ?? undefined, raw: clip(b.text), links,
+        label: joint && mate ? `葬（与${mate}同墓）` : mate ? `葬（${mate}）` : '葬',
+        // 显示**原文**：地名表里的 text 把「合」「俱」剥掉了，
+        //   而 CLAUDE.md 第三条要求看到的就是谱上那句话。
+        value: b.pos ?? undefined, raw: clip(bt), links,
       });
     }
-    if (!bs.length) facts.push({ label: '葬', value: '谱上没写' });
+    // ★ 附记之人（妻）的葬：谱把它写在丈夫那一条里。
+    //   始祖妈梅氏那一行写着「葬蔡山陈埠港**同墓**壬丙向有碑」——
+    //   同墓就是夫妻同穴，两边都该有，不能只算在丈夫头上。
+    if (!bs.length) {
+      const at0 = (p as any).attached;
+      const host0 = at0 && at0.role === '妻' ? idx.get(at0.of) : null;
+      if (host0) {
+        const i0 = (host0.spouses ?? []).findIndex((x: any) => x.pid === p.pid);
+        const whose0 = burialOwner(host0);
+        const clip0 = trimBleed(host0);
+        for (const b of burialsOf(d.places, host0.pid).filter(x => x.owner === host0.pid)) {
+          const mine0 = whose0(b.text) === i0;
+          const joint0 = /合墓|同墓|俱葬|同葬|合葬/.test(b.text ?? '');
+          if (!mine0 && !joint0) continue;
+          facts.push({
+            label: mine0 ? '葬' : `葬（与${host0.name}同墓）`,
+            value: b.pos ?? undefined,
+            raw: clip0(b.text),
+            links: chainOf(b).map((sname, i) => {
+              const acc = chainOf(b).slice(0, i + 1).join('·');
+              return { kind: 'place' as const, id: acc, label: sname };
+            }),
+          });
+        }
+      }
+    }
+    if (!bs.length && !facts.some(f => String(f.label).startsWith('葬'))) {
+      facts.push({ label: '葬', value: '谱上没写' });
+    }
 
-    if (p.father_name) {
-      // 候选先过一遍谱自己的规矩（世次差必须是 1）和减法（生年）。
-      // 对不上的不并排摆，收到下面一行里——不是删，点开照样能看。
-      const cs = candidates(idx, p, chart, win);
-      const good = kept(cs);
+    // 女儿：谱只留下夫家姓。那也是谱写下的一件事，该显示。
+    {
+      const at1 = (p as any).attached;
+      if (at1?.role === '女' && at1.kin?.surname) {
+        facts.push({ label: '适', value: `${at1.kin.surname}家`,
+                     raw: `谱上写「${at1.kin.name_raw}」` });
+      }
+    }
+
+    if (p.father_name || ps0.birth.length || ps0.heir.length) {
+      // ★ 卡片读的就是全站那一份判定（resolve.ts），不再自己算一遍。
+      //   早先这里另调 candidates()，于是同一个人在卡片、树、兄弟栏、
+      //   关系计算四处可以得到不同答案——承毅那个 bug 就是这么藏住的。
+      const good = [...ps0.birth, ...ps0.heir];
+      const cs = [...good, ...ps0.alsoNamed];
       // 生年、版面位置这些，**只在同一种关系里有好几个候选时才说**——
       // 那是用来分辨同名的。只有一个的时候念这些就是啰嗦。
       const nKind = new Map<string, number>();
       for (const x of good) nKind.set(x.edge.kind, (nKind.get(x.edge.kind) ?? 0) + 1);
+      // ★ 同一种关系的几个同名候选里，**只有一位被印在正上一格**——那一位不报警。
+      //   五世一图是横着读的，谱把谁摆在正上一格，那就是世系表自己的读法。
+      //   说明见下面 note 里那一段。
+      const settled = new Set<string>();
+      for (const [k, cnt] of nKind) {
+        if (cnt <= 1) continue;
+        const above = good.filter(x => x.edge.kind === k && x.printedAbove);
+        if (above.length === 1) settled.add(above[0].edge.parent);
+      }
+      // ★ 措辞规矩：**确定的时候一个字都不说。**
+      //
+      //   全谱 2,258 人里，父亲唯一、没有第二种可能的有 2,147 人（95.1%）。
+      //   这 95% 的人名片上不该出现任何提示、任何依据、任何警告——
+      //   谱写了谁就是谁。看这本谱的是七八十岁的长辈。
+      //
+      //   只有同一种关系里真有好几个同名候选（74 人，3.3%）才说话，而且只说一句。
+      //   依据、生年、版面位置这些**全部移到悬停**（raw），不占正文。
+      // 只有**两个标签会长得一模一样**时才挂页码。
+      //   兼祧的几位（壁洲／壁银）名字本来就不同，挂页码纯属噪音。
+      const labelCount = new Map<string, number>();
+      for (const x of good) {
+        const nm = x.person?.name || x.edge.parent_name || '？';
+        labelCount.set(nm, (labelCount.get(nm) ?? 0) + 1);
+      }
       const links: Link[] = good.map(x => {
         const many = (nKind.get(x.edge.kind) ?? 0) > 1;
-        const n = edgeNote(x.edge, countSameName(d.people, x.edge.parent_name));
+        const nm = x.person?.name || x.edge.parent_name || '？';
+        const label = (labelCount.get(nm) ?? 0) > 1 && x.person
+          ? `${nm}（第${x.person.src.page}页）` : nm;
         return {
           kind: 'person', id: x.edge.parent,
-          label: x.person?.name || x.edge.parent_name || '？',
-          note: [x.edge.kind, many ? n.text : '', many ? x.note : '', many ? x.layoutNote : '']
-            .filter(Boolean).join('　'),
-          warn: n.loud && many,
-        };
+          label,
+          // 一格里最多一条注：过继时注「生父／嗣父」，别的什么都不注。
+          note: nKind.size > 1 ? x.edge.kind : undefined,
+          warn: false,
+          // 依据、生年、版面 —— 想细看的鼠标停上去，正文里不摆。
+          raw: [x.edge.kind, edgeNote(x.edge, countSameName(d.people, x.edge.parent_name)).text,
+                x.note, x.layoutNote, x.person?.src_human].filter(Boolean).join('　'),
+        } as Link;
       });
       // 「开赛　之子　开赛　生父」——同一个名字写两遍，读着别扭。
       // 只要有一个候选就叫这个名字，谱上写的那个名就不用再重复一遍。
-      const sameAsWritten = links.some(l => NS(l.label) === fname(p.father_name));
+      // ★ 比的是**名字本身**，不是显示用的标签。
+      //   同名候选的标签后面挂了「（第312页）」用来区分，拿它去比会永远对不上，
+      //   於是「父：光开　光开（第312页）　光开（第373页）」——光开印了三遍。
+      const sameAsWritten = good.some(x =>
+        NS(x.person?.name || x.edge.parent_name || '') === fname(p.father_name));
       const one = good.length === 1;
       facts.push({
         label: '父',
@@ -387,11 +554,24 @@ export function makeRegistry(d0: Data) {
         links: links.map(l => (one && sameAsWritten)
           ? { ...l, note: p.filiation || undefined } : l),
         raw: p.father_src ? srcText(p.father_src) + unreverse(p.father_src) : undefined,
-        warn: p.parent_edges.length ? undefined
+        warn: good.length ? undefined
           : '谱里没有他单独的一条，往上断在这里。',
         // 生父 + 嗣父是**双记**（凡例第十三则要求的），不是「说不清」。
         // 说不清的是**同一种关系里有好几个候选**。
         note: (() => {
+          // ★ 先说一件事：同名的几位**年代上都当不了他父亲**。
+          //   那不是「不知道是哪一个」，是「那几位都不是」——完全不同的两句话。
+          //   开银生于 1914，谱写「继华长子」，而两位继华生于 1955 和 1920。
+          const aged = ps0.alsoNamed.filter(x => /年代对不上/.test(x.note ?? ''));
+          if (!ps0.birth.length && aged.length) {
+            const why = aged.map(x =>
+              `${x.person?.name ?? ''}（${(x.note ?? '').replace(/^年代对不上：/, '')}）`);
+            return (p.father_name ? `谱写他是「${p.father_name}${p.filiation}」。` : '')
+              + `第 ${p.gen - 1} 世叫这名字的有 ${why.length} 位，`
+              + `**年代上都当不了他父亲**：${why.join('、')}。`
+              + `所以不是「哪一位」的问题，是谱上这个名字在第 ${p.gen - 1} 世对不上人。`
+              + (ps0.heir.length ? `（嗣父谱写得清楚，列在上面。）` : '');
+          }
           const byKind = new Map<string, Set<string>>();
           for (const x of good) {
             (byKind.get(x.edge.kind) ?? byKind.set(x.edge.kind, new Set()).get(x.edge.kind)!)
@@ -400,11 +580,86 @@ export function makeRegistry(d0: Data) {
           const worst = Math.max(0, ...[...byKind.values()].map(s => s.size));
           if (worst > 1) {
             const k = [...byKind.entries()].find(([, s]) => s.size === worst)![0];
-            return `谱上只写了「${p.father_name}」，同名的有 ${worst} 个，分不出哪个是${k}。`;
+            // ★★ 先分清一件事：**几位候选，还是几位父亲？**
+            //
+            //   继华（25世，册2·卷四·朝泰公世系）有三条父边：
+            //       壁林〔生父〕  壁洲〔嗣父〕  壁银〔嗣父〕
+            //   壁洲、壁银、壁林是**亲兄弟**，父亲都是光寅；
+            //   壁林那一条末句写着「子继华兼祧长兄壁洲二兄壁银」。
+            //   ——**一点不确定都没有。**他本生是老三的儿子，兼祧两位兄长。
+            //   而全谱**只有一个壁洲**。
+            //
+            //   原来这里不管三七二十一，拿「同一种关系有 N 个候选」当歧义，
+            //   还拿 p.father_name 去凑句子，於是印出「谱上有 2 个壁洲，
+            //   没说是哪一个」——壁洲只有一个，那两位也不同名，整句都是假的。
+            //
+            //   判准很干净：
+            //     候选**彼此同名** → 真·重名，谱确实没说是哪一个
+            //     候选**名字不同** → 谱分别点了名，是兼祧（嗣父）或误挂（生父）
+            const same = good.filter(x => x.edge.kind === k);
+            const nameset = [...new Set(same.map(x =>
+              NS(x.person?.name ?? x.edge.parent_name ?? '')))].filter(Boolean);
+            if (nameset.length > 1) {
+              const list = same.map(x => x.person?.name ?? x.edge.parent_name).join('、');
+              if (k === '嗣父') {
+                const born = [...(byKind.get('生父') ?? [])];
+                const bn = born.length === 1
+                  ? (good.find(x => x.edge.parent === born[0])?.person?.name ?? '') : '';
+                return bn
+                  ? `他本生是${bn}的儿子，**兼祧${same.length}房**：${list}。`
+                  : `他**兼祧${same.length}房**：${list}。`;
+              }
+              // ★ 不能说「谱给他记了两位生父」——谱没这么记。
+              //   实情是：几位不同的人，名单里各写了一个和他同名的人。
+              //   该说清楚差的是哪一步，而不是把锅扣给谱。
+              // ★ 判不出来就**不判**，只把谱写了什么摆出来。
+              //   不写「要回谱面看才能定」——那句话对看的人没用，
+              //   而且把没做完的判定说成了谱的毛病。
+              return `谱没写明他的父亲。下面这 ${same.length} 位的生子名单里，`
+                   + `各写了一个叫「${p.name}」的：${list}。`;
+            }
+            // ★ 「同名的有几个」不等於「不知道」。
+            //
+            //   欧式五世一图是**横着读**的：一幅断为五格、五代横提，
+            //   儿子就印在父亲的下一格。谱把哪一位摆在正上一格，
+            //   那是**世系表的读法**，不是我们统计出来的规律
+            //   （用户原话：「看原文就知道他们的世系流传了」）。
+            //
+            //   所以：同一种关系的几个同名候选里，**只有一位被印在正上一格**时，
+            //   照谱的读法就是他。照直说这一句，另一位仍旧列出、仍旧能点，
+            //   但不再对着看谱的人说「分不出」——那是把谱写清楚了的事说成没写。
+            // 到这里才是真·重名：候选全叫同一个名字。
+            const above = same.filter(x => x.printedAbove);
+            // 一句话，说完就停。名字用**候选自己的名字**，不用 p.father_name——
+            // 谱上写的父名可能带敬称或异写，跟候选对不上。
+            // ★ 不写「没说是哪一个」。那句话把责任推给谱，而且对看的人没用。
+            //   该说的是：谱写了什么、同名的有几位、**差哪一步就能定**。
+            const who = p.father_name ? `「${p.father_name}${p.filiation}」` : '';
+            const head = who ? `谱写他是${who}。` : '';
+            if (above.length === 1 && same.length > 1) {
+              return head + `第 ${p.gen - 1} 世叫这名字的有 ${same.length} 位，`
+                   + `**而谱把其中一位印在他的正上一格**——五世一图横着读，`
+                   + `上一格就是父亲。另外几位照旧列在这里，点开能看。`;
+            }
+            return head + `第 ${p.gen - 1} 世叫这名字的有 ${same.length} 位，`
+                 + `他们的生子名单里都没写他——**就差这一步**。`
+                 + `几位都列在下面，各带出处，可以回谱面对。`;
           }
           if (byKind.size > 1) {
-            return `他是过继的，谱上**两边都记**——生他的一家、把他接过去的一家。`
-                 + `凡例第十三则的规矩：「不忘所自出」。`;
+            return `他是过继的：一位是生他的，一位是把他接过去的。`;
+          }
+          // ★ 一个候选也不剩，而旁边摆着被括出去的同名者——
+          //   这不是「不知道是哪一个」，是**那几位都不是**，得说清楚为什么。
+          if (!good.length && ps0.alsoNamed.length) {
+            const why = ps0.alsoNamed
+              .filter(x => /年代对不上/.test(x.note ?? ''))
+              .map(x => `${x.person?.name ?? ''}（${(x.note ?? '').replace(/^年代对不上：/, '')}）`);
+            if (why.length) {
+              return (p.father_name ? `谱写他是「${p.father_name}${p.filiation}」。` : '')
+                + `第 ${p.gen - 1} 世叫这名字的有 ${why.length} 位，`
+                + `**年代上都当不了他父亲**：${why.join('、')}。`
+                + `所以不是「这几位里的哪一位」，而是谱上这个名字在第 ${p.gen - 1} 世对不上人。`;
+            }
           }
           return undefined;
         })(),
@@ -449,15 +704,38 @@ export function makeRegistry(d0: Data) {
       }
     }
 
+    // ★ **事迹这一栏从档案层读，卡片自己不再判断。**
+    //   以前它就是 `p.marks` 原样倒出来，於是「娶陈氏」「女适柯」也顶着
+    //   一个 tag 站在事迹栏里，而德懋公那篇进了县志的孝行、学光公
+    //   乾隆戊午年过江搜辑谱料、梁一公五祖山两首诗，反倒一个字都不见。
+    //   归类只在 dossier.ts 做一次，这里照类目摆，摆的是原文。见 dossier.ts 抬头。
+    const dz = dossier(p);
+    // 备注也印——那也是谱写的字。归类器认不出不等于它不存在，
+    //   胜二公那句「由选举」（他由科举出仕）只有三个字，归不进事迹，
+    //   於是整句从卡片上消失了。宁可标题土一点，不许谱写了的话不见。
+    const deed = (['过继', '功名', '职事', '迁徙', '旌表', '事迹', '碑志', '缺记', '备注'] as const)
+      .flatMap(k => dz.cat[k].length
+        ? [{ heading: k, text: dz.cat[k].map(i => (i.label ? `${i.label}　` : '') + i.text).join('\n') }]
+        : []);
+
     const sections = [
-      ...p.marks.filter(m => m.text).map(m => ({ heading: m.tag, text: m.text })),
-      ...(mineRaw.length
-        ? [{ heading: '其余原文', text: mineRaw.join('\n') }]
-        : []),
-      ...[...owned.values()].map(o => ({
-        heading: `谱上写在「${o.name.replace(/[\s　]+/g, '')}」那一段里的`,
-        text: o.lines.join('\n'),
-      })),
+      ...deed,
+      // 「其余原文」只留档案层没归到类的那几行——归过类的上面已经摆了一遍。
+      ...(() => {
+        const shown = new Set<string>();
+        for (const k of CATS) for (const it of dz.cat[k]) shown.add(it.text.replace(/[\s　]/g, ''));
+        const rest = mineRaw.filter(t => !shown.has(t.replace(/[\s　]/g, '')));
+        return rest.length ? [{ heading: '其余原文', text: rest.join('\n') }] : [];
+      })(),
+      // 同样：档案层已经摆过的句子，这里不再抄一遍，只留归属信息还没说过的
+      ...[...owned.values()].flatMap(o => {
+        const shown = new Set<string>();
+        for (const k of CATS) for (const it of dz.cat[k]) shown.add(it.text.replace(/[\s　]/g, ''));
+        const lines = o.lines.filter(t => !shown.has(t.replace(/[\s　]/g, '')));
+        return lines.length
+          ? [{ heading: `谱上写在「${o.name.replace(/[\s　]+/g, '')}」那一段里的`, text: lines.join('\n') }]
+          : [];
+      }),
     ];
 
     const relations: Relation[] = [];
@@ -470,12 +748,53 @@ export function makeRegistry(d0: Data) {
     // 配偶单独一栏。女儿、以及谱上写了名字却没有单独一条的儿子，
     // **都是他的孩子，归到「子女」里去**——原先跟配偶混在「这一家的人」里，
     // 於是女儿排在儿子上面，看着像是长辈。
-    const hh = householdOf(byHost, p);
+    // ★ 从他自己的 kin 派生，不再查 referenced.json
+    const hh = householdFromKin(p as never);
     const mates = hh.filter(r => r.role === '配偶');
     const kidRefs = hh.filter(r => r.role !== '配偶');
-    if (mates.length) relations.push(rel('妻', mates.map(r => ({
-      kind: 'ref' as const, id: r.rid, label: displayName(r), note: r.rel_raw || undefined,
-    }))));
+    // ★ 「聘」不是妻。凡例第十则：
+    //     「妇人**已入吾门者书「娶」某氏，未入吾门者书「聘」某氏**，
+    //      继娶者书「继」某氏，有妾者书「庶」某氏，
+    //      一以别先后之序并嫡庶之分，**不可混载**。」
+    //   全谱 38 位「聘某氏」是**订婚而未过门**的（`referenced.json` 里
+    //   rel_class 早已标作「聘（未过门或幼殇）」），原先和 874 位「娶」、
+    //   709 位「妣」一起摆在「妻」这一栏下，只在小字里写一个「聘」。
+    //   谱自己用不同的字把她们分开，界面不该再合起来——「不可混载」。
+    // ★ 指向**她自己的 pid**，不再指 referenced.json 的 ref id。
+    //   那套 ref 是女性的第二套身份：同一个人，卡片上一个 id、
+    //   关系计算器里又一个，于是她在全站永远是半个人。
+    //   现在她和丈夫用同一种 id，点开就是她的页。
+    const mateP = new Map<string, string>();      // 谱上的写法 → 她的 pid
+    for (const sp of (p as any).spouses ?? []) {
+      if (sp.pid) mateP.set(NSx(sp.name_raw ?? ''), sp.pid);
+    }
+    const mateRow = (r: typeof mates[number]) => {
+      const her = mateP.get(NSx(r.name_raw ?? '')) ?? mateP.get(NSx(displayName(r)));
+      // ★ 没有兑底。妻子现在各有 pid；谱真没给名字的那几位，
+      //   摆原文、不给链接——总好过再给她一个只在那里用的第二个 id。
+      return her && idx.has(her)
+        ? { kind: 'person' as const, id: her, label: displayName(r), note: r.rel_raw || undefined }
+        : { kind: 'text' as const, id: '', label: displayName(r), note: r.rel_raw || undefined };
+    };
+    // ★ 附记之人（妻・女・无名子）的反向一栏。
+    //   她们没有自己那一格，但**有自己的 id 和自己的页**；
+    //   页上得看得见她是谁的妻、谁的女，以及谱把她写在哪一条里。
+    {
+      const at = (p as any).attached;
+      if (at && idx.has(at.of)) {
+        const host = idx.get(at.of)!;
+        relations.push(rel(at.role === '妻' ? '夫' : '父',
+          [{ kind: 'person', id: host.pid, label: host.name,
+             note: `第${host.gen}世・谱把她/他写在他那一条里` }]));
+      }
+    }
+
+    const pin = mates.filter(r => r.rel_raw === '聘');
+    const side = mates.filter(r => (r.rel_raw ?? '').includes('侧室'));
+    const wives = mates.filter(r => !pin.includes(r) && !side.includes(r));
+    if (wives.length) relations.push(rel('妻', wives.map(mateRow)));
+    if (side.length) relations.push(rel('侧室', side.map(mateRow)));
+    if (pin.length) relations.push(rel('聘（谱上写「聘」，未过门）', pin.map(mateRow)));
     // ══ 子女 ══（怎么算的见上面的 kidsOf）
     const kidRows = kidsOf(pid);
     if (kidRows.length) relations.push(rel('子女', kidRows));
@@ -487,7 +806,7 @@ export function makeRegistry(d0: Data) {
     // 父亲说不清是哪一位时，每一位的都列，各自标明是从谁那边论的——不替谱挑。
     // 过继的人有两个父亲，於是有两拨兄弟姐妹（本生／嗣），谱的凡例本来就要求双记。
     {
-      const dads = kept(candidates(idx, p, chart, win)).filter(c => c.status === 'ok');
+      const dads = [...ps0.birth, ...ps0.heir];
       const seen = new Set<string>([pid]);
       const sibs: Link[] = [];
       for (const c of dads) {
@@ -582,7 +901,7 @@ export function makeRegistry(d0: Data) {
         ...(p.is_heir ? [{ text: '过继来的', tone: 'hot' as const }] : []),
         ...p.titles.map(t => ({ text: NS(t), tone: 'gold' as const })),
       ],
-      alert: p.parent_edges.length ? undefined
+      alert: (parents(p).birth.length + parents(p).heir.length) ? undefined
         : (p.father_name
           ? `谱里没有「${p.father_name}」单独的一条。`
           : '谱上没写父亲是谁。'),
@@ -593,56 +912,6 @@ export function makeRegistry(d0: Data) {
   }
 
   // ══════════════════ 妻、女等 ══════════════════
-  function ref(rid: string): Entry | null {
-    const r = byRid.get(rid);
-    if (!r) return null;
-    const host = idx.get(r.host);
-    const facts: Fact[] = [{ label: '谱上写作', value: r.name_raw || '（谱上没写名字）' }];
-    if (r.rel_raw) facts.push({ label: '称谓', value: r.rel_raw + '　' + r.rel_class });
-    if (r.surname) facts.push({
-      label: '姓', value: r.surname,
-      links: [{ kind: 'surname', id: r.surname, label: r.surname + '氏',
-        note: `${bySurname.get(r.surname)?.length ?? 0} 位` }],
-    });
-    if (r.given) facts.push({ label: '名', value: r.given });
-    if (r.husband_surname) facts.push({
-      label: '嫁到', value: r.husband_surname + '家',
-      links: [{ kind: 'surname', id: '适' + r.husband_surname, label: '嫁到' + r.husband_surname + '家',
-        note: `${byHusbandSurname.get(r.husband_surname)?.length ?? 0} 位` }],
-    });
-    if (r.birth) facts.push({ label: '生', value: r.birth.text });
-    if (r.death) facts.push({ label: '殁', value: r.death.text });
-    for (const b of burialsOf(d.places, rid)) {
-      let acc = '';
-      facts.push({
-        label: '葬', raw: b.text,
-        links: chainOf(b).map((s, i) => {
-          acc = i ? acc + '·' + s : s;
-          return { kind: 'place' as const, id: acc, label: s };
-        }),
-      });
-    }
-    facts.push({
-      label: '记在', value: `${r.host_name}　第${host?.gen ?? '?'}世　名下`,
-      links: [{ kind: 'person', id: r.host, label: r.host_name }],
-    });
-
-    const sib = householdOf(byHost, idx.get(r.host)!).filter(x => x.rid !== rid);
-    return {
-      kind: 'ref', id: rid, title: displayName(r), subtitle: relationLine(r),
-      facts,
-      sections: r.narrative_candidates.map(n => ({
-        heading: '可能是写她的',
-        text: n.text.replace(/\n/g, ' '),
-        note: `写在${r.host_name}的条目里`,
-      })),
-      relations: sib.length ? [rel('同一家的人', sib.map(x => ({
-        kind: 'ref' as const, id: x.rid, label: displayName(x), note: x.rel_raw || x.role,
-      })))] : [],
-      sources: [{ src_human: r.src_human, raw: r.host_raw_text }],
-      chainFrom: r.host,
-    };
-  }
 
   // ══════════════════ 地方 ══════════════════
   function place(full: string): Entry | null {
@@ -659,7 +928,7 @@ export function makeRegistry(d0: Data) {
     if (kids.length) relations.push(rel('这里面还分', kids.map(k =>
       ({ kind: 'place' as const, id: k.full, label: k.name, note: `${k.count}` }))));
     relations.push(rel('葬在这里的人', rs.map(r => ({
-      kind: (r.owner.includes('/') ? 'ref' : 'person') as 'ref' | 'person',
+      kind: 'person' as const,
       id: r.owner, label: r.owner_name,
       note: `第${r.gen ?? '?'}世　${r.text}`,
     }))));
@@ -809,9 +1078,9 @@ export function makeRegistry(d0: Data) {
         kind: 'surname', id, title: `嫁到${s}家`,
         subtitle: `谱上记了 ${rs.length} 位张家的女儿嫁到${s}家`,
         facts: [], sections: [],
-        relations: [rel('她们', rs.map(r => ({
-          kind: 'ref' as const, id: r.rid, label: displayName(r),
-          note: `第${r.gen}世　${r.host_name}之女` })))],
+        relations: [rel('她们', rs.map(q => ({
+          kind: 'person' as const, id: q.pid, label: q.name,
+          note: `第${q.gen}世　${q.attached!.of_name}之女` })))],
         sources: [],
       };
     }
@@ -822,9 +1091,9 @@ export function makeRegistry(d0: Data) {
       subtitle: `谱上有 ${rs.length} 位${id}氏嫁进张家。`
         + `同姓不等于同一个人——谱没说是一个，就不合并。`,
       facts: [], sections: [],
-      relations: [rel('她们', rs.map(r => ({
-        kind: 'ref' as const, id: r.rid, label: displayName(r),
-        note: `第${r.gen}世　${r.host_name}之${r.rel_raw}` })))],
+      relations: [rel('她们', rs.map(q => ({
+        kind: 'person' as const, id: q.pid, label: q.name,
+        note: `第${q.gen}世　${q.attached!.of_name}之${q.attached!.kin.rel_raw}` })))],
       sources: [],
     };
   }
@@ -932,6 +1201,18 @@ export function makeRegistry(d0: Data) {
   // ══════════════════ 修谱届次 ══════════════════
   // 十届，1710–2016，三百零六年。每一届的班子名单谱都留着。
   // 连人按「不猜」：谱名和字都对上才算确定；同名多个就把候选全列出来。
+  //
+  // ★ 名目上的人，**按唯一 id 现认**，不读文件里预先算好的 pid。
+  //   `data/revisions.json` 是旧系统的产物，那 241 个 pid 全是旧格式，
+  //   一个都点不开；里面「同名的有 N 个，谱没说是哪一个」那句话也是
+  //   那个旧脚本写死的字符串——判定层从头到尾没看过它。
+  //
+  //   现在的判据就是谱自己在名目上写的两样：**谱名 ＋ 字**。
+  //   两样都对上、并且折回兼祧的同一条之后只剩一位，那就是他。
+  //   剩不下一位就**不判**——不判就把人平摆出来，一个字也不多说。
+  // ★ 名目上的每一位，**pid 已经写在 data/revisions.json 里**
+  //   （tools/revlink.mjs 配一次，配不出来的交人工，见 work/名目待核.json）。
+  //   这里只读，不配。判定不进渲染路径——所见即所得。
   const revOf = new Map<string, { era: string; role?: string }[]>();
   for (const r of d.revisions) {
     for (const m of r.members) {
@@ -949,14 +1230,11 @@ export function makeRegistry(d0: Data) {
       (byRole.get(k) ?? byRole.set(k, []).get(k)!).push(m);
     }
     const pres = d.prefaces.list.filter(x => x.round === era);
-    const linked = r.members.filter(m => m.pid).length;
-    const pend = r.members.filter(m => m.candidates).length;
+
     return {
       kind: 'revision', id: era,
       title: era + '　修谱',
-      subtitle: `名单上 ${r.members.length} 人　`
-        + `其中 ${linked} 人在谱里找到了对应的条目`
-        + (pend ? `，${pend} 人同名不止一个，谱没说是哪一个` : ''),
+      subtitle: `名单上 ${r.members.length} 人`,
       facts: [
         { label: '谱上原文', value: r.raw_head },
         ...(pres.length ? [{
@@ -972,18 +1250,10 @@ export function makeRegistry(d0: Data) {
       relations: [...byRole.entries()].map(([role, ms]) => rel(role, ms.flatMap(m => {
         const who = [m.title, m.name, m.字 ? '字' + m.字 : '', m.号 ? '号' + m.号 : '']
           .filter(Boolean).join(' ');
-        // 对上了就不写——只有对不上的地方才需要说明
+        // 定到人了就是链接；没定到就把名目原话摆着，一个字也不多说。
         if (m.pid) return [{ kind: 'person' as const, id: m.pid, label: who,
-          note: `第${m.gen}世` }];
-        // ★ 同名多个：**候选全列出来**，一条一行。
-        //   这里原先写的是 candidates[0]，等於替谱做了决定——正是「不猜」禁的那件事。
-        if (m.candidates?.length) return m.candidates.map((c, i) => ({
-          kind: 'person' as const, id: c.pid, label: who,
-          note: `第${c.gen}世${c.zi ? '　字' + c.zi : ''}　${c.src}`
-            + `（${m.match}，这是第 ${i + 1} 个）`,
-          warn: true,
-        }));
-        return [{ kind: 'revision' as const, id: era, label: who, note: m.match }];
+                             note: `第${m.gen}世` }];
+        return [{ kind: 'revision' as const, id: era, label: who }];
       }))),
       sources: [{ src_human: '卷首《历届修谱名目》' }],
     };
@@ -1018,7 +1288,7 @@ export function makeRegistry(d0: Data) {
 
   // ══════════════════ 注册表 ══════════════════
   const build: Record<Entry['kind'], (id: string) => Entry | null> = {
-    person, ref, place, doc, branch, gen, title, mark, surname, year,
+    person, place, doc, branch, gen, title, mark, surname, year,
     passage, kind: kindEntry, revision, image,
   };
 
@@ -1044,5 +1314,10 @@ export function makeRegistry(d0: Data) {
     };
   }
 
-  return { build, catalogue, idx, byRid, placeTree, chart, win };
+  // ★ sonSlots 是全站唯一一处「名字串 → 唯一 id」的配对结果（名单槽 at → 儿子的 pid）。
+  //   它是地基，就得能被查——idcheck 靠它验「每个名单槽都落到了一个 id」。
+  // ★ 判定的原始结果（级别、矛盾、依据）。台账等工具读它，
+  //   不要自己再搭一条 resolveAll 管道——那样又是两套答案（台账那边就漏传了 canon）。
+  return { build, catalogue, idx, placeTree, chart, win, parents, dossier, sonSlots,
+           res: RES0, facts: facts0, people: d0b.people };
 }

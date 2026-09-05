@@ -26,7 +26,15 @@ from pathlib import Path
 NS = lambda s: "".join((s or "").split()).replace("　", "")
 
 # 「葬」之后到哪里为止——碰到这些就说明葬地写完了，后面是别的内容
-STOP = re.compile(r"(娶|聘|妣|继娶|复娶|庶|生子|女[一二三四五六七八九十]|生于|殁于|字|讳|号)")
+#
+# ★ 「详载」「曾任」这一档是后补的。谱上「葬唐家山**详载县志**」是两句话：
+#   葬在唐家山，事迹详载县志。原来一路吃到底，第 5 世**德懋**的葬地就成了
+#   「唐家山详载县志」——而德懋正是 1710 年程万里读县志孝友传读到、
+#   才找上门作序、才有第一部谱的那个人。同类还有：
+#     开应（26 世）「葬马鞍山**曾任**县统计局局长」→ 地名成了「马鞍山曾任县统计局局长」
+#     士照（19 世）「葬陕西**生**」（下一句是生殁）→ 地名成了「陕西生」
+STOP = re.compile(r"(娶|聘|妣|继娶|复娶|庶|生子|女[一二三四五六七八九十]|生于|殁于|字|讳|号"
+                  r"|详载|详见|详情|详注|详列|详前|曾任|现任|历任|生$|殁$)")
 
 # 卷首《各房私山》《合户雜据》《山图》里出现的山名地名。
 # 这是本谱自己的地名表，不是我编的——用来认出葬地串里的地名。
@@ -99,6 +107,11 @@ def place_raw(seg: str) -> str:
     s = seg[1:] if seg.startswith("葬") else seg
     m = DIRECTION.search(s)
     out = (s[: m.start()] if m else s).strip()
+    # ★ 谱是窄栏排的，「葬陕西」和下一行的「生于…」挤在一起就成了「葬陕西生」。
+    #   末尾孤零零一个字段起头字（生／殁／卒／娶／妣／字），不是地名的一部分。
+    #   只在剩下的还够成一个地名（≥2 字）时才削，免得把「新生」这类真地名削没。
+    while len(out) > 2 and out[-1] in "生殁卒娶妣字讳号":
+        out = out[:-1]
     # 「葬未详」「葬俱缺」——谱明说没记，不是地名。原样返回但标成缺失声明。
     return "" if MISSING_PLACE.match(out) else out
 
@@ -164,7 +177,11 @@ def main() -> None:
             for seg in cut_burial(u["text"]):
                 add(pid, nm, gen, seg, "未归属原文", src, u["text"])
         for i, s in enumerate(p["spouses"], 1):
-            rid = f"{pid}/配{i}"
+            # ★ 挂她**自己的 pid**，不再编一个 `{pid}/配N` 的假 id。
+            #   妻女现在各有 pid、各有一页（persons.ts::materialize），
+            #   再编一个 rid 就是同一个人两个 id——正是要避的事。
+            #   谱没给 pid 的（极少）才退回挂在丈夫名下。
+            rid = s.get("pid") or pid
             who = f"{nm}之{s['rel']}{s['name_raw']}"
             if s.get("burial"):
                 for seg in cut_burial(s["burial"]["text"]) or [NS(s["burial"]["text"])]:

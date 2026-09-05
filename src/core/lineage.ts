@@ -50,6 +50,14 @@ export function edgeNote(e: ParentEdge, sameNameCount = 0): { text: string; loud
       return { text: '', loud: false };            // 全谱独一份，也不必说
     case 'stated_adopt':
       return { text: '谱上写明是过继', loud: false };
+    // ★ 过继语句点了名字，可同名的不止一个——写明的是名字，不是人。
+    //   跟 homonym_one_of 一样要显眼，但话得说准：
+    //   不确定的是**这个孩子是哪一个**，不是父亲是哪一个。
+    case 'stated_adopt_homonym':
+      return {
+        text: `谱上写明是过继；全谱叫这名字的有 ${e.homonyms || '多'} 位`,
+        loud: true,
+      };
     case 'honorific':
       return { text: '谱上写作「' + e.parent_name + '公」', loud: false };
     case 'homonym_one_of':
@@ -77,30 +85,8 @@ export function buildIndex(people: Person[]): Map<string, Person> {
 }
 
 /** 向上追溯，遇到多条父边全部展开。返回一棵树，不是一条链。 */
-export function walkUp(idx: Map<string, Person>, pid: string, maxDepth = MAX_DEPTH): AncNode | null {
-  function node(cur: string, depth: number, seen: Set<string>): AncNode | null {
-    const p = idx.get(cur);
-    if (!p) return null;
-    const seen2 = new Set(seen).add(cur);
-
-    const branches: Branch[] = p.parent_edges.map(edge => {
-      if (seen2.has(edge.parent)) return { edge, node: null, stop: '成环，停止（同一人在链上重复出现）' };
-      if (depth + 1 > maxDepth) return { edge, node: null, stop: `超过最大深度 ${maxDepth}` };
-      const up = node(edge.parent, depth + 1, seen2);
-      return up ? { edge, node: up } : { edge, node: null, stop: '这条边指向的 pid 不在谱中' };
-    });
-
-    let deadEnd: DeadEnd | null = null;
-    if (p.parent_edges.length === 0 && p.father_name) {
-      deadEnd = {
-        fatherName: p.father_name, fatherSrc: p.father_src, filiation: p.filiation,
-        reason: `谱里没有「${p.father_name}」单独的一条，往上断在这里`,
-      };
-    }
-    return { person: p, branches, deadEnd, depth };
-  }
-  return node(pid, 0, new Set());
-}
+/* walkUp() 已删：它按原始 `parent_edges` 走，是旧判定的最后一条路径；
+   全项目零调用者，留着只会让人以为还有第二套算法。 */
 
 export interface FlatPath {
   nodes: AncNode[];
@@ -171,12 +157,10 @@ export function rankPaths(paths: FlatPath[]): FlatPath[] {
     || b.nodes.length - a.nodes.length);
 }
 
-/** 子女：谁的 parent_edges 指向了这个人。同样全给，不筛 rank。 */
-export function childrenOf(people: Person[], pid: string): { child: Person; edge: ParentEdge }[] {
-  const out: { child: Person; edge: ParentEdge }[] = [];
-  for (const p of people) for (const e of p.parent_edges) if (e.parent === pid) out.push({ child: p, edge: e });
-  return out.sort((a, b) => a.child.pid.localeCompare(b.child.pid));
-}
+// childrenOf() 已删：它按原始 `parent_edges` 列子女，
+// 是旧判定的最后一条路径。子女一律从判定层反建
+// （见 `entries.ts` 里的 kidsIdx），只认唯一 id。
+
 
 // mentionedBy 已删：那是最后一处「按名字建关系」的函数。
 // 关系一律走 id——父边、事迹里解析好的 targets[].pid、referenced 挂的 host。
@@ -218,6 +202,7 @@ export interface ChainStep {
  */
 export function principalChain(
   idx: Map<string, Person>, pid: string, mode: LineMode, maxDepth = MAX_DEPTH,
+  res: (p: Person) => import('./parents.ts').Parents,
 ): ChainStep[] {
   const preferKind = mode === '宗法线' ? '嗣父' : '生父';
   const out: ChainStep[] = [];
@@ -232,15 +217,30 @@ export function principalChain(
     }
     seen.add(cur.pid);
 
-    const all = cur.parent_edges;
-    const preferred = all.filter(e => e.kind === preferKind);
-    const pool = preferred.length ? preferred : all;   // 该视角没有边时退回全部，并在界面标明
+    // ★ **全部候选也走判定层**，不再读原始 parent_edges。
+    //   早先这里拿原始边当「其它可能的父亲」摆在界面上，
+    //   里头包括判定层已经排掉的那些——卡片说不可能、树却列出来。
 
-    const ranked = [...pool].sort((a, b) => {
-      const ga = idx.get(a.parent)?.gen, gb = idx.get(b.parent)?.gen;
-      const okA = ga != null && cur!.gen - ga === 1, okB = gb != null && cur!.gen - gb === 1;
-      return Number(okB) - Number(okA) || a.rank - b.rank;
-    });
+    // ★ 走哪一条，跟人物卡用**同一个答案**。
+    //
+    //   在这之前树是自己算的：拿原始 parent_edges，只按「世次差是否为 1」和 rank 排。
+    //   人物卡那边却做了六道排除（世次、生年、生子名单点了别人、排行、
+    //   兄弟称谓、同一人重复条目）。两套并行的结果是——
+    //   **312 人的上溯链里有 320 步，走的是人物卡已经排除掉的那条边。**
+    //   树会沿着 app 自己判定为不可能的路往上走。
+    //
+    //   现在只有一个入口：`resolve.ts::resolveAll()`，`parents.ts::parentsFrom()` 只做形状转换。
+    //   调用方把它传进来（res），没传就退回老办法，保证旧调用点不炸。
+    // ★ **没有兑底。** 早先这里有一条 else：不传 res 就直接排原始
+    //   parent_edges（只看世次差和 rank）。可建树的几个闸都忘了传，
+    //   **于是它们一直在验一条 app 根本不走的路径**。
+    //   全站只有一份判定，忘传就是调用方错了，该当场报错。
+    const ps = res(cur);
+    const all: ParentEdge[] = [...ps.birth, ...ps.heir, ...ps.alsoNamed].map(c => c.edge);
+    const pool = mode === '宗法线'
+      ? ps.clan                                   // 兼祠几房就有几条，全在这里
+      : (ps.birth.length ? ps.birth : ps.clan);
+    const ranked: ParentEdge[] = pool.map(c => c.edge);
 
     let deadEnd: DeadEnd | null = null;
     if (all.length === 0 && cur.father_name) {

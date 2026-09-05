@@ -18,6 +18,24 @@
 import type { Person } from './types.ts';
 import { norm } from './norm.ts';
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 人工核定的同人表（data/同一个人.json）
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * 谱写了「详前」、可名字印得不一样，算法指不回去：
+ *     继振　册3 p396　壁晶公之子　字妹汶　（完整条）
+ *     壁振　册3 p397　壁五公祧子　字妹汶　「详前」
+ *     壁振　册3 p398　壁六公祧子　字妹汶　「详前」
+ * 名字头一字印成了「壁」。**这种事不该让算法猜**，
+ * 人回谱面看完再写进表里。效力最高，和 data/人工判定.json 一个意思。
+ */
+export interface SameOne { 详前条: string; 完整条: string; 名?: string; 依据: string; 核对: string }
+let MANUAL_SAME = new Map<string, string>();
+/** 装入人工同人表。全站只在建注册表时装一次。 */
+export function loadSameOne(rows: SameOne[]): void {
+  MANUAL_SAME = new Map(rows.map(r => [r.详前条, r.完整条]));
+}
+
 const NS = (s: string | null | undefined) => (s ?? '').replace(/[\s　]/g, '');
 const SEEALSO = /详前|詳前|详上|詳上|俱详|俱詳|同前|见前|見前/;
 
@@ -29,6 +47,9 @@ export const isSeeAlso = (p: Person): boolean => SEEALSO.test(NS(p.raw_text));
  * 找不到就返回空——**绝不硬凑**。
  */
 export function fullRecordOf(people: Person[], p: Person): Person[] {
+  // ★ 人工核定优先：表里写了就照写的算，不再比名字。
+  const fixed = MANUAL_SAME.get(p.pid);
+  if (fixed) { const q = people.find(x => x.pid === fixed); return q ? [q] : []; }
   if (!isSeeAlso(p)) return [];
   const k = norm(p.name);
   return people.filter(q => q.pid !== p.pid && q.gen === p.gen && norm(q.name) === k
@@ -77,7 +98,16 @@ function sameZi(a: Person, b: Person): boolean {
  */
 export function sameAs(people: Person[], p: Person): Person[] {
   const k = norm(p.name);
-  const same = people.filter(q => q.pid !== p.pid && q.gen === p.gen && norm(q.name) === k);
+  // 同名同世的，加上人工表里指到同一条的（名字印得不一样也算）
+  const manual = new Set<string>();
+  for (const [see, full] of MANUAL_SAME) {
+    if (see === p.pid) { manual.add(full); for (const [s2, f2] of MANUAL_SAME) if (f2 === full) manual.add(s2); }
+    if (full === p.pid) manual.add(see);
+  }
+  manual.delete(p.pid);
+  const same = people.filter(q => q.pid !== p.pid
+    && (manual.has(q.pid) || (q.gen === p.gen && norm(q.name) === k)));
+  if (manual.size) return people.filter(q => manual.has(q.pid));
   if (isSeeAlso(p)) {
     // 本人是详前条：完整条 + 其余详前条，都得指得回同一条完整的
     const full = fullRecordOf(people, p);
@@ -107,6 +137,9 @@ export function sameAs(people: Person[], p: Person): Person[] {
  *   只是不再作为独立的一个人出现在名单里。
  */
 export function canonical(people: Person[], p: Person): Person {
+  // 人工表里写了就照写的折（哪怕那一条没写「详前」两个字）
+  const fixed = MANUAL_SAME.get(p.pid);
+  if (fixed) return people.find(x => x.pid === fixed) ?? p;
   if (!isSeeAlso(p)) return p;
   const full = fullRecordOf(people, p);
   return full.length === 1 ? full[0] : p;   // 指不明白的（好几条或没有）就不折

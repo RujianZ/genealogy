@@ -16,8 +16,9 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 
 import { stripTypeScriptTypes } from 'node:module';
 
 const SRC = 'src/core';
-const DATA = ['people', 'referenced', 'places', 'shou', 'erachart', 'prose_ents',
-              'revisions', 'generations', 'images', 'translations', 'doubts', 'prefaces'];
+const DATA = ['people', 'places', 'shou', 'erachart', 'prose_ents',
+              'revisions', 'generations', 'images', 'translations', 'prefaces',
+              '人工判定', '同一个人'];   // ★ 人工核定表，漏了就等于核定没生效
 const AS = { prose_ents: 'passages' };   // app.js 里这份数据叫 passages
 
 // ── 一、读模块，排依赖顺序 ──────────────────────────────

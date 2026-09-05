@@ -29,7 +29,25 @@ L1 = [
     "万宝冲", "余云岭", "盘角湾", "芭茅宕", "学堂咀", "粉壁山", "杨冲口",
     "蔡家坦", "汤家墩", "柳家塘", "商家岭", "白家岭", "赤堂山", "潘家垅",
     "考田", "小溪镇", "多云镇", "什村镇", "垅坪镇", "苦竹口", "芦塘", "蔡山窊",
+    # ── 外省。本户第 18–22 世成批入陕，另有江西、河南、安徽的零星葬地。
+    #   不把省名立为一级，「陕西省兴安府安康县新建铺余二姐河」这类整串会各自
+    #   自成一级——同一个陕西散成六个互不相干的地名，界面上点不到一起，
+    #   而这恰恰是全谱最大的一次迁徙。
+    "陕西", "江西", "河南", "安徽", "湖北", "四川", "江南",
 ]
+
+# 省名后面那个「省」字。谱里两种写法都有——「葬陕西省兴安府…」与「葬陕西商州…」。
+# 不统一剥掉，同一个陕西会分成「陕西省」和「陕西」两个一级地名，界面上仍是两处。
+PROVINCE = {"陕西", "江西", "河南", "安徽", "湖北", "四川"}
+
+
+def drop_sheng(l1: str | None, rest: str) -> str:
+    return rest[1:] if l1 in PROVINCE and rest.startswith("省") else rest
+
+# ── 行政区划：省 → 府／州 → 县 → 镇／乡／铺 → 村，逐层剥。
+#   本地地名靠 L2 词表（出现 ≥3 次），外省地名往往只出现一两次，
+#   词表法够不着，但**行政区划本身就是分层的**，按字剥即可，不用猜。
+ADMIN = re.compile(r"^(?:直棣|直隶)?([一-鿿]{1,4}(?:府|州|县|市|镇|乡|铺|村|区))")
 
 # ── 形名：来自卷首山图题记与各房私山原文，逐条可查 ──
 SHAPES = [
@@ -58,11 +76,23 @@ def peel(s: str, vocab: list[str]) -> tuple[str | None, str]:
 
 
 def find_any(s: str, vocab: list[str]) -> tuple[str | None, str]:
-    """在串中任意位置找一个词，找到就摘掉。"""
+    """在串中任意位置找一个词，找到就摘掉。
+
+    ★ 形名后面那个「形」字要跟着一起摘。
+      词表里存的是「金盘架」「金盘托果」，不带「形」；谱上写的是
+      「…地名蔡山凹**金盘架形**亥巳向有碑」。只摘「金盘架」，
+      剩下的「形」就粘在地名尾巴上——
+          启昌（十七世焕先公）的葬地成了「蕲州大同乡何家铺东北边地名蔡山凹**形**」，
+          他妻陈氏那条成了「**蕲州大同乡形**」。
+      而这正是 2016 年那一届专程去蕲春找回来的那座坟。
+    """
     for v in vocab:
         i = s.find(v)
         if i >= 0:
-            return v, s[:i] + s[i + len(v):]
+            j = i + len(v)
+            if s[j:j + 1] == "形":      # 形名后面的「形」字一并摘走
+                j += 1
+            return v, s[:i] + s[j:]
     return None, s
 
 
@@ -123,6 +153,7 @@ def main() -> None:
     tails: list[str] = []
     for r in recs:
         l1, rest = peel(r["place_raw"], L1)
+        rest = drop_sheng(l1, rest)
         if l1:
             _, rest = find_any(rest, SHAPES)
             if rest:
@@ -138,6 +169,7 @@ def main() -> None:
     for r in recs:
         s = r["place_raw"]
         l1, rest = peel(s, L1)
+        rest = drop_sheng(l1, rest)
         shape, rest = find_any(rest, SHAPES)
         # 词表里没有的，就让这个串自己当一级——只出现一次的地名也是地名，
         # 「东边门口塘」「严家闸五经魁」「殷家垅」不该因为不在词表上就算「未认出」。
@@ -154,19 +186,28 @@ def main() -> None:
         # 逐层剥，走出一条路径：云山 → 私山窊 → 横路，而不是压成一个 l2。
         path: list[str] = []
         if not standalone:
-            for _ in range(4):
+            for _ in range(6):
                 # 「上庄屋／下庄屋」「上棚／中棚／下棚」是成套的地名，
                 # 不能让方位词「下」先把「下庄屋」吃掉一半。谱里三种写法都有，
                 # 是这座山自己的分区，不是我编的。
                 m = SET_PLACE.match(rest)
                 if m:
                     path.append(m.group(0)); rest = rest[m.end():]; continue
+                # 行政区划先剥（府／州／县／镇／乡／铺／村），再走 L2 词表
+                a = ADMIN.match(rest)
+                if a:
+                    # 取第 1 组，把「直棣／直隶」这层清代政区前缀去掉——
+                    # 谱里「直棣商州」与「商州」并存，不归一就是两个地方。
+                    path.append(a.group(1)); rest = rest[a.end():]; continue
                 tok, rest2 = peel(rest, L2)
                 if not tok:
                     break
                 path.append(tok); rest = rest2
         pos, rest = peel(rest, POS) if not standalone else (None, rest)
+        # raw 带上——「合葬」的「合」字在 text 里被剥掉了，
+        # 而它正是判断夫妻同穴的唯一依据（锡公自己的墓因此从卡片上消失）
         row = {**{k: r[k] for k in ("owner", "owner_name", "gen", "text", "src_human")},
+               "raw": r.get("raw") or r["text"],
                "l1": l1, "path": path, "l2": path[0] if path else None,
                "shape": shape, "pos": pos, "rest": rest,
                "standalone": standalone,

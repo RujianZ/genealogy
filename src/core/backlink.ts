@@ -50,7 +50,72 @@ export interface Augmented extends ParentEdge {
  * 给断链的人补父边。返回一份**新的** people 数组，原数组不动。
  * 只补 `parent_edges` 为空、但谱上写了父名的人。
  */
-export function withBacklinks(people: Person[]): Person[] {
+/**
+ * **父亲的生子名单里给他写的那个名字，也是他的名字。**
+ *
+ * ★ 上彥（第19世）
+ *     他自己那一条题作「**上** 彥」，字苍怀、讳国秀、号松亭、太学生
+ *     ——乾隆四十一年修谱的两位主笔之一。
+ *   可是：
+ *     他父亲学信那一条写「生子　士硕　**士彥**」（册2·卷三·第218页）
+ *     他四个儿子写「**士彥**公长子／三子／四子／幼子」（第221·224·227·230页）
+ *     第 19 世 134 人全叫「士X」，**他是唯一一个不叫的**
+ *   两个字形近（上／士），是转录之讹。谱里没有「士彥」的条目，
+ *   於是四个儿子接不上父亲，被靠名字反查撞到士志、士飞这些不相干的人身上——
+ *   铣贵的名片上因此出现「另一个铣贵是他的兄弟」。
+ *
+ * ★ 判准（就是「洞与钉子」，当时配出 129 对）
+ *     洞 = 父亲的生子名单里点了这个名字，谱里却没有他的条目
+ *     钉 = 有条目、自称是这位父亲的儿子，却不在名单里
+ *   **同一位父亲名下恰好一洞一钉**时，两者是同一个人的两种写法。
+ *   把洞的那个名字登记成钉的别名。一对多、多对一一律不动（不猜）。
+ *
+ * ★ people.json 一个字没动，别名只活在内存里。
+ */
+function withHolePegAliases(people: Person[]): Person[] {
+  const byGenName = new Map<string, Person[]>();
+  const key = (g: number, n: string) => `${g}|${NS(n).replace(/公$/, '')}`;
+  for (const p of people) {
+    if (p.gen == null) continue;
+    for (const f of new Set([p.name, ...p.aliases.map(a => a.form)])) {
+      if (!f) continue;
+      const k = key(p.gen, f);
+      (byGenName.get(k) ?? byGenName.set(k, []).get(k)!).push(p);
+    }
+  }
+  const extra = new Map<string, string>();   // pid → 补上的名字
+  for (const f of people) {
+    if (f.gen == null) continue;
+    const listed = roster(f).sons.map(s => NS(s.name).replace(/公$/, '')).filter(Boolean);
+    if (!listed.length) continue;
+    const holes = listed.filter(n => !(byGenName.get(key(f.gen + 1, n)) ?? []).length);
+    if (holes.length !== 1) continue;
+    // 钉：自称是他儿子、却不在名单里的
+    const w = NS(f.name).replace(/公$/, '');
+    const pegs = people.filter(q => q.gen === f.gen + 1 && q.father_name
+      && NS(fname(q.father_name)).replace(/公$/, '') === w
+      && !listed.includes(NS(q.name).replace(/公$/, ''))
+      && !q.aliases.some(a => listed.includes(NS(a.form).replace(/公$/, ''))));
+    if (pegs.length !== 1) continue;
+    if (extra.has(pegs[0].pid)) continue;
+    extra.set(pegs[0].pid, holes[0]);
+  }
+  if (!extra.size) return people;
+  const out = people.map(p => {
+    const n = extra.get(p.pid);
+    if (!n || p.aliases.some(a => NS(a.form) === NS(n))) return p;
+    return { ...p, aliases: [...p.aliases, { form: n, why: '父亲的生子名单里写作这个名字' }] };
+  });
+  (out as any).__holepeg = extra.size;
+  return out;
+}
+
+/** 「洞与钉子」补了几个别名——给启动日志用。 */
+export const holePegCount = (augmented: Person[]): number =>
+  (augmented as any).__holepeg ?? 0;
+
+export function withBacklinks(people0: Person[]): Person[] {
+  const people = withHolePegAliases(people0);
   // 谁被谁点了名
   const claims = new Map<string, Person[]>();
   for (const f of people) {
@@ -102,7 +167,7 @@ export function withBacklinks(people: Person[]): Person[] {
     //   世系表一格里并排印着好几个兄弟，父名写在页眉上，行内不再重复，
     //   所以他们自己那一条根本没有父名。可是**父亲那一条的生子名单里有他们**。
     //   有没有写父名，跟「父亲点没点他的名」是两件事。
-    if (p.parent_edges.length) return p;
+    if (p.parent_candidates.length) return p;
 
     const forms = new Set([NS(p.name), ...p.aliases.map(a => NS(a.form))]);
     const found: Person[] = [];
@@ -157,11 +222,84 @@ export function withBacklinks(people: Person[]): Person[] {
         derived: true,
       } as ParentEdge;
     });
-    return { ...p, parent_edges: edges };
+    return { ...p, parent_candidates: edges };
   });
   (out as any).__backlinked = n;
-  return mergeSeeAlso(withWrittenAdoption(out));
+  return degradeBroadcastAdoptions(
+    mergeSeeAlso(withWrittenAdoption(withWrittenFather(out))));
 }
+
+/**
+ * 过继语句点了名字，可**同名的不止一个**——这样的边不能算「谱上写明」。
+ *
+ * ★ 病在哪
+ *
+ *   上游 `parser/link.py` 的 add_adoption_edges 是这么写的：
+ *
+ *       for child, _ in idx.get(lk["child_name"], []):   # 同名的每一个都发一条
+ *
+ *   一句「立弟长子**开国**为嗣」，全谱八个叫开国的人**每人各得一条
+ *   rank 3 边**，全部标着「过继语句原文写明」。界面上八个候选并排，
+ *   每个都写「谱上写明是过继」，一句警告都没有。
+ *
+ *   全谱 366 条 stated_adopt 边里，**214 条（58%）是这么来的**——
+ *   来自 78 句「一句话砸中好几个同名人」的语句。
+ *
+ * ★ 这个教训项目里已经学过一次
+ *
+ *   上面 withBacklinks 的注释写着：「起初这里一律标 rank 1，结果第 26 世的
+ *   开志同时挂上了继路和继均**两个 rank 1 的父亲**——两个最硬的依据
+ *   互相打架，本身就证明标错了。」当时给 claim_named 做了 1→2→5 的降级，
+ *   **stated_adopt 这条路没做同样的降级。** 这里补上。
+ *
+ * ★ 判准（只看谱给了什么，不做别的推断）
+ *
+ *   同一句话（matched_as）＋ 同一个父亲（parent）＋ 同一种关系（kind），
+ *   落到**两个及以上不同的人**身上 ⇒ 这句话点的名字全谱不止一个人叫，
+ *   谱没说是哪一个。降到 rank 5，界面上必须显眼。
+ *
+ *   反过来，一句话里给出两个儿子（「次子泽雅出嗣三弟铣佐　幼子泽渚出嗣铣南」）、
+ *   或一个人挑几房（「出嗣壁准　兼祧壁泗　兼祧弟湘」），父亲各不相同，
+ *   分在不同的组里，各组只有一个人——不受影响。
+ *
+ * ★ people.json 一个字没动。只在内存里改标签。
+ */
+function degradeBroadcastAdoptions(people: Person[]): Person[] {
+  // key = 语句｜父 pid｜关系　→　落到哪些人身上
+  const group = new Map<string, Set<string>>();
+  for (const p of people) {
+    for (const e of p.parent_candidates ?? []) {
+      if (e.evidence !== 'stated_adopt') continue;
+      const k = `${e.matched_as ?? ''}|${e.parent}|${e.kind}`;
+      (group.get(k) ?? group.set(k, new Set()).get(k)!).add(p.pid);
+    }
+  }
+  let hit = 0;
+  const out = people.map(p => {
+    let changed = false;
+    const edges = (p.parent_candidates ?? []).map(e => {
+      if (e.evidence !== 'stated_adopt') return e;
+      const n = group.get(`${e.matched_as ?? ''}|${e.parent}|${e.kind}`)?.size ?? 1;
+      if (n < 2) return e;
+      changed = true; hit += 1;
+      return {
+        ...e,
+        evidence: 'stated_adopt_homonym' as const,
+        rank: 5 as const,
+        homonyms: n,
+        evidence_cn: `过继语句写了名字；全谱叫这名字的有 ${n} 人`,
+      };
+    });
+    return changed ? { ...p, parent_candidates: edges } : p;
+  });
+  (out as any).__backlinked = (people as any).__backlinked;
+  (out as any).__degraded = hit;
+  return out;
+}
+
+/** 降了几条过继边——给启动日志用。 */
+export const degradedCount = (augmented: Person[]): number =>
+  (augmented as any).__degraded ?? 0;
 
 /**
  * 本人写了「X嗣子／X祧子」，可谁也没接上——补这一条。
@@ -208,7 +346,7 @@ function withWrittenAdoption(people: Person[]): Person[] {
     const cand = hit(`${p.src.vol}|${p.src.section}|${p.gen - 1}|${w}`);
     if (cand.length !== 1) return p;
     const f = cand[0];
-    if (p.parent_edges.some(e => e.parent === f.pid)) return p;
+    if (p.parent_candidates.some(e => e.parent === f.pid)) return p;
     if (f.src.row !== p.src.row - 1) return p;       // 必须印在正上一行
     const edge: ParentEdge = {
       parent: f.pid,
@@ -223,7 +361,7 @@ function withWrittenAdoption(people: Person[]): Person[] {
       parent_src: f.src_human,
       derived: true,
     } as ParentEdge;
-    return { ...p, parent_edges: [...p.parent_edges, edge] };
+    return { ...p, parent_candidates: [...p.parent_candidates, edge] };
   });
 }
 
@@ -259,15 +397,95 @@ function mergeSeeAlso(people: Person[]): Person[] {
     if (isSeeAlso(p)) return p;
     const kin = sameAs(people, p);
     if (!kin.length) return p;
-    const seen = new Set(p.parent_edges.map(e => `${e.kind}|${e.parent}`));
+    const seen = new Set(p.parent_candidates.map(e => `${e.kind}|${e.parent}`));
     const add: ParentEdge[] = [];
     for (const q of kin)
-      for (const e of q.parent_edges) {
+      for (const e of q.parent_candidates) {
         const k = `${e.kind}|${e.parent}`;
         if (seen.has(k)) continue;
         seen.add(k);
         add.push(e);
       }
-    return add.length ? { ...p, parent_edges: [...p.parent_edges, ...add] } : p;
+    return add.length ? { ...p, parent_candidates: [...p.parent_candidates, ...add] } : p;
   });
 }
+
+/**
+ * **谱白纸黑字写了父名，就该有指向他的那条边——哪怕已经有别的边了。**
+ *
+ * ★ 病在哪
+ *
+ *   上面那一遍（反向匹配）开头一句是 `if (p.parent_candidates.length) return p;`
+ *   ——只要已经有任何一条边，就不再看谱写的父名。
+ *   而那些边可能全是**靠名字反查撞出来的**：
+ *
+ *     铣德（P-册2-0230-5-0-0，字自新、讳拔萃、号默济、贡生
+ *           ——道光五年修谱的督修）那一条写「**士彥公幼子**」。
+ *     谱里有四个铣德，士兴（P-册2-0129 那位的父亲）的生子名单里也有个「铣德」，
+ *     於是士兴被反查挂了上来，占住了位；
+ *     真父亲上彥（P-册2-0221-4-1-0，字苍怀、讳国秀、号松亭，
+ *     乾隆四十一年修谱主笔之一）反而进不来。
+ *     结果他名片上的兄弟姐妹全是**士兴的儿女**，还包括另一个铣德。
+ *
+ *   上彥那一条题作「**上** 彥」（上／士形近之讹），
+ *   但他的别名里本来就有「士彦」——折叠之后跟「士彥」一致，同世唯一，
+ *   本来一查就中。只是那道闸把他挡在门外。
+ *
+ * ★ 判准（一道闸，不猜）
+ *
+ *   本人写了父名 W；上一世叫 W 的**恰好一位**；现有边里没有他 → 补。
+ *   多于一位就不补——那是真同名，交给 candidates 去分辨。
+ *
+ * ★ people.json 一个字没动，边只活在内存里，标 derived。
+ */
+function withWrittenFather(people: Person[]): Person[] {
+  const byGenName = new Map<string, Person[]>();
+  for (const p of people) {
+    if (p.gen == null) continue;
+    for (const f of new Set([NS(p.name), ...p.aliases.map(a => NS(a.form))])) {
+      const k = `${p.gen}|${f.replace(/公$/, '')}`;
+      if (!k) continue;
+      (byGenName.get(k) ?? byGenName.set(k, []).get(k)!).push(p);
+    }
+  }
+  let n = 0;
+  const out = people.map(p => {
+    if (p.gen == null || !p.father_name) return p;
+    const w = NS(fname(p.father_name)).replace(/公$/, '');
+    if (!w) return p;
+    const cand = [...new Set(byGenName.get(`${p.gen - 1}|${w}`) ?? [])]
+      .filter(q => q.pid !== p.pid);
+    if (cand.length !== 1) return p;                   // 同名不止一位 → 不补，交给判据
+    const f = cand[0];
+    if (p.parent_candidates.some(e => e.parent === f.pid)) return p;
+    n += 1;
+    const both = roster(f).sons.some(s => {
+      const t = NS(s.name).replace(/公$/, '');
+      return t === NS(p.name).replace(/公$/, '')
+        || p.aliases.some(a => NS(a.form).replace(/公$/, '') === t);
+    });
+    const edge: ParentEdge = {
+      child: p.pid, child_name: p.name,
+      parent: f.pid, parent_name: f.name,
+      kind: '生父',
+      evidence: both ? 'claim_named' : 'sole_homonym',
+      rank: both ? 1 : 2,
+      evidence_cn: both
+        ? '本人写了父名，父亲的生子名单里也有他'
+        : '本人写了父名；上一世叫这个名字的全谱只有这一位',
+      matched_as: `本人条目写「${p.father_name}${p.filiation ?? ''}」；`
+        + `${f.name}（${f.src_human}）是第 ${f.gen} 世唯一叫这个名字的`
+        + (NS(f.name) === w ? '' : `——他那一条题作「${f.name}」，别名里有「${w}」`),
+      child_src: p.src_human, parent_src: f.src_human,
+      derived: true,
+    } as ParentEdge;
+    return { ...p, parent_candidates: [...p.parent_candidates, edge] };
+  });
+  (out as any).__backlinked = (people as any).__backlinked;
+  (out as any).__written = n;
+  return out;
+}
+
+/** 靠「谱写的父名」补了几条边——给启动日志用。 */
+export const writtenFatherCount = (augmented: Person[]): number =>
+  (augmented as any).__written ?? 0;

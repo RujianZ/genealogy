@@ -1,0 +1,73 @@
+/**
+ * **外键闸：`parent_edges` 里每一条都得指向一个真实存在的 pid。**
+ *
+ * 这道闸盯四件事：
+ *   ① 每条边的 parent 是 pid，且那个 pid 在名单里
+ *   ② 生父最多一位（兼祧含本家、谱写「承本身」的除外）
+ *   ③ 同一种关系里不出现两个同名的候选——**那正是要消掉的那句话**
+ *   ④ 写回的答案跟判定层当场算的一致（文件没落后于系统）
+ *
+ * `parent_candidates` 是题面，可以有几条同名的；`parent_edges` 是答案，不许。
+ */
+import { readFileSync } from 'node:fs';
+import { makeRegistry } from '../src/core/entries.ts';
+import { norm } from '../src/core/norm.ts';
+const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url), 'utf8'));
+const D = { people: J('people'), places: J('places'), shou: J('shou'),
+  era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
+  generations: J('generations'), images: J('images'), trans: J('translations'),
+  prefaces: J('prefaces'), manual: J('人工判定'), sameone: J('同一个人') };
+const R = makeRegistry(D);
+const NS = s => norm(String(s ?? ''));
+const flat = s => String(s ?? '').replace(/[\s　]+/g, '');
+
+const bad = [];
+let edges = 0, cand = 0;
+for (const p of D.people) {
+  const es = p.parent_edges;
+  if (!Array.isArray(es)) { bad.push(`${p.name} 没有 parent_edges 这一格`); continue; }
+  cand += (p.parent_candidates ?? []).length;
+  edges += es.length;
+  // ① 外键
+  for (const e of es) {
+    if (!e.parent) bad.push(`${p.gen}世 ${p.name} 有一条边没有 pid`);
+    else if (!R.idx.has(e.parent)) bad.push(`${p.gen}世 ${p.name} 的边指向 ${e.parent}，名单里没有这个 id`);
+  }
+  // ② 生父最多一位
+  const b = es.filter(e => e.kind === '生父');
+  if (b.length > 1 && !/承本身/.test(flat(p.raw_text)))
+    bad.push(`${p.gen}世 ${p.name} 有 ${b.length} 位生父　${p.src_human}`);
+  // ③ 同一种关系里不出现同名
+  for (const k of ['生父', '嗣父']) {
+    const names = es.filter(e => e.kind === k).map(e => NS(e.parent_name));
+    if (new Set(names).size !== names.length)
+      bad.push(`${p.gen}世 ${p.name} 的${k}里有两位同名（${names.join('、')}）　${p.src_human}`);
+  }
+  // ④ 文件里的答案 == 判定层当场算的
+  const ps = R.parents(p);
+  const live = [...ps.birth.map(c => '生父|' + c.edge.parent), ...ps.heir.map(c => '嗣父|' + c.edge.parent)].sort().join(',');
+  const file = es.map(e => e.kind + '|' + e.parent).sort().join(',');
+  if (live !== file) bad.push(`${p.gen}世 ${p.name} 文件里的边跟判定层算的不一样\n       文件 ${file}\n       判定 ${live}`);
+}
+// ── 过继语句：不允许留一个名字给下游去猜 ────────────
+//   每一条要么落到 pid，要么**写明为什么落不了**。
+//   谱写「次子启昌出嗣**朝阳**」——「朝阳」不是身份，
+//   不转成 pid 存起来，每个读它的人都得再搜一遍同名。
+let ad = 0, adPid = 0;
+for (const p of D.people) for (const a of p.adoptions ?? []) {
+  ad++;
+  if (a.去处) {
+    adPid++;
+    if (!R.idx.has(a.去处)) bad.push(`${p.gen}世 ${p.name} 的过继记录指向 ${a.去处}，名单里没这个 id`);
+  } else if (!a.怎么定的) {
+    bad.push(`${p.gen}世 ${p.name} 的过继记录「${a.原话}」既没 pid 也没说明为什么`);
+  }
+  if (a.写在谁那一条 && !R.idx.has(a.写在谁那一条))
+    bad.push(`${p.gen}世 ${p.name} 的过继记录，写话人 id ${a.写在谁那一条} 不存在`);
+}
+
+console.log(`题面 parent_candidates ${cand} 条 → 答案 parent_edges ${edges} 条（收敛 ${cand - edges} 条）`);
+console.log(`过继语句 ${ad} 条：落到 pid 的 ${adPid} 条，其余 ${ad - adPid} 条各自写明了为什么落不了`);
+if (!bad.length) console.log('\n  ✔ 每条边都指向一个真实 pid；生父不超一位；同一种关系里没有同名；文件与判定层一致');
+else { console.log(`\n  ✘ ${bad.length} 处：`); bad.slice(0, 20).forEach(b => console.log('     ' + b));
+       if (bad.length > 20) console.log(`     …还有 ${bad.length - 20} 处`); process.exitCode = 1; }

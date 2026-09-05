@@ -29,10 +29,28 @@ NS = lambda s: fold("".join((s or "").split()).replace("　", ""))
 # 关系词按**长的优先**排，否则「姪孙」会被「姪」先吃掉。
 _REL = ("亲姪孙|亲侄孙|姪孙|侄孙|族孙|后孙|後孙|胞侄|胞姪|胞姓|房侄|房姪|"
         "亲侄|亲姪|舅愚晚|愚晚|合族|全族|男|子|孙|侄|姪")
-_VERB = "谨撰|谨识|谨述|谨选|谨志|拜撰|敬笔|敬议|谨试|谨认撰|代书|敬撰|撰|识|志"
-SIGN = re.compile(rf"({_REL})([一-鿿]{{0,4}}?)({_VERB})")
-# 署名也可能不带撰述动词，直接落在文末：「…以传於　姪孙寿堂」
-SIGN_END = re.compile(rf"({_REL})([一-鿿]{{2,3}})$")
+# ★ 撰述动词分两档。
+#   「谨撰」「拜撰」这种两字的，出现在正文里几乎不可能是别的意思；
+#   光杆的「撰」「识」「志」不然——「氏承夫志」「完节白头」里都带着它们。
+#   所以：**光杆动词只配多字关系词**（胞姓壁甘撰 ✔ ／ 孙承夫志 ✘）。
+#   否则「泽海条」讲冰雪瑶池匾额那一段会被判成「孙承夫写的」。
+_VERB2 = "谨认撰|谨撰|谨识|谨述|谨选|谨志|拜撰|敬笔|敬议|谨试|代书|敬撰"
+_VERB1 = "撰|识|志"
+_REL_LONG = ("亲姪孙|亲侄孙|姪孙|侄孙|族孙|后孙|後孙|胞侄|胞姪|胞姓|房侄|房姪|"
+             "亲侄|亲姪|舅愚晚|愚晚|合族|全族")
+SIGN = re.compile(rf"({_REL})([一-鿿]{{0,4}}?)({_VERB2})"
+                  rf"|({_REL_LONG})([一-鿿]{{0,4}}?)({_VERB1})")
+# 署名也可能不带撰述动词，直接落在文末：「…以传於　姪孙寿堂」「…谨请先祖赦罪　后孙开胜」
+#
+# ★ 这一条**不能用光杆的「子」「孙」「侄」**。
+#   谱里绝大多数段落本来就以「生子一　承棠」「后迁牌子山向南」「父子俱迁陕」结尾，
+#   拿单字关系词去套文末，套出来的是「子｜一承棠」「子｜山向南」「子｜俱迁陕」——
+#   28 段被判出根本不存在的作者，事迹卡上会写成「谁写的：一承棠」。
+#   不带撰述动词的署名，谱上用的都是**两字以上的称谓**（姪孙／后孙／男…），
+#   所以这里只收多字关系词，并且**名字必须在谱里查得到人**（见下面 SIGN_END_STRICT）。
+_REL_END = ("亲姪孙|亲侄孙|姪孙|侄孙|族孙|后孙|後孙|胞侄|胞姪|胞姓|房侄|房姪|"
+            "亲侄|亲姪|舅愚晚|愚晚|男")
+SIGN_END = re.compile(rf"({_REL_END})([一-鿿]{{2,3}})$")
 
 # ── 主角：谱怎么称呼被写的人 ──────────────────────────
 ABOUT = [
@@ -70,7 +88,9 @@ def main() -> None:
                 hits = [type("M", (), {"group": lambda self, i, _m=m2: (
                     _m.group(1) if i == 1 else _m.group(2) if i == 2 else "（文末署名）")})()]
         for m in hits:
-            rel, nm, verb = m.group(1), m.group(2), m.group(3)
+            # SIGN 有两个分支（多字动词／光杆动词），命中哪一支就取哪一组
+            rel, nm, verb = (m.group(1), m.group(2), m.group(3)) if m.group(1) \
+                else (m.group(4), m.group(5), m.group(6))
             cands = []
             for n in (3, 2):
                 if len(nm) >= n and nm[:n] in by_name:
@@ -80,7 +100,10 @@ def main() -> None:
                           "targets": [], "note": "全族公议，没有署个人名"}
                 break
             if not cands:
-                if nm:
+                # ★ 文末无动词的那一条，名字在谱里查不到就**不算署名**——
+                #   那多半是「生子一　承棠」这种正常行尾被套出来的。
+                #   带撰述动词的（「舅愚晚李林瀚拜撰」）照旧保留，外姓也是作者。
+                if nm and verb != "（文末署名）":
                     author = {"rel": rel, "name": nm, "verb": verb, "targets": [],
                               "note": "谱里找不到这个人，可能是外姓"}
                 continue
@@ -117,6 +140,26 @@ def main() -> None:
         else:
             stat["主角有明证"] += 1
         x["about2"] = about
+
+    # ★ 把今译并回来。
+    #   译文存在 data/prose_cn.json（translate_formula.py 产的），
+    #   而 prose_ents.json 是从 prose.json 重建的——中间没人并，
+    #   于是 267 段今译造出来以后一直没到过卡片上。
+    cn_fp = Path("data/prose_cn.json")
+    if cn_fp.exists():
+        C = json.loads(cn_fp.read_text(encoding="utf-8"))
+        hit = 0
+        for x in prose:
+            c = C.get(x["id"])
+            if not c:
+                continue
+            x["cn"] = c["cn"]
+            if c.get("by"):
+                x["cn_by"] = c["by"]
+            if c.get("note"):
+                x["cn_note"] = c["note"]
+            hit += 1
+        print("\n" + "**并回今译：" + str(hit) + " 段**（prose_cn.json 共 " + str(len(C)) + " 条）")
 
     Path("data/prose_ents.json").write_text(
         json.dumps(prose, ensure_ascii=False, indent=1), encoding="utf-8")

@@ -15,3 +15,18 @@ node_modules/
 *.tmp
 *.bak
 *.log
+
+# 原始扫描件和外部资料——几百 MB 到几 GB，不进 git。
+# 谱本身的扫描（source/*.jpg）是跟着的，这几份是**旁证材料**：
+#   gemini-工作/            OCR 中间产物
+#   source/新安张氏续修宗谱/  另一支的谱，用来比对源流
+#   source/旁证/            县志之外的旁证
+#   source/黄梅县志/         黄梅县志影印
+#   work/新安对照/           新安谱的对照截图
+#   work/tmp/               临时产物，随时可重跑
+gemini-工作/
+source/新安张氏续修宗谱/
+source/旁证/
+source/黄梅县志/
+work/新安对照/
+work/tmp/

@@ -49,7 +49,7 @@ function compareName(q: string, qk: string, form: string, label: string): Omit<M
     const short = Math.min(q.length, f.length);
     return short >= 2
       ? { score: 0.70, why: `${label}互相包含（${form}）` }
-      : { score: 0.20, why: `${label}单字包含（${form}）——可能是巧合` };
+      : { score: 0.20, why: `${label}只对上一个字（${form}）` };
   }
   if (editDistance(q, f) <= 1 && Math.max(q.length, f.length) >= 2) {
     return { score: 0.60, why: `${label}差一字（${form}）` };
@@ -96,18 +96,31 @@ export function search(people: Person[], query: string): Hit[] {
     // ① 本人的各种叫法（谱名/字/讳/号/名/去敬称）——aliases 已经算好
     for (const { form, why } of p.aliases) push(why, form, compareName(q, qk, form, why));
 
-    // ② 配偶。女性在谱里没有独立条目，只作「妣某氏」附在男性下，
-    //    不查这里就等于全谱一半的人搜不到。
+    // ② 配偶——**降为「提到」**。
+    //
+    //    这一条原先的理由是「女性在谱里没有独立条目，不查这里就等于
+    //    全谱一半的人搜不到」。★ 那个前提已经不成立了：她们现在各有 pid、
+    //    各有一页（见 persons.ts）。搜「梅氏」头一个该是**梅氏本人**，
+    //    而不是一堆条目里写了「妣梅氏」的丈夫。
+    //
+    //    名字是身份，只在它是**本人的**名字时才算身份；写在别人条目里的，
+    //    是「他那一条提到了她」。仍然搜得到（不漏），只是排在本人后面。
     for (const s of p.spouses) {
-      push('配偶', s.name_raw, compareName(q, qk, s.name_raw, `${s.rel}${s.name_raw}`));
+      push('提到配偶', s.name_raw,
+           compareText(q, s.name_raw, `他那一条里写了「${s.rel}${s.name_raw}」`, 0.55));
     }
 
     // ③ 父名（原文写的字符串，未必连得上条目）
     if (p.father_name) push('父名', p.father_name, compareName(q, qk, p.father_name, '所记父名'));
 
     // ④ 本人条目里「生子X：…」列的名字，以及只有夫家姓的女儿
-    for (const n of p.sons_claimed) push('生子名单', n, compareName(q, qk, n, '生子名单'));
-    for (const n of p.daughters_claimed) push('女', n, compareName(q, qk, n, '女（夫家姓）'));
+    //    同理：名单里的名字是**孩子的**身份，不是他的。降为「提到」。
+    for (const n of p.sons_claimed) {
+      push('提到儿子', n, compareText(q, n, `他的生子名单里写了「${n}」`, 0.55));
+    }
+    for (const n of p.daughters_claimed) {
+      push('提到女儿', n, compareText(q, n, `他的女儿那一行写了「${n}」`, 0.55));
+    }
 
     // ⑤ 功名、标记（出嗣/迁徙/殉难/节烈/传赞…）
     for (const t of p.titles) push('功名', t, compareText(q, t, '功名', 0.50));

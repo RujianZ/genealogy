@@ -24,7 +24,6 @@
 const PIC = (f) => (typeof window !== 'undefined' && window.IMG && window.IMG[f])
   || ('img/' + f);
 import { search } from '../src/core/search.ts';
-import { searchReferenced, displayName, relationLine } from '../src/core/referenced.ts';
 import { searchDocs } from '../src/core/docs.ts';
 import { makeRegistry } from '../src/core/entries.ts';
 import { edgeNote, countSameName } from '../src/core/lineage.ts';
@@ -32,12 +31,14 @@ import { srcText, unreverse } from '../src/core/entry.ts';
 import { kinship, describe } from '../src/core/kinship.ts';
 import { advancedSearch, ambiguity } from '../src/core/advanced.ts';
 import { buildTree } from '../src/core/tree.ts';
-import { candidates, kept } from '../src/core/candidates.ts';
+import { doubtList } from '../src/core/doubts.ts';
 
-const [people, refs, places, shou, era, passages, revisions, generations, images, trans, doubts, prefaces] = await Promise.all(
-  ['people', 'referenced', 'places', 'shou', 'erachart', 'prose_ents', 'revisions', 'generations', 'images', 'translations', 'doubts', 'prefaces'].map(n =>
-    fetch('../data/' + n + '.json').then(r => r.json())));
-const R = makeRegistry({ people, refs, places, shou, era, passages, revisions, generations, images, trans, prefaces });
+// ★ 人工核定表（人工判定）一定要带上。
+//   早先这份清单里没它，于是 app 里人工核过的判定全部不生效。
+const [people, places, shou, era, passages, revisions, generations, images, trans, prefaces, manual, sameone] = await Promise.all(
+  ['people', 'places', 'shou', 'erachart', 'prose_ents', 'revisions', 'generations', 'images', 'translations', 'prefaces', '人工判定', '同一个人'].map(n =>
+    fetch('../data/' + encodeURIComponent(n) + '.json').then(r => r.json())));
+const R = makeRegistry({ people, places, shou, era, passages, revisions, generations, images, trans, prefaces, manual, sameone });
 const cat = R.catalogue();
 
 const esc = s => (s ?? '').replace(/[<>&"]/g, c =>
@@ -303,7 +304,7 @@ function paint(e) {
  * 不是常驻的树——常驻一棵树太挤，而且大多数时候你只想知道「我在哪」。
  */
 function lineBar(pid) {
-  const t = buildTree(R.idx, pid);
+  const t = buildTree(R.idx, pid, undefined, R.parents);
   if (!t.rows.length) return '';
   // rows 是「你在最前、往回追」的顺序，这一条也照这个方向读：
   // 你 ‹ 父 ‹ 祖 ‹ …中间N代… ‹ 始祖
@@ -331,7 +332,7 @@ function lineBar(pid) {
 function drawTree(pid) {
   const me = R.idx.get(pid);
   if (!me) return false;
-  const t = buildTree(R.idx, pid);
+  const t = buildTree(R.idx, pid, undefined, R.parents);
   if (!t.rows.length) return false;
   let h = `<h1 class="title">${esc(me.name)}的世系<span class="gen">共 ${t.rows.length} 代</span></h1>`
     + '<div class="byline">你在最上面，往下一格就是往上一辈。</div>';
@@ -368,17 +369,37 @@ function treeRow(t, r, ri, below) {
       if (c.via && c.via.kind === '嗣父') h += '<span class="tag hot">过继过去的</span>';
       // 上面那一格还可能是谁。世次差不为 1、年纪不可能、生子名单点了别人的
       // 一律不显示——那三条是谱自己的规矩和减法，是结论，不是待定。
-      const cs = candidates(R.idx, p, R.chart, R.win);
-      const show = (list) => list.filter(x =>
-        (!c.via || x.edge.parent !== c.via.parent) && !below.has(x.edge.parent));
-      const alt = show(kept(cs));
+      //
+      // ★ 只跟**同一种关系**比。
+      //   过继的人有两位父亲，那不是「说不清」，那是谱按凡例第十三则双记的结果。
+      //   原来这里把两种混在一起：启昌那一行左边走生父（朝相），
+      //   於是右边的嗣父朝阳被当成「同名的还有」列了出来——
+      //   而全谱只有一个朝阳（依据 sole_homonym＝全谱只有这一位），本该一个字都不说。
+      //   人物卡上早已按 kind 分组（entries.ts 那一处），树这里漏了，是同一个错的第二处。
+      // ★ 读全站那一份判定，不在前端另算一遍
+      const _ps = R.parents(p);
+      const cs = [..._ps.birth, ..._ps.heir, ..._ps.alsoNamed];
+      // 本行别的格子已经摆出来的父亲，不算「还可能是谁」
+      const shown = new Set(r.cells.map(x => x.via && x.via.parent).filter(Boolean));
+      const alt = cs.filter(x =>
+        (!c.via || x.edge.kind === c.via.kind)      // 同一种关系才比
+        && !shown.has(x.edge.parent)
+        && !below.has(x.edge.parent));
       if (alt.length) {
-        h += `<div class="tfork">谱上只写了「${esc(p.father_name)}」，`
-          + `同名的还有：`
-          + alt.map(x => A('person', x.edge.parent, x.person?.name || x.edge.parent_name)
-              + `<small class="dim"> ${esc(x.person?.src_human ?? '')}`
-              + (x.layoutNote ? `　${esc(x.layoutNote)}` : '') + '</small>').join('　')
-          + '</div>';
+        const k = c.via ? c.via.kind : '父亲';
+        // ★ 走的这一位就印在正上一格、而别的同名候选都不在 —— 那不是「分不出」。
+        //   五世一图横着读，谱把谁摆在正上一格就是谁。照直说，另一位照旧列出。
+        const mine = c.via && cs.find(x => x.edge.parent === c.via.parent);
+        const settled = mine && mine.printedAbove && !alt.some(x => x.printedAbove);
+        const others = alt.map(x =>
+          A('person', x.edge.parent, x.person?.name || x.edge.parent_name)
+          + `<small class="dim"> ${esc(x.person?.src_human ?? '')}`
+          + (x.layoutNote ? `　${esc(x.layoutNote)}` : '') + '</small>').join('　');
+        h += settled
+          ? `<div class="tfork calm">谱把他印在正上一格，按五世一图的读法就是这一位。`
+            + `同名的另一位：${others}</div>`
+          : `<div class="tfork">谱上只写了「${esc(p.father_name)}」，`
+            + `叫这个名字的不止一位，分不出哪个是${esc(k)}：${others}</div>`;
       }
 
       if (c.deadEnd) {
@@ -471,7 +492,7 @@ function showHome() {
     + '<div class="hero-s">湖北黄梅 · 南宋宝庆丁亥（1227）迁梅至今 · 二十七世 · 全谱一千三百一十四页</div>'
     + '<div class="hero-s">收 ' + people.length.toLocaleString() + ' 人，'
     + '连谱上提到而没有单独一条的妻、女、子在内共 '
-    + (people.length + refs.length).toLocaleString() + ' 人</div></div>'
+    + R.idx.size.toLocaleString() + ' 人</div></div>'
     + '<div class="cards">'
     + HOME.map(([t, k, n, d]) =>
         `<div class="card" onclick="list('${k}')">`
@@ -587,12 +608,17 @@ function runSearch(qv, fromRoute = true) {
   //   看着就像「搜索第二次失效」。
   const q = (qv ?? $('q').value).trim();
   if (!q) { $('results').classList.add('hide'); $('qhint').textContent = ''; return; }
-  const ph = search(people, q), rh = searchReferenced(refs, q), dh = searchDocs(shou, q);
+  // ★ 搜**全部 4,999 人**，不只是有独立条目的那 2,233。
+  //   妻女现在各有 pid、各有一页，跟男人一样进同一个索引。
+  //   早先分两路搜（search(people) + searchReferenced(refs)），
+  //   她们在搜索里是另一类东西、点开是另一种页——那是她们的第二套身份。
+  const everyone = [...R.idx.values()];
+  const ph = search(everyone, q), dh = searchDocs(shou, q);
   const dn = dh.reduce((a, x) => a + x.spots.length, 0);
-  $('qhint').textContent = `${ph.length + rh.length} 人 · 谱文 ${dn} 处`;
+  $('qhint').textContent = `${ph.length} 人 · 谱文 ${dn} 处`;
   let h = '';
   if (ph.length) {
-    h += `<div class="grp">谱上单独一条的人　${ph.length} 人</div>`;
+    h += `<div class="grp">人　${ph.length}</div>`;
     for (const x of ph) {
       const p = x.person;
       const why = [whyLine(x.matches[0]),
@@ -601,15 +627,6 @@ function runSearch(qv, fromRoute = true) {
       h += `<div class="hit">${A('person', p.pid, p.name)} `
         + `<small class="dim">第${p.gen}世${p.zi ? ' 字' + esc(p.zi.text) : ''}</small>`
         + `<div class="why">${why}</div></div>`;
-    }
-  }
-  if (rh.length) {
-    h += `<div class="grp">妻、女，以及谱上提到但没有单独一条的人　${rh.length} 人</div>`;
-    for (const x of rh) {
-      h += `<div class="hit">${A('ref', x.ref.rid, displayName(x.ref))}`
-        + `<div class="why">`
-        + [whyLine(x.matches[0]), relationLine(x.ref)]
-            .filter(Boolean).map(esc).join('　') + `</div></div>`;
     }
   }
   if (dh.length) {
@@ -699,7 +716,7 @@ function showKin() {
     ;
 
   if (kinA && kinB) {
-    const r = kinship(R.idx, kinA.pid, kinB.pid);
+    const r = kinship(R.idx, kinA.pid, kinB.pid, R.parents);
     h += '<div class="kinres">';
     if (r.directTerm) {
       h += `<div class="kinbig">${esc(kinB.name)} 是 ${esc(kinA.name)} 的<b>${esc(r.directTerm)}</b></div>`
@@ -784,7 +801,7 @@ function showAdv() {
     if (v) c[k] = k === 'gen' ? Number(v) : v;
   }
   if (advDirty && Object.keys(c).length) {
-    const hits = advancedSearch(people, places, c);
+    const hits = advancedSearch(people, places, c, R.parents);
     h += `<div class="grp">${hits.length} 人</div>`
       + hits.map(x => `<div class="hit">${A('person', x.person.pid, x.person.name)}`
         + ` <small class="dim">第${x.person.gen}世`
@@ -811,38 +828,52 @@ window.advClear = () => { advC = {}; advDirty = false; showAdv(); };
 
 // ══════════ 谱上没说清的 ══════════
 //
+// ★ 这一页**不自己判任何事**，只把判定层（src/core/doubts.ts）的分档摊开。
+//   上一版是 `tools/build_doubts.py` 算好写进 data/doubts.json，那个脚本
+//   自己重写了一遍反向匹配、版面判断、同名排除、年代窗口——全谱两套判定，
+//   而且认的还是旧字段。页面上报「同名分不清 123 人」，判定层这边其实是 0。
+//   现在台账、这一页、闸走同一个函数，分档相加正好是全谱人数。
+//
 // 按「**这是谁的问题**」分，不按现象分：
-//   谱上留空　—— 不是问题。「纪其所可知，阙其所未知」。谱没意见，我们也没意见。
-//   读不出　　—— **我们的问题**，该修。
-//   分不清　　—— 谱写了，但两个人都对得上。唯一需要人去认的。
+//   谱上留空　　—— 不是问题。「纪其所可知，阙其所未知」。谱没意见，我们也没意见。
+//   谱自己对不上 —— **谱的问题**。原话判出来了，可版面／房支跟原话对不上。
+//   靠定式定的　—— 不是谱的原话，是按谱自己的版面规矩定的。要人回去看一眼。
+const DOUBT = doubtList(R, revisions);
+
 function drawDoubts(key) {
-  const K = Object.keys(doubts);
+  const B = DOUBT.buckets, T = DOUBT.tally;
+  const K = Object.keys(B);
   const LABEL = {
-    分不清: '谱写了，但分不清',
-    读不出: '谱写了，我们没读出来',
-    谱上留空: '谱上就是这么记的',
-    谱上对不上: '谱上自己两处对不上',
-    超出范围: '谱的编纂范围之外',
-    名目对不上: '修谱名目对不上人',
+    靠定式定的: '谱没把话说死，按版面定式定的',
+    谱自己对不上: '谱自己两处对不上',
+    说不清: '说不清',
+    谱没写父亲: '谱上就没写父亲',
+    谱上留空: '谱自己写了「缺／未详」',
+    名目对不上人: '修谱名目对不上人',
   };
-  const settled = doubts.分不清.filter(x => x.settled).length;
+  const need = B.靠定式定的.length + B.谱自己对不上.length + B.说不清.length;
   let h = '<h1 class="title">谱上没说清的</h1>'
     + '<div class="byline">「纪其所可知，阙其所未知」——谱上没说清的，全列在这里。</div>'
     + '<div class="calc">'
-    + `谱自己留空的 <b>${doubts.谱上留空.length}</b> 条**不算问题**——`
-    + '修史本来就不能尽善尽美，谱没写我们也不写。<br>'
-    + `真要人认的是 <b>${doubts.分不清.length - settled}</b> 条：`
-    + '同名、同辈、年代也对得上，谱把两个人都写着，没说是哪一个。'
-    + `（另有 <b>${settled}</b> 条，谱把其中一个印在本人正上方那一格，翻开那页就看见。）`
+    + `有独立条目的 <b>${T.合计}</b> 人，父子关系按「凭什么说没错」分档：<br>`
+    + `谱的原话判定、交叉验证无冲突 <b>${T.原话无冲突}</b>　`
+    + `判定层留了说明、人工逐条核过 <b>${T.已核无误}</b>　`
+    + `逐案翻回谱面核定 <b>${T.人工核定}</b>　`
+    + `<span class="dim">（相加 ${T.原话无冲突 + T.已核无误 + T.人工核定}）</span><br>`
+    + `真要人回去看一眼的是 <b>${need}</b> 位：`
+    + `谱自己前后不一致 ${B.谱自己对不上.length}，靠版面定式定的 ${B.靠定式定的.length}，说不清 ${B.说不清.length}。<br>`
+    + `另有 <b>${B.谱没写父亲.length}</b> 位谱上就没写父亲，`
+    + `<b>${B.谱上留空.length}</b> 处谱自己写着「缺」「未详」——**那不算问题**，`
+    + '修史本来就不能尽善尽美，谱没写我们也不写。'
     + '</div>'
     + '<div class="linebar">'
     + K.map(k => `<button class="lk" onclick="showDoubts('${k}')">`
-        + `${esc(LABEL[k] ?? k)} <b>${doubts[k].length}</b></button>`).join(' ')
+        + `${esc(LABEL[k] ?? k)} <b>${B[k].length}</b></button>`).join(' ')
     + '</div>';
 
   const show = key ? [key] : K;
   for (const k of show) {
-    const rows = doubts[k];
+    const rows = B[k];
     h += `<h2>${esc(LABEL[k] ?? k)}<span class="dim"> ${rows.length}</span></h2>`;
     if (!key && rows.length > 10) {
       h += `<div class="calc">先列 10 条。`
@@ -857,53 +888,29 @@ function drawDoubts(key) {
 window.showDoubts = key => go({ v: 'doubts', k: key || '' });
 
 function doubtRow(k, x) {
-  const who = x.pid
-    ? `${A('person', x.pid, x.name)} <small class="dim">第${x.gen}世　${esc(x.src_human)}</small>`
-    : '';
-  if (k === '分不清') {
-    return `<div class="dbt">${who}`
-      + `<div class="q">谱上写父名「${esc(x.father_name)}」${esc(x.filiation)}`
-      + (x.window ? `　<span class="dim">本人 ${esc(x.window)}</span>` : '')
-      + `<br>同名 ${x.cands.length} 个，都当得了他的${esc(x.kind)}</div>`
-      + x.cands.map(c => `<div class="c${c.printedAbove ? ' up' : ''}">`
-          + (c.printedAbove ? '<b>谱把他印在正上方那一格</b>　' : '')
-          + A('person', c.pid, c.name)
-          + ` <small class="dim">${esc(c.src_human)}`
-          + (c.window ? `　${esc(c.window)}` : '') + '</small></div>').join('')
-      + '</div>';
+  if (k === '名目对不上人') {
+    return `<div class="dbt"><b>${esc(x.era)}</b> 那一届名目里的 `
+      + `<b>${esc(x.name || x.raw)}</b>`
+      + `<div class="q">${esc(x.why)}`
+      + (x.cands?.length ? `　同名候选 ${x.cands.length} 个：`
+          + x.cands.map(c => A('person', c.pid, `${c.gen}世·${c.src}`)).join('　') : '')
+      + `<br><small class="raw">名目原文：${esc(x.raw ?? '')}</small></div></div>`;
   }
-  if (k === '读不出') {
-    return `<div class="dbt">${who}`
-      + `<div class="q">${esc(x.detail)}`
-      + `<small class="dim">　${esc(x.why)}</small>`
-      + (x.src ? `<small class="dim">　依据 ${esc(x.src)}</small>` : '')
-      + (x.window ? `<br><b>但靠殁年／寿数／配偶／子女仍能框出：${esc(x.window)}</b>` : '')
-      + '</div></div>';
-  }
+  const who = `${A('person', x.pid, x.name)} `
+    + `<small class="dim">第${x.gen}世　${esc(x.src_human)}</small>`;
   if (k === '谱上留空') {
     return `<div class="dbt">${who}`
-      + `<div class="q">${esc(x.what)}：${esc(x.why)}`
-      + (x.detail ? `　<span class="dim">${esc(x.detail)}</span>` : '')
-      + (x.window ? `　<span class="dim">${esc(x.window)}</span>` : '')
-      + '</div></div>';
+      + `<div class="q">${esc(x.why)}<small class="raw">　「${esc(x.raw)}」</small></div></div>`;
   }
-  if (k === '谱上对不上') {
-    return `<div class="dbt">${who}`
-      + `<div class="q">${esc(x.why)}`
-      + (x.birth ? `<br><small class="raw">生「${esc(x.birth)}」</small>` : '')
-      + (x.death ? `<small class="raw">　殁「${esc(x.death)}」</small>` : '')
-      + (x.age ? `<small class="raw">　寿「${esc(x.age)}」</small>` : '')
-      + '</div></div>';
-  }
-  if (k === '超出范围') {
-    return `<div class="dbt">${who}<div class="q">${esc(x.note)}</div></div>`;
-  }
-  return `<div class="dbt"><b>${esc(x.era)}</b> 那一届名目里的 `
-    + `<b>${esc(x.name || x.raw)}</b>`
+  return `<div class="dbt">${who}`
     + `<div class="q">${esc(x.why)}`
-    + (x.cands?.length ? `　同名候选 ${x.cands.length} 个：`
-        + x.cands.map(c => A('person', c.pid, `${c.gen}世·${c.src}`)).join('　') : '')
-    + `<br><small class="raw">名目原文：${esc(x.raw)}</small></div></div>`;
+    + (x.father_name ? `<br>谱上写父名「${esc(x.father_name)}」` : '')
+    + (x.chosen?.length
+        ? `　判定给的是 ${x.chosen.map(c => A('person', c.pid, c.name) + `<small class="dim">（${esc(c.kind)}）</small>`).join('、')}`
+        : '')
+    + (x.basis ? `<br><small class="raw">依据：${esc(x.basis)}</small>` : '')
+    + (x.cross ? `<br><small class="dim">${esc(x.cross)}</small>` : '')
+    + '</div></div>';
 }
 
 

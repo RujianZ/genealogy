@@ -79,7 +79,22 @@ export function buildWindows(people: Person[], chart: EraChart): Map<string, Win
     //   界面早就用 continued() 把它切开了，判据这边却还在读原字段——
     //   **同一件事有两个来源，迟早对不上。** 这里接上同一个。
     const cont = continued(p);
-    const b = Y(cont ? cont.birthText : p.birth?.text);
+    // ★ 字段为空时回原文兜底 —— 这是同一个教训的第五次。
+    //
+    //   葬地（34.7%）、修谱名目、配偶子女、殁年，都栽在「只信上游切好的字段」。
+    //   MEMORY 记着一句：**字段划分是上游的判断，永远不能当唯一来源。**
+    //
+    //   承兵（27世，册4·卷八·学仁公世系·第78页）那一行是连排的：
+    //       生于一九七一年五月二十八日**娶**乐氏月琴生于一九七四年八月十五日
+    //   「生于」后面直接接「娶」，上游没切开，`birth` 是 null，
+    //   他的年代窗口只能靠子女倒推（1909–1987），什么候选都排不掉。
+    //   全谱这样的有 13 人。谱明明写了年份，我们不该说不知道。
+    const rawBirth = (): string | null => {
+      const t = (p.raw_text ?? '').replace(/[\s　]+/g, '');
+      const m = /生於?于?([^生殁卒娶聘妣继复庶葬字讳号]{2,18}?年[^生殁卒娶聘妣继复庶葬字讳号]{0,14})/.exec(t);
+      return m ? m[1] : null;
+    };
+    const b = Y(cont ? cont.birthText : p.birth?.text) ?? Y(rawBirth());
     const d = Y(p.death?.text) ?? (cont ? Y(cont.tail.text) : null);
     if (b) { w.born = w.lo = w.hi = b; w.why.push('谱上写了生年'); }
     if (d) { w.died = d; w.why.push('谱上写了殁年'); }
@@ -138,7 +153,7 @@ export function buildWindows(people: Person[], chart: EraChart): Map<string, Win
   for (const p of people) {
     const b = W.get(p.pid)!.born;
     if (!b) continue;
-    for (const e of p.parent_edges) {
+    for (const e of p.parent_candidates) {
       const fg = genOf.get(e.parent);
       if (fg == null || p.gen == null || p.gen - fg !== 1) continue;
       (kids.get(e.parent) ?? kids.set(e.parent, []).get(e.parent)!).push(b);

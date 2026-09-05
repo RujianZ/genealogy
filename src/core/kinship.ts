@@ -29,9 +29,21 @@ export interface AncHit {
   paths: { step: number; adopted: boolean; weakest: number }[];
 }
 
-/** 某人的全部祖先，附上溯代数。遇多条父边全部展开，不选。 */
+/**
+ * 某人的全部祖先，附上溯代数。遇多条父边全部展开，不选。
+ *
+ * ★ 走的边跟人物卡、世系树**同一个来源**（`resolve.ts::resolveAll()`）。
+ *   在这之前这里读的是原始 `parent_edges`，注释写着「一条边不丢」——
+ *   可那里面混着**谱自己的规矩已经排除掉的边**（世次差不为 1、生年不可能、
+ *   父亲的生子名单点的是别人、排行对不上…）。
+ *   算称呼时把这些也算进去，等于拿一条谱判定为不可能的路去认亲戚。
+ *   全站只有一个答案，这里也走它。调用方不传解析器时退回老办法。
+ */
 export function ancestors(
   idx: Map<string, Person>, pid: string, maxDepth = 40,
+  // ★ 必填。写成可选、却无条件地用，忘传就是运行时崩（res is not a function）；
+  //   改成必填，忘传变成类型错，当场就能看见。
+  res: (p: Person) => { birth: { edge: ParentEdge }[]; clan: { edge: ParentEdge }[] },
 ): Map<string, AncHit> {
   const out = new Map<string, AncHit>();
   const walk = (cur: string, step: number, adopted: boolean, weakest: number, seen: Set<string>) => {
@@ -39,7 +51,13 @@ export function ancestors(
     const p = idx.get(cur);
     if (!p) return;
     const seen2 = new Set(seen).add(cur);
-    for (const e of p.parent_edges) {
+    // 认亲戚要两条线都算：生的那一支和过继过去的那一支，都是祖先。
+    // ★ 没有兜底。全站只有一份判定，不传就是调用方错了，该报错。
+    //   早先这里写着 `: p.parent_edges`，一旦有人忘传 res，就**静默退回旧路**——
+    //   关系计算器和卡片因此可以得到不同的答案。
+    const edges = [...new Map([...res(p).birth, ...res(p).clan]
+      .map(c => [`${c.edge.kind}|${c.edge.parent}`, c.edge])).values()];
+    for (const e of edges) {
       // ★ 过继标记要**跟着这一条路**走，不能标在人身上。
       //   启昌那条嗣父边一用，他上面所有祖先都会被标上「经过过继」——
       //   技术上没错，但等于满屏都是，没用。按路记。
@@ -97,10 +115,13 @@ export interface KinResult {
   note: string;
 }
 
-export function kinship(idx: Map<string, Person>, aPid: string, bPid: string): KinResult | null {
+export function kinship(idx: Map<string, Person>, aPid: string, bPid: string,
+  // ★ 名字不能叫 res —— 这个函数里本来就有个局部的 res（KinResult）
+  parents: (p: Person) => { birth: { edge: ParentEdge }[]; clan: { edge: ParentEdge }[] },
+): KinResult | null {
   const a = idx.get(aPid), b = idx.get(bPid);
   if (!a || !b) return null;
-  const A = ancestors(idx, aPid), B = ancestors(idx, bPid);
+  const A = ancestors(idx, aPid, 40, parents), B = ancestors(idx, bPid, 40, parents);
 
   const commons: Common[] = [];
   for (const [pid, ha] of A) {
@@ -194,9 +215,12 @@ export function describe(r: KinResult, c: Common): { fact: string; call: string 
       : r.genDiff > 0 ? `${r.b.name}比${r.a.name}高 ${r.genDiff} 辈。`
         : `${r.a.name}比${r.b.name}高 ${-r.genDiff} 辈。`)
     + (c.viaAdoption ? '（这条路上经过一次过继）' : '')
-    + (c.weakest >= 5
-      ? '　⚠ 中间有一步是同名候选，不确定。'
-      : c.weakest >= 3 ? '　（这条路最弱的一步是过继语句或去敬称）' : '');
+    // ★ 早先这里还接一句「⚠ 中间有一步是同名候选，不确定」。
+    //   判定层重做以后，产出的边只有 rank 1（原话）和 rank 2（定式），
+    //   rank≥3 的边**一条也没有**（实测）——那句话永远走不到，是死代码。
+    //   留着只会让后人以为这套东西还在说含糊话。删。
+    //   万一将来又出现弱边，该在判定层把话说清，不是在这里报一声「不确定」。
+    + '';
   const call = term(Math.max(c.minA, c.minB), r.genDiff);
   return { fact, call };
 }

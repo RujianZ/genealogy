@@ -7,12 +7,12 @@
  * 每条都是「用户会做的一件事」，做不成就是坏的。
  */
 import { readFileSync } from 'node:fs';
+import { doubtList } from '../src/core/doubts.ts';
 import { makeRegistry } from '../src/core/entries.ts';
 import { buildTree } from '../src/core/tree.ts';
 import { buildIndex } from '../src/core/lineage.ts';
 import { withBacklinks } from '../src/core/backlink.ts';
 import { search } from '../src/core/search.ts';
-import { searchReferenced } from '../src/core/referenced.ts';
 import { searchDocs } from '../src/core/docs.ts';
 import { advancedSearch } from '../src/core/advanced.ts';
 import { kinship, describe } from '../src/core/kinship.ts';
@@ -29,11 +29,14 @@ const eq = (a, b, what) => { if (a !== b) throw new Error(`${what}：得到 ${a}
 const gt = (a, b, what) => { if (!(a > b)) throw new Error(`${what}：${a} 不大于 ${b}`); };
 
 const D = {
-  people: J('people'), refs: J('referenced'), places: J('places'), shou: J('shou'),
+  people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
   generations: J('generations'), images: J('images'), trans: J('translations'), prefaces: J('prefaces'),
+  manual: J('人工判定'), sameone: J('同一个人'),   // ★ 忘了带就等于在验「没有人工核定」的结果
 };
 const R = makeRegistry(D);
+// ★ 建树跟人物卡同一份判定；不传就是在验旧路径。
+const PS = R.parents;
 const idx = buildIndex(withBacklinks(D.people));
 const cat = R.catalogue();
 const me = D.people.find(p => p.name === '承健' && p.gen === 27);
@@ -70,10 +73,15 @@ t('繁简都能搜到同一个人', () => {
   return `启昌 ${a.length} 人 · 啟昌 ${b.length} 人`;
 });
 
-t('搜妻女（谱里没有独立条目的人）', () => {
-  const r = searchReferenced(D.refs, '李氏雪梅');
+t('搜妻女——跟男人走**同一个搜索**', () => {
+  // ★ 早先她们得用 searchReferenced 另搜一路（referenced.json）。
+  //   那张表删了：她们现在各有 pid、在同一个索引里。
+  const everyone = [...R.idx.values()];
+  const r = search(everyone, '李氏雪梅');
   gt(r.length, 0, '命中数');
-  return `${r.length} 条`;
+  const her = r.find(x => x.person.attached);
+  if (!her) throw new Error('命中里没有附记之人');
+  return `${r.length} 条；头一个附记之人：${her.person.name}（${her.person.pid}）`;
 });
 
 t('搜卷首全文', () => {
@@ -83,7 +91,7 @@ t('搜卷首全文', () => {
 });
 
 t('高级搜索：按父名', () => {
-  const r = advancedSearch(D.people, D.places, { father: '开赛' });
+  const r = advancedSearch(D.people, D.places, { father: '开赛' }, R.parents);
   gt(r.length, 0, '命中数');
   return `父名开赛的 ${r.length} 人`;
 });
@@ -134,7 +142,7 @@ t('随机 40 个人，所有链接都点得开', () => {
 console.log('\n══ 世系树 ══\n');
 
 t('承健的树：27 代、两条线', () => {
-  const tr = buildTree(idx, me.pid);
+  const tr = buildTree(idx, me.pid, undefined, PS);
   eq(tr.rows.length, 27, '代数');
   eq(tr.single, false, '是否单线');
   eq(tr.rows[0].gen, 27, '第一行世次（你在最上面）');
@@ -146,7 +154,7 @@ t('承健的树：27 代、两条线', () => {
 
 t('没过继的人只有一条线', () => {
   const p = D.people.find(q => q.gen === 20 && q.parent_edges.length === 1);
-  const tr = buildTree(idx, p.pid);
+  const tr = buildTree(idx, p.pid, undefined, PS);
   eq(tr.single, true, '是否单线');
   eq(tr.rows.every(r => r.cells.length === 1), true, '每行只有一格');
   return `${p.name} ${tr.rows.length} 代，一条线`;
@@ -155,7 +163,7 @@ t('没过继的人只有一条线', () => {
 t('随机 30 个人都能建出树', () => {
   let bad = 0;
   for (let i = 0; i < D.people.length; i += Math.floor(D.people.length / 30)) {
-    const tr = buildTree(idx, D.people[i].pid);
+    const tr = buildTree(idx, D.people[i].pid, undefined, PS);
     if (!tr.rows.length) bad++;
     if (tr.rows.some(r => !r.cells.length)) bad++;
   }
@@ -167,7 +175,7 @@ console.log('\n══ 关系计算器 ══\n');
 
 t('算「我和我父亲」——直系，该直接给称呼', () => {
   const dad = idx.get(me.parent_edges[0].parent);
-  const k = kinship(idx, me.pid, dad.pid);
+  const k = kinship(idx, me.pid, dad.pid, R.parents);
   if (!k) throw new Error('算不出');
   if (!k.directTerm) throw new Error('直系没给称呼');
   eq(k.genDiff, 1, '辈分差');
@@ -177,7 +185,7 @@ t('算「我和我父亲」——直系，该直接给称呼', () => {
 t('算「我和我爷爷」', () => {
   const dad = idx.get(me.parent_edges[0].parent);
   const gp = idx.get(dad.parent_edges[0].parent);
-  const k = kinship(idx, me.pid, gp.pid);
+  const k = kinship(idx, me.pid, gp.pid, R.parents);
   if (!k?.directTerm) throw new Error('算不出');
   return `${me.name} 叫 ${gp.name} ——「${k.directTerm}」`;
 });
@@ -185,7 +193,7 @@ t('算「我和我爷爷」', () => {
 t('算两个远房——该找出共同祖先', () => {
   const a = D.people.find(p => p.gen === 25 && p.src.section.includes('朝阳'));
   const b = D.people.find(p => p.gen === 25 && p.src.section.includes('朝寿'));
-  const k = kinship(idx, a.pid, b.pid);
+  const k = kinship(idx, a.pid, b.pid, R.parents);
   if (!k) throw new Error('算不出');
   if (!k.commons?.length) throw new Error('找不到共同祖先');
   const s = describe(k, k.commons[0]);
@@ -197,7 +205,7 @@ t('随机 20 对都能算', () => {
   let bad = 0;
   const step = Math.floor(D.people.length / 20);
   for (let i = 0; i + step < D.people.length; i += step) {
-    const k = kinship(idx, D.people[i].pid, D.people[i + step].pid);
+    const k = kinship(idx, D.people[i].pid, D.people[i + step].pid, R.parents);
     if (!k) { bad++; continue; }
     if (!k.directTerm && !k.commons?.length && !k.note) bad++;
   }
@@ -246,7 +254,8 @@ t('作者认得出的，他名片上有「他写的文字」', () => {
 console.log('\n══ 疑点清单 ══\n');
 
 t('疑点清单每条都点得回原文', () => {
-  const doubts = J('doubts');
+  // 清单是判定层现算的，不再有 data/doubts.json 这份预生成文件
+  const doubts = doubtList(R, J('revisions')).buckets;
   let n = 0;
   for (const [k, list] of Object.entries(doubts)) {
     for (const x of list) {

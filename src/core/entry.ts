@@ -18,6 +18,7 @@
  *   不漏  —— relations 里的 items 不截断；要省略必须写明省了多少
  *   可追溯 —— 每个条目必须有 sources，点开是原文
  */
+import { norm } from './norm.ts';
 
 export type EntryKind =
   | 'person'    // 谱上单独一条的人
@@ -114,8 +115,13 @@ export interface Entry {
 
 // ── 小工具 ──────────────────────────────────────────────────
 
+// ★ 比对必须走 norm（947 条繁简异体折叠），不能只去空格。
+//   同一个人谱上两处写法不同是常事：光林那一条写「梁**柏**」，
+//   他嗣父自己那一条写「梁**栢**」——只去空格就对不上，
+//   於是名片上出现「父：梁栢　梁栢〔嗣父〕　梁森〔生父〕」，梁栢印了两遍。
+//   backlink.ts 与 candidates.ts 2026-08-29 已改用 norm，entry.ts 漏了，这是第三处。
 export const NS = (s: string | null | undefined): string =>
-  (s ?? '').replace(/[\s　]+/g, '');
+  norm((s ?? '').replace(/[\s　]+/g, ''));
 
 /** 页眉带是右起横排：「子长公林梦」正着读是「梦林公长子」。原文照留，正读补上。 */
 export function srcText(t: string | null | undefined): string {

@@ -54,10 +54,24 @@ RE_NAME_LINE = re.compile(r"^[\u4e00-\u9fa5]\s+[\u4e00-\u9fa5]$")
 # 「继」是第 25 世的字辈，放进去整整一代人（含张关女）会凭空消失。
 FIELD_LEAD = frozenset("讳字号名")
 
+# 纪年词与称谓词用的功能字。**两个字都出自这里的，不是名字。**
+#
+#   「生於　某年某月某日　时」在版心断行，落下「日　时」两个字，
+#   形状恰好是「两汉字＋排版空格」，於是它成了一个人，还领到了 pid、
+#   挂上了下面几行的儿女。全谱这样凭空多出 28 个人：
+#       日时 14 · 月日 6 · 年月 6 · 妣氏 1 · 娶氏 1
+#   它们名下挂着 14 个儿子、24 个女儿、6 位配偶——全是错挂的。
+#
+# 判据要求**每一个字**都是功能字，所以「锡公」「德公」「恭公」这类
+# 真名字（只有一个「公」是敬称）不受影响——实测 68 个这样的人，一个没误伤。
+FUNC_CHARS = frozenset("年月日时氏妣娶生殁葬公之子女的又初")
+
 
 def is_name_line(s: str) -> bool:
     s = s.strip()
-    return bool(RE_NAME_LINE.match(s)) and s[0] not in FIELD_LEAD
+    if not RE_NAME_LINE.match(s) or s[0] in FIELD_LEAD:
+        return False
+    return not all(c in FUNC_CHARS for c in s if not c.isspace())
 
 
 @dataclass
@@ -112,27 +126,57 @@ def page_meta(block: dict) -> tuple[str, str]:
     return juan, sec
 
 
-RE_HDR_PTR = re.compile(rf"^([\u4e00-\u9fa5]{{1,4}}?)公?(?:之|([{ORDINALS}]))子$")
+# 页眉倒读后的形状：〔父名〕＋〔公〕＋〔之／排行／嗣／祥〕＋子
+# ★ 早先只认「之子」和排行，不认「嗣子」「祥子」——而过继来的人
+#   恰恰全靠页眉指回去（册4 p43「p120「p184 都是），于是他们的父亲全丢了。
+RE_HDR_PTR = re.compile(
+    rf"^([一-龥]{{1,4}}?)公?(?:之|([{ORDINALS}])|(嗣)|(祧))子$")
 
 
-def page_pointer(block: dict) -> tuple[str, str, str]:
+RE_HDR_SCAN = re.compile(
+    rf"([一-龥]{{1,4}}?)公?之?(?:之|[{ORDINALS}]|嗣|祧)子")
+
+
+def page_pointers(block: dict) -> list[tuple[str, str, str]]:
     """
     页眉带里的跨页父名指向，右起左读。
     「子幼均继」倒过来是「继均幼子」。
     第 1 行的人往往不写父名，因为父亲在上一页——没有这条，
     册与册之间、支系与支系之间的链全断。
-    返回 (父名, 排行, 原文)；认不出就全空，不猜。
+
+    ★ **一页可以有好几个页眉。**
+      第 342 页的页眉带写着：「子之公禄铣　　　子之公忾铣」
+      ——一页几栏，每栏各有自己的父亲。
+      早先拿整个单元格去匹配正则，只要一页不止一个就全部区配不上，
+      于是那一页行 1 的人全都没了父名——全谱 37 人因此卡在「说不清」。
+      现在按空白切开，有几个返几个，哪一个对应哪一栏由上层判（不猜）。
     """
+    out: list[tuple[str, str, str]] = []
     for c in block["cells"]:
         if c["r"] != 0 or c["source"] != "cell":
             continue
         t = c["text"].strip()
         if not t or "张 氏" in t or "支下世系" in t:
             continue
-        m = RE_HDR_PTR.match(t[::-1].strip())
-        if m:
-            return m.group(1), (m.group(2) + "子" if m.group(2) else "之子"), t
-    return "", "", ""
+        # ★ 一页几个页眉，**中间不一定有空白**。
+        #   册4 p12 写的是「子长公伯继子之生继」，两个指向连在一起；
+        #   按空白切就切不开，那一页行1 的人全没了父名。
+        #   改成把整串倒过来扫描所有匹配，有几个找几个。
+        rev = t[::-1]
+        for mm in RE_HDR_SCAN.finditer(rev):
+            piece = mm.group(0)[::-1]
+            m = RE_HDR_PTR.match(mm.group(0))
+            if m:
+                fil = ("嗣子" if m.group(3) else "祥子" if m.group(4)
+                       else m.group(2) + "子" if m.group(2) else "之子")
+                out.append((m.group(1), fil, piece))
+    return out
+
+
+def page_pointer(block: dict) -> tuple[str, str, str]:
+    """向后兼容：只要第一个。新代码用 page_pointers()。"""
+    ps = page_pointers(block)
+    return ps[0] if ps else ("", "", "")
 
 
 def gen_of(vol: str, page: int, row: int):
@@ -151,12 +195,13 @@ def load_lines(path: Path, vol: str):
     lines: list[Line] = []
     total = 0
     seq = 0
-    pointers: dict[int, tuple[str, str, str]] = {}
+    # 一页可能好几个页眉，所以存列表
+    pointers: dict[int, list] = {}
 
     for blk in blocks:
         page = blk["block_index"]
         juan, sec = page_meta(blk)
-        pointers[page] = page_pointer(blk)
+        pointers[page] = page_pointers(blk)
         bcol = body_col(page)
         for c in blk["cells"]:
             total += len(c["text"])
@@ -194,14 +239,47 @@ def segment_volume(path: Path, vol: str, kind: str):
     segs: list[Segment] = []
     assigned: list[Line] = []
 
+    # ★ 招婿（入赘）的名字行是**全名**，不是「两汉字＋排版空格」。
+    #   册4 p128：「张余小琴 / 承华之招婿 / 字张余小琴 / 生于一九八一年七月二日」。
+    #   他是第 28 世、绪余的父亲——世系从女儿这一支往下传，凡例里有招赘这一条。
+    #   不认他，他那几行就会被吹进上一个人的条目，而他儿子成了无父之人。
+    _SON_IN_LAW = re.compile(r"招[婿壻]|坐婿|入赘")
+    # 两个字也算：「继鑑」没排版空格，但下一行写着「壁万公四子」。
+    # 它能不能算名字，由下面那道「下一行是行次句或招婿句」把关。
+    _BARE_NAME = re.compile(r"^[一-龥]{2,5}$")
+    # 「幼女为子」不是名字，是一句注（幼女当儿子看待，因为招了婿）。
+    # 它恰好也是四个字、下一行也写着「坐婿夏」——得把这类句子撑开。
+    _NOT_A_NAME = re.compile(r"女|子|为|之|字|生|殁|葬|娶|妣")
+    # 行次句（「世昂公幼子」「壁万公四子」）。不能从 fields.py 进口：那边反过来依赖本模块。
+    # 父名不得是「生养季」——「生四子」是名单头，不是「生公的四子」。
+    _FILIATION = re.compile(
+        r"^(?![生养養季])[一-龥]{1,4}?公?之?(?:之|[长次三四五六七八九十幼]|嗣|祧)[子女]$")
+
+    def _is_head(i: int, ls: list) -> bool:
+        if is_name_line(ls[i].text):
+            return True
+        t = ls[i].text.strip()
+        if not _BARE_NAME.match(t) or _NOT_A_NAME.search(t):
+            return False
+        for j in range(i + 1, min(i + 3, len(ls))):
+            nxt = ls[j].text.strip()
+            if nxt:
+                # ★ 名字行的下一行是**行次句**——这是谱自己的格式，
+                #   比任何字表都硬。「七相公」→「世昂公幼子」、
+                #   「继鑑」→「壁万公四子」——两位都写在各自父亲的生子名单里，
+                #   却因为名字行没排版空格而被当成上一条的尾巴吞掉了。
+                #   七相公是世昂公幼子，而世昂公正是两条线在第 9 世合回的那位。
+                return bool(_SON_IN_LAW.search(nxt)) or bool(_FILIATION.match(nxt.rstrip("、。，；,;")))
+        return False
+
     if kind == "世系":
         # 正文：按行号分五条流，流内按册内页序
         for r in range(1, 6):
             stream = [l for l in lines if l.kind == "body" and l.row == r]
             stream.sort(key=lambda l: (l.page, l.seq))
             cur: Segment | None = None
-            for l in stream:
-                if is_name_line(l.text):
+            for _i, l in enumerate(stream):
+                if _is_head(_i, stream):
                     if cur:
                         segs.append(cur)
                     cur = Segment(f"S-{vol}-{r}-{len(segs):05d}", "person", [l])

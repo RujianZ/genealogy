@@ -62,21 +62,8 @@ export function relationLine(r: Referenced): string {
   return `${r.host_name}声明的儿子——谱中查无条目指回`;
 }
 
-export function buildRefIndex(refs: Referenced[]) {
-  const byRid = new Map<string, Referenced>();
-  const byHost = new Map<string, Referenced[]>();
-  for (const r of refs) {
-    byRid.set(r.rid, r);
-    (byHost.get(r.host) ?? byHost.set(r.host, []).get(r.host)!).push(r);
-  }
-  return { byRid, byHost };
-}
 
 /** 同姓的其他配偶——不是"同一个人"，是"同姓"。措辞上必须分清。 */
-export function sameSurname(refs: Referenced[], r: Referenced): Referenced[] {
-  if (!r.surname) return [];
-  return refs.filter(x => x.rid !== r.rid && x.role === '配偶' && x.surname === r.surname);
-}
 
 // ── 搜索：她们必须能被搜到本人，而不是搜出她们的丈夫 ──────────────
 import { norm, homophoneKey, editDistance } from './norm.ts';
@@ -89,74 +76,48 @@ export interface RefHit { ref: Referenced; matches: RefMatch[]; score: number }
  * 搜「汪氏」应该出 971 位汪氏本人，不是 971 个丈夫。
  * 和 search.ts 一样：命中处全列，不只留最高分那条；分数只排序不筛除。
  */
-export function searchReferenced(refs: Referenced[], query: string): RefHit[] {
-  const q = norm(query);
-  if (!q) return [];
-  const qk = homophoneKey(q);
-  const hits: RefHit[] = [];
-
-  const cmp = (form: string, label: string): RefMatch | null => {
-    const f = norm(form);
-    if (!f) return null;
-    if (f === q) return { field: label, text: form, score: 1.0, why: `${label}完全相同` };
-    if (homophoneKey(f) === qk) return { field: label, text: form, score: 0.85, why: `${label}同音（${form}）` };
-    const short = Math.min(q.length, f.length);
-    if (q.includes(f) || f.includes(q)) {
-      return short >= 2
-        ? { field: label, text: form, score: 0.7, why: `${label}互相包含（${form}）` }
-        : { field: label, text: form, score: 0.2, why: `${label}单字包含（${form}）——可能是巧合` };
-    }
-    if (editDistance(q, f) <= 1 && Math.max(q.length, f.length) >= 2) {
-      return { field: label, text: form, score: 0.6, why: `${label}差一字（${form}）` };
-    }
-    return null;
-  };
-
-  const txt = (s: string, label: string, base: number): RefMatch | null => {
-    if (!s) return null;
-    const n = norm(s);
-    if (!n.includes(q)) return null;
-    const i = n.indexOf(q);
-    return { field: label, text: s, score: base, why: `${label}中出现`,
-             snippet: s.slice(Math.max(0, i - 12), i + 28).replace(/\n/g, '｜') };
-  };
-
-  for (const r of refs) {
-    // ★ 不是人名的不该被当人搜出来。
-    //   上游从「生子N：…」名单里扫名字时，把混在名单里的句子一起扫了进来：
-    //   朝爱之子「也」、泽渭之子「迁陕」、壁贵之子「公殁于」——共 375 条。
-    //   子女栏已经改成按谱自己的格式重读，这些进不来了；搜索这一层之前忘了挡。
-    //   数据一条没删，本人卡片底部的「谱上原文」照旧完整。
-    if ((r.role === '女' || r.role.startsWith('子')) && isNotAPerson(r.name_raw)) continue;
-    const ms: RefMatch[] = [];
-    const push = (m: RefMatch | null) => { if (m) ms.push(m); };
-
-    push(cmp(r.name_raw, r.role === '女' ? '女·原文写法' : '姓名'));
-    if (r.surname) push(cmp(r.surname, '姓'));
-    if (r.given) push(cmp(r.given, '名'));
-    if (r.husband_surname) push(cmp(r.husband_surname, '夫家姓'));
-    if (r.rel_raw) push(cmp(r.rel_raw, '关系词'));
-    push(cmp(r.host_name, '所系之人（丈夫／父亲）'));
-    for (const [lab, f] of [['生', r.birth], ['殁', r.death], ['葬', r.burial]] as const) {
-      if (f) push(txt(f.text, `${lab}的原文`, 0.45));
-    }
-    for (const n of r.narrative_candidates) push(txt(n.text, '疑似记述本人的段落', 0.4));
-
-    if (ms.length) {
-      ms.sort((a, b) => b.score - a.score);
-      hits.push({ ref: r, matches: ms, score: ms[0].score });
-    }
-  }
-  hits.sort((a, b) => b.score - a.score
-    || b.matches.length - a.matches.length
-    || (a.ref.gen ?? 99) - (b.ref.gen ?? 99)
-    || a.ref.rid.localeCompare(b.ref.rid));
-  return hits;
-}
 
 /** 宿主的全部附记之人，按角色排。 */
-export function householdOf(byHost: Map<string, Referenced[]>, p: Person): Referenced[] {
-  const order = { 配偶: 0, 女: 1, '子（谱中无条目）': 2 } as Record<string, number>;
-  return [...(byHost.get(p.pid) ?? [])].sort(
-    (a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9) || a.rid.localeCompare(b.rid));
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ★★ **不再读 referenced.json——从人自己的 `kin` 派生。**
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * referenced.json 那 3,192 行，是同一批人的**第四套包装**：
+ *     配偶 1,559 ≡ people.kin 妻 1,559
+ *     女    1,040 ≡ people.kin 女 1,040
+ *     子（谱中无条目）593 ⊂ kin 子
+ * 一个不差。它多出来的只有 rel_class（元配／继配）和 content_class（姓名形态），
+ * 而那两个都是 `kin` 里已有数据的**函数**——不该存，算就行了。
+ *
+ * 多一张表就多一套要同步的实现。删。
+ */
+export function householdFromKin(p: Person & { kin?: KinLike[] }): Referenced[] {
+  const kin = p.kin ?? [];
+  return kin.map((k, i) => ({
+    rid: k.at || `${p.pid}#${i}`,
+    host: p.pid, host_name: p.name,
+    role: k.role === '妻' ? '配偶' : k.role === '女' ? '女' : '子（谱中无条目）',
+    rel_raw: k.rel_raw ?? '',
+    // 元配／继配／侧室／聘——用谱自己写的那个字算，不存
+    rel_class: k.role !== '妻' ? (k.role === '女' ? '女儿' : '幽灵子')
+      : /继|續|复|復|又|再/.test(k.rel_raw ?? '') ? '继配'
+      : /侧室|庭|庶/.test(k.rel_raw ?? '') ? '侧室'
+      : /聘/.test(k.rel_raw ?? '') ? '聘（未过门或幼殇）' : '元配',
+    name_raw: k.name_raw ?? '',
+    gen: k.role === '妻' ? p.gen : (p.gen ?? 0) + 1,
+    surname: k.role === '妻' ? (k.surname || null) : null,
+    given: k.given || null,
+    husband_surname: k.role === '女' ? (k.surname || null) : null,
+    form_ok: !!k.named,
+    content_class: k.named ? (k.given ? '姓名·有名' : '姓名·某氏') : '谱没写名字',
+    birth: null, death: null, burial: null,
+    src_human: p.src_human, host_raw_text: p.raw_text,
+    narrative_candidates: [],
+  })) as unknown as Referenced[];
+}
+
+interface KinLike {
+  at: string; role: string; rel_raw?: string; name_raw?: string;
+  given?: string; surname?: string; named?: boolean;
 }

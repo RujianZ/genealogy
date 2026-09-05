@@ -75,20 +75,34 @@ const stepOf = (c: ChainStep[], pid: string) => c.find(s => s.person.pid === pid
 
 export function buildTree(
   idx: Map<string, Person>, pid: string, maxDepth = MAX_DEPTH,
+  // ★ 跟人物卡走同一个答案，**必填**。
+  //   早先写成可选、不传就退回老办法（直接排原始 parent_edges）——
+  //   结果是 smoke / verify_all / check_tree 建树时都忘了传，
+  //   **闸门一直在验一条 app 根本不走的路径**。兑底比报错更危险。
+  res: (p: Person) => import('./parents.ts').Parents,
 ): Tree {
-  const blood = principalChain(idx, pid, '血缘线', maxDepth);
-  const clan = principalChain(idx, pid, '宗法线', maxDepth);
+  const blood = principalChain(idx, pid, '血缘线', maxDepth, res);
+  const clan = principalChain(idx, pid, '宗法线', maxDepth, res);
   if (!blood.length) return { rows: [], single: true, splitGen: null, joinGen: null, summary: '' };
 
   const same = blood.length === clan.length
     && blood.every((s, i) => s.person.pid === clan[i].person.pid);
 
-  // 按世次对齐。两条链长度可能不同（宗法线可能先断），所以不能按下标配对。
+  // 两条链长度可能不同（宗法线可能先断），要对齐才能并排画。
+  //
+  // ★ 行号按**离焦点几步**算，不按世次。
+  //   早先拿 `person.gen` 当行号，谱哪里漏了一世，两个人就抢同一行，
+  //   后放进去的把先放的顶掉——那个人从他自己的世系树里消失了。
+  //   实例：承毅（P-册4-0150-2-0-0）那一条写「承国公幼子」，
+  //   而「承」是第 27 世的辈字，父子同标 27 世。承毅被顶没了。
+  //   判据次第是**谱的原话 ＞ 谱的定式**：父子关系照原话算数，
+  //   世代列头对不上是谱这一处印错，不该拿它当行号。
+  //   谱记得对的地方，步数和世次差恰好相等，画法与从前一模一样。
+  const step0 = blood[0].person.gen;
   const byGen = new Map<number, { blood?: ChainStep; clan?: ChainStep }>();
-  for (const s of blood) (byGen.get(s.person.gen) ?? byGen.set(s.person.gen, {}).get(s.person.gen)!).blood = s;
-  if (!same) {
-    for (const s of clan) (byGen.get(s.person.gen) ?? byGen.set(s.person.gen, {}).get(s.person.gen)!).clan = s;
-  }
+  const slot = (k: number) => byGen.get(k) ?? byGen.set(k, {}).get(k)!;
+  blood.forEach((s, i) => { slot(step0 - i).blood = s; });
+  if (!same) clan.forEach((s, i) => { slot(step0 - i).clan = s; });
 
   const cell = (s: ChainStep, lines: LineMode[]): TreeCell => ({
     person: s.person, lines,
@@ -108,11 +122,12 @@ export function buildTree(
   const rows: TreeRow[] = gens.map(g => {
     const { blood: b, clan: c } = byGen.get(g)!;
     if (b && c && b.person.pid !== c.person.pid) {
-      return { gen: g, cells: [cell(b, ['血缘线']), cell(c, ['宗法线'])] };
+      // 世次标谱自己写的那个，行号才是步数——两者只在谱印错的地方不同
+      return { gen: b.person.gen, cells: [cell(b, ['血缘线']), cell(c, ['宗法线'])] };
     }
     const s = (b ?? c)!;
     const lines: LineMode[] = same || (b && c) ? ['血缘线', '宗法线'] : b ? ['血缘线'] : ['宗法线'];
-    return { gen: g, cells: [cell(s, lines)] };
+    return { gen: s.person.gen, cells: [cell(s, lines)] };
   });
 
   // 往下 = 往回追。所以「分开」的世次数字**大**（离你近），「合回」的**小**（更早）。

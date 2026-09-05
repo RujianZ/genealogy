@@ -22,14 +22,21 @@ E4 说明：谱里有 45 个人的条目标题写作「锡 公」「懋 公」�
 """
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from collections import defaultdict
 
-VARIANTS = {
-    "銑": "铣", "璧": "壁", "啟": "启", "於": "于", "蘭": "兰", "彛": "彝",
-    "餘": "余", "馀": "余", "後": "后", "陸": "陆", "復": "复", "煇": "辉",
-    "壽": "寿", "遷": "迁", "驥": "骥", "楨": "桢", "錫": "锡", "鳳": "凤",
-}
+# ★ 繁简／异体折叠表——**全站只有这一张**，跟 src/core/variants.ts 同源。
+#   由 tools/build_variants.py 生成（Windows LCMapStringEx + 谱内实测异写），
+#   同时写出 data/variants.json 和 variants.ts。
+#
+#   早先这里手写了 19 条，与 TS 那张不一致：
+#     馀→余  Python 折、TS 不折　　彥→彦  TS 折、Python 不折
+#   壁馀（册3 p186）因此丢了父边：光表名单里写「壁馀」，
+#   TS 折不到「壁余」，两个字符串永远对不上。
+_VP = Path(__file__).resolve().parent.parent / "data" / "variants.json"
+VARIANTS: dict = json.loads(_VP.read_text(encoding="utf-8")) if _VP.exists() else {}
 
 EVIDENCE_RANK = {"claim_named": 1, "sole_homonym": 2, "stated_adopt": 3,
                  "honorific": 4, "homonym_one_of": 5}
@@ -83,7 +90,7 @@ def link(people):
 
     edges, unmatched = [], []
     for p in people:
-        p.parent_edges = []
+        p.parent_candidates = []
         if not p.father_name:
             unmatched.append({"pid": p.pid, "name": p.name, "gen": p.gen,
                               "father_name": "", "filiation": "",
@@ -121,7 +128,7 @@ def link(people):
                  "matched_as": f"{p.father_name} ≈ {f.name_raw}（{alias_why}）",
                  "child_src": p.src_human(), "parent_src": f.src_human()}
             edges.append(e)
-            p.parent_edges.append(e)
+            p.parent_candidates.append(e)
 
         if not hits:
             unmatched.append({
@@ -132,7 +139,7 @@ def link(people):
                 "src": p.src_human()})
 
     for p in people:
-        p.parent_edges.sort(key=lambda e: e["rank"])
+        p.parent_candidates.sort(key=lambda e: e["rank"])
     return edges, unmatched
 
 
@@ -173,9 +180,9 @@ def add_adoption_edges(people, links):
     for p in people:
         for e in by_child.get(p.pid, []):
             if not any(x["parent"] == e["parent"] and x["kind"] == e["kind"]
-                       for x in p.parent_edges):
-                p.parent_edges.append(e)
-        p.parent_edges.sort(key=lambda e: e["rank"])
+                       for x in p.parent_candidates):
+                p.parent_candidates.append(e)
+        p.parent_candidates.sort(key=lambda e: e["rank"])
     return out
 
 
@@ -190,8 +197,8 @@ def walk_up(people, pid, kind_pref="生父", max_depth=40):
         if not p or depth > max_depth or cur in seen:
             return None
         seen2 = seen | {cur}
-        prefer = [e for e in p.parent_edges if e["kind"] == kind_pref]
-        use = prefer or p.parent_edges
+        prefer = [e for e in p.parent_candidates if e["kind"] == kind_pref]
+        use = prefer or p.parent_candidates
         return {"pid": p.pid, "name": p.name, "gen": p.gen,
                 "zi": p.zi.text if p.zi else "",
                 "father_name": p.father_name, "filiation": p.filiation,
@@ -253,7 +260,7 @@ def cross_check(people):
     out = []
     linked = defaultdict(set)
     for p in people:
-        for e in p.parent_edges:
+        for e in p.parent_candidates:
             for a, _ in p.aliases:
                 linked[e["parent"]].add(a)
 
@@ -264,7 +271,7 @@ def cross_check(people):
                             "name": norm(nm), "src": f.src_human(),
                             "detail": f"{f.name}声明生子「{nm}」"})
     for p in people:
-        for e in p.parent_edges:
+        for e in p.parent_candidates:
             f = idx.get(e["parent"])
             if f and p.gen and f.gen and p.gen - f.gen != 1:
                 out.append({"type": "世次差不等于 1", "name": p.name,

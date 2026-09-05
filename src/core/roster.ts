@@ -160,56 +160,34 @@ function shareGenChar(list: RosterName[]): void {
   }
 }
 
+/**
+ * ★★ **名单只解析一次，在 parser 里。**
+ *
+ * 这个函数以前自己重新去读 `raw_text`——于是全站有了**两套**
+ * 「他的儿子是谁」的答案，一套 Python、一套 TS，各有各的 bug：
+ *
+ *     继旺（册3 p303）「生子二／开怀开心」——两个名字挤一行，TS 这套读不开，
+ *     于是开怀、开心一直没有父边；
+ *     壁錒（册3 p28）「继坤　殁」——名字后面带个「殁」，Python 那套过去读不到。
+ *     光採（册2 p367）「生子四／壁林／海／水／生」——辈字只印一次。
+ *
+ * 现在解析全在 `parser/fields.py`，结果落在 `p.kin` 里（每个槽自带 id），
+ * 这里只做形状转换。**要改名单怎么读，只能改 parser。**
+ */
 export function roster(p: Person): Roster {
-  const sons: RosterName[] = [], daughters: RosterName[] = [];
-  let want = 0, into: RosterName[] | null = null, adopted = false;
-
-  const take = (tok: string): boolean => {
-    if (!into || want <= 0) return false;
-    // ★ 谱写了数字的时候，**数字本身就是围栏**，结构词只跳过、不关块。
-    //   承华那条「女六」，六个女儿各有名字，可每个名字后面跟着一行
-    //   「生于…适某」。把「生于」当成关块，后三个女儿（红晶、张兰、张果）
-    //   就全丢了。没写数字的块（光杆「生子」）才靠结构词收尾。
-    if (STOP.test(NS(tok))) {
-      if (!Number.isFinite(want)) { into = null; want = 0; }
-      return false;
-    }
-    let got = false;
-    for (const piece of splitBrides(tok)) {
-      if (!into || want <= 0) break;
-      const n = nameOf(piece);
-      if (!n) continue;                   // 不像名字的**跳过、不占名额**
-      if (adopted) n.adopted = true;
-      into.push(n);
-      want -= 1;
-      got = true;
-      if (want === 0) into = null;
-    }
-    return got;
+  const kin = ((p as any).kin ?? []) as {
+    role: string; rel_raw?: string; ordinal?: string; name_raw?: string;
+    given?: string; surname?: string; named?: boolean; died_young?: boolean;
+  }[];
+  const mk = (k: typeof kin[number]): RosterName => ({
+    raw: k.name_raw ?? '',
+    name: k.given ?? '',
+    died: !!k.died_young,
+    husband: k.surname || null,
+    adopted: k.rel_raw === '养',
+  });
+  return {
+    sons: kin.filter(k => k.role === '子').map(mk),
+    daughters: kin.filter(k => k.role === '女').map(mk),
   };
-
-  for (const lineText of (p.raw_text ?? '').split('\n')) {
-    for (let tok of lineText.split(/[\s　]+/)) {
-      tok = tok.trim();
-      while (tok) {
-        const m = MARK.exec(tok);
-        if (m) {
-          const head = tok.slice(0, m.index);
-          if (head) take(head);
-          into = /女/.test(m[1] ?? m[3] ?? '') ? daughters : sons;
-          // 「养子一」「嗣子二」也会命中光杆的「子N」记号。名字照收
-          // （那确实是他的儿子），但标出来，不并进「生子N」那个数。
-          adopted = !m[1] && NOT_BIRTH.test(NS(head));
-          want = NUM[m[2] ?? m[4]] ?? Infinity;   // 没写数字 → 开着收
-          tok = tok.slice(m.index + m[0].length);
-          continue;
-        }
-        take(tok);
-        break;
-      }
-    }
-  }
-  shareGenChar(sons);
-  shareGenChar(daughters);
-  return { sons, daughters };
 }

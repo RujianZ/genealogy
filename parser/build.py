@@ -38,17 +38,25 @@ def to_dict(p):
         "father_name": p.father_name, "filiation": p.filiation,
         "father_src": p.father_src, "is_heir": p.is_heir,
         "aliases": [{"form": a, "why": w} for a, w in p.aliases],
-        "parent_edges": p.parent_edges,
+        "parent_candidates": p.parent_candidates,
         "birth": fv(p.birth), "death": fv(p.death),
         "burial": fv(p.burial), "age": fv(p.age),
         "titles": p.titles,
         "marks": [{"tag": t, "text": s} for t, s in p.marks],
-        "spouses": [{"rel": s.rel, "name_raw": s.name_raw,
+        # ★ 本条里记到的每一个人，一人一个 id。
+        #   妻、女儿、夭折没名字的孩子——全都算人。
+        "kin": [{"at": k.at, "person": k.person, "role": k.role, "rel_raw": k.rel_raw,
+                 "ordinal": k.ordinal, "name_raw": k.name_raw,
+                 "given": k.given, "surname": k.surname,
+                 "named": k.named, "died_young": k.died_young,
+                 "line_seq": k.line_seq} for k in p.kin],
+        "spouses": [{"pid": s.pid, "rel": s.rel, "name_raw": s.name_raw,
                      "birth": fv(s.birth), "death": fv(s.death),
                      "burial": fv(s.burial)} for s in p.spouses],
         "sons_claimed": p.sons_claimed,
         "daughters_claimed": p.daughters_claimed,
         "unparsed": p.unparsed,
+        "page_ptrs": p.page_ptrs,
         "src": {"vol": p.vol, "page": p.page, "row": p.row, "col": p.col,
                 "juan": p.juan, "section": p.section},
         "src_human": p.src_human(),
@@ -85,7 +93,7 @@ def write_db(people, edges, segs, path: Path):
             p.hao.text if p.hao else "", p.ming.text if p.ming else "",
             p.father_name, p.filiation, p.father_src, int(p.is_heir),
             json.dumps([{"form": a, "why": w} for a, w in p.aliases],
-                       ensure_ascii=False), len(p.parent_edges),
+                       ensure_ascii=False), len(p.parent_candidates),
             p.birth.text if p.birth else "", p.death.text if p.death else "",
             p.burial.text if p.burial else "", p.age.text if p.age else "",
             json.dumps(p.titles, ensure_ascii=False),
@@ -145,7 +153,7 @@ def main(src="jsonl", out="out2"):
     ad_edges = add_adoption_edges(people, ad_links)
     edges = edges + ad_edges
     st = Counter(e["evidence_cn"] for e in edges)
-    multi = sum(1 for p in people if len(p.parent_edges) > 1)
+    multi = sum(1 for p in people if len(p.parent_candidates) > 1)
     print(f"[3/5] 建边完成 —— 全部父边 {len(edges)}（过继语句 {len(ad_links)}）")
     for k, v in st.most_common():
         print(f"      {k}: {v}")
@@ -172,11 +180,11 @@ def main(src="jsonl", out="out2"):
               "reason", "src", "pid"])
     csv_dump(out / "02c_多条父边的人.csv",
              [{"name": p.name, "gen": p.gen, "father_name": p.father_name,
-               "n": len(p.parent_edges), "src": p.src_human(),
+               "n": len(p.parent_candidates), "src": p.src_human(),
                "candidates": " ; ".join(
                    f"{e['parent_name']}({e['evidence_cn']}·{e['parent_src']})"
-                   for e in p.parent_edges)}
-              for p in people if len(p.parent_edges) > 1],
+                   for e in p.parent_candidates)}
+              for p in people if len(p.parent_candidates) > 1],
              ["name", "gen", "father_name", "n", "candidates", "src"])
     csv_dump(out / "03_核对疑点.csv", checks, ["type", "name", "src", "detail"])
     csv_dump(out / "05_别名索引.csv",

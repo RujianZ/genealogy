@@ -48,13 +48,29 @@ const has = (hay: string | null | undefined, needle: string) =>
 
 export function advancedSearch(
   people: Person[], places: PlaceRec[], c: Criteria,
+  /**
+   * 全站唯一的那份父母判定（entries.ts 传进来）。
+   *
+   * ★ 早先这里拿 **father_name 字符串**分组算兄弟，说法是「父名是谱上写的，最硬」。
+   *   那句话错在：**谱里 829/2258 人同名**，父名一样完全可能是两个不同的父亲。
+   *   全谱五个「继生」，他们的孩子在这里全被算成了一家人。
+   *   而且这是全站第二套兄弟算法，跟卡片那套各算各的。
+   *   现在一律走 pid：兄弟 ＝ 同一个父亲 pid 的孩子。
+   */
+  // ★ **必填。** 早先写成可选、不传就 `return []`——
+  //   忘传不报错，只是静静地说「他没有兄弟」。
+  //   smoke 里那条「高级搜索：按父名」就是这么调的，一直在验一个空结果。
+  parents: (p: Person) => { birth: { edge: { parent: string } }[];
+                            heir: { edge: { parent: string } }[] },
 ): AdvHit[] {
-  // 兄弟：谱自己写的父名相同。用 father_name 而不是 parent_edges——
-  // 边是解析出来的，父名是谱上写的。要最硬的那个。
-  const byFather = new Map<string, Person[]>();
+  // 兄弟：**id 对 id**。同一位父亲（生父或嗣父）名下的孩子。
+  const dadsOf = (p: Person): string[] => {
+    const ps = parents(p);
+    return [...ps.birth, ...ps.heir].map(x => x.edge.parent);
+  };
+  const byDad = new Map<string, Person[]>();
   for (const p of people) {
-    const f = fname(p.father_name);
-    if (f) (byFather.get(f) ?? byFather.set(f, []).get(f)!).push(p);
+    for (const d of dadsOf(p)) (byDad.get(d) ?? byDad.set(d, []).get(d)!).push(p);
   }
   const burialOf = new Map<string, string[]>();
   for (const r of places) {
@@ -106,10 +122,16 @@ export function advancedSearch(
       if (r) why.push(r); else ok = false;
     }
     if (ok && c.sibling) {
-      const f = fname(p.father_name);
-      const sibs = f ? (byFather.get(f) ?? []).filter(x => x.pid !== p.pid) : [];
+      const seen = new Set<string>();
+      const sibs: Person[] = [];
+      for (const d of dadsOf(p)) {
+        for (const x of byDad.get(d) ?? []) {
+          if (x.pid === p.pid || seen.has(x.pid)) continue;
+          seen.add(x.pid); sibs.push(x);
+        }
+      }
       const hit = sibs.find(x => x.aliases.some(a => has(a.form, c.sibling!)));
-      if (hit) why.push({ field: '同一个父名的兄弟', matched: `${hit.name}（父名同为「${p.father_name}」）` });
+      if (hit) why.push({ field: '兄弟姐妹', matched: `${hit.name}（同一位父亲）` });
       else ok = false;
     }
     if (ok && c.gen != null) {
