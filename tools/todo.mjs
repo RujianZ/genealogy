@@ -30,9 +30,9 @@ P('# 待核清单', '',
   '已经核定的在 `work/谱面勘误.md`；核对过程在 `work/人工核对记录.md`。', '');
 
 // ── 一、谱确实没写 ─────────────────────────────────
-P('## 一、谱确实没写父亲（' + T.谱没写.length + ' 人）', '',
+P('## 一、谱确实没写父亲（' + T.谱没写父亲.length + ' 人）', '',
   '这不是我们判不出，是谱本来就没写。列出来是让你确认「确实没写」。', '');
-for (const r of T.谱没写) {
+for (const r of T.谱没写父亲) {
   const p = R.idx.get(r.pid);
   P(`- **${r.gen}世 ${r.name}**　${r.src}`,
     `  - 谱上写的：${p.father_name ? `「${p.father_name}${p.filiation}」` : '（这一条没有行次句）'}`,
@@ -42,7 +42,7 @@ for (const r of T.谱没写) {
 P('');
 
 // ── 二、靠定式定的（不是谱的原话）───────────────────
-const L2 = T.靠定式.map(r => ({ r, p: R.idx.get(r.pid) })).filter(x => x.p);
+const L2 = T.靠定式定的.map(r => ({ r, p: R.idx.get(r.pid) })).filter(x => x.p);
 const rosterOK = x => {
   const ps = R.parents(x.p);
   return [...ps.birth, ...ps.heir].some(c => {
@@ -76,10 +76,10 @@ for (const x of layoutOnly) {
 P('');
 
 // ── 三、原话判了但版面/房支对不上 ─────────────────
-P('## 三、原话判了，但版面或房支对不上（' + T.有冲突.length + ' 人）', '',
+P('## 三、原话判了，但版面或房支对不上（' + T.谱自己对不上.length + ' 人）', '',
   '本人写的父名与判定一致（多数名单也点了名），但谱的排版或分房与之不合。',
   '我逐条看过：绝大多数是**谱面自己印错了辈字或页眉**，关系无误。列出来供复核。', '');
-for (const r of T.有冲突) {
+for (const r of T.谱自己对不上) {
   const p = R.idx.get(r.pid); if (!p) continue;
   P(`- **${r.gen}世 ${r.name}**　谱写「${p.father_name || '（没写父名）'}${p.filiation}」→ 生父 ${r.生父 || '—'}${r.嗣父 ? '／嗣父 ' + r.嗣父 : ''}`,
     `  - 对不上的是：欧式${r.欧式} · 房支${r.房支}${(r.矛盾 ?? []).length ? '　' + r.矛盾.join('；').slice(0, 90) : ''}`,
@@ -87,4 +87,4 @@ for (const r of T.有冲突) {
 }
 P('');
 writeFileSync(new URL('../work/待核清单.md', import.meta.url), L.join('\n'), 'utf8');
-console.log(`写出 work/待核清单.md —— 谱没写 ${T.谱没写.length} · 靠定式 ${L2.length}（其中只有版面撑着 ${layoutOnly.length}）· 有冲突 ${T.有冲突.length}`);
+console.log(`写出 work/待核清单.md —— 谱没写 ${T.谱没写父亲.length} · 靠定式 ${L2.length}（其中只有版面撑着 ${layoutOnly.length}）· 有冲突 ${T.谱自己对不上.length}`);

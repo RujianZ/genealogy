@@ -225,47 +225,17 @@ def main() -> None:
             collide[simp].append(simp + "（本身即简体）")
     merged = {k: v for k, v in collide.items() if len(v) > 1}
 
-    ts = Path("src/core/variants.ts")
-    lines = [
-        "/**",
-        " * 繁简对照表 —— 自动生成，勿手改。",
-        " *",
-        " * 来源：Windows 内核 LCMapStringEx(LCMAP_SIMPLIFIED_CHINESE)，locale zh-CN。",
-        " * 生成脚本：tools/build_variants.py  重跑即可复现。",
-        f" * 覆盖范围：本谱实际出现的 {len(chars)} 个汉字，共 {len(table)} 条映射。",
-        " * 第二源：异体字与谱内混用（璧/壁、煇/辉、彛/彝、於/于、氿/氏），",
-        " *         Windows 的繁简表管不到，每条依据见 VARIANT_SOURCE。",
-        " *",
-        " * ★ 只用于**比对**（搜索索引、建边匹配），绝不用于显示。",
-        " *   繁简是多对一，折叠会丢信息；CLAUDE.md 第七节禁止改写任何原文字段。",
-        " *   界面上永远显示 name_raw 原样。",
-        " */",
-        "export const TRAD2SIMP: Record<string, string> = {",
-    ]
-    row: list[str] = []
-    for i, (t, s) in enumerate(sorted(table.items())):
-        row.append(f"'{t}': '{s}',")
-        if len(row) == 8:
-            lines.append("  " + " ".join(row))
-            row = []
-    if row:
-        lines.append("  " + " ".join(row))
-    lines += [
-        "};",
-        "",
-        "/** 折叠后会撞在一起的字组——搜索时属于同一个键，人工审用。 */",
-        "export const MERGED_GROUPS: Record<string, string[]> = {",
-    ]
-    for s, group in sorted(merged.items()):
-        g = ", ".join(f"'{x}'" for x in group)
-        lines.append(f"  '{s}': [{g}],")
-    lines += ["};", ""]
-    lines += ["/** 每条映射的依据，界面上解释「为什么这两个字算同一个」用。 */",
-              "export const VARIANT_SOURCE: Record<string, string> = {"]
-    for t in sorted(table):
-        lines.append(f"  '{t}': '{source[t]}',")
-    lines += ["};", ""]
-    ts.write_text("\n".join(lines), encoding="utf-8")
+    # ═══ 全站唯一的一张字表：data/字表.json ═══
+    #   以前这里写两份（src/core/variants.ts 给 TS，data/variants.json 给 Python），
+    #   两份一漂就是两个答案——馀→余 Python 折、TS 不折；彥→彦 TS 折、Python 不折。
+    #   壁馀（册3 p186）就是这么丢掉父边的。**现在只有一份，两边都读它。**
+    #   排版误字和同音组是人写下的判断，不在这里生成，原样留着。
+    zb = Path("data/字表.json")
+    doc = json.loads(zb.read_text(encoding="utf-8"))
+    doc["繁简异体"]["表"] = {t: table[t] for t in sorted(table)}
+    doc["繁简异体"]["依据"] = {t: source[t] for t in sorted(table)}
+    doc["繁简异体"]["撞组"] = {k: v for k, v in sorted(merged.items())}
+
 
     print(f"谱中出现的汉字 {len(chars)} 个")
     print(f"有繁简差异的 {len(table)} 个")
@@ -284,16 +254,9 @@ def main() -> None:
     for s, group in sorted(merged.items()):
         print(f"   {s} ← {' '.join(group)}")
 
-    print(f"\n写入 {ts}")
 
-    # ★ 同一张表另写一份 JSON 给解析器用。
-    #   早先 parser/link.py 自己手写了一份 19 条的小表，于是两边折得不一样：
-    #   馀→余 Python 折、TS 不折；彥→彦 TS 折、Python 不折。
-    #   壁馀（册3 p186）就是这么丢掉父边的：光表的名单里写「壁馀」，
-    #   TS 那边折不到「壁余」，两个字符串永远对不上。**一张表，两边读。**
-    Path("data/variants.json").write_text(
-        json.dumps(table, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
-    print(f"   同时写出 data/variants.json（{len(table)} 条）")
+    print(f"\n写入 {zb}　繁简异体 {len(table)} 条（排版误字、同音组原样保留）")
+    zb.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 if __name__ == "__main__":

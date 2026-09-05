@@ -22,7 +22,7 @@
  *
  * 用户的原话：「不做任何兜底原系统的代码，直接全部删掉。」
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 
 // 允许读原始 parent_edges 的上游文件（判定层的原料）
 const NL = String.fromCharCode(10), LINEC = '//', BSTART = '/' + '*', BEND = '*' + '/';
@@ -74,13 +74,20 @@ const app = readFileSync(new URL('../prototype/app.js', import.meta.url), 'utf8'
 for (const need of ['人工判定', '同一个人', 'people'])
   if (!app.includes(`'${need}'`)) bad.push(`prototype/app.js  数据清单里少了「${need}」`);
 
-// ★ 两边的繁简折叠表必须同源。
-//   早先 parser/link.py 手写了一份小表，与 src/core/variants.ts 不一致（馀、彥），
-//   壁馀（册3 p186）因此在 TS 那边永远配不上父亲名单里的「壁馀」。
+// ★ 字表只有一张：data/字表.json。TS 和 Python 都读它，读的是同一个键。
+//   早先是两份：src/core/variants.ts 给 TS、data/variants.json 给 Python。
+//   两份一漂就是两个答案——馀→余 Python 折、TS 不折；彥→彦 TS 折、Python 不折。
+//   壁馀（册3 p186）因此丢了父边：光表名单里写「壁馀」，TS 折不到「壁余」。
 {
-  const py = readFileSync(new URL('../parser/link.py', import.meta.url), 'utf8');
-  if (!py.includes('data/variants.json') && !py.includes('"variants.json"'))
-    bad.push('parser/link.py 没读 data/variants.json，说明又另外手写了一张折叠表');
+  for (const rel of ['../parser/link.py', '../tools/attribute_prose.py',
+                     '../tools/extract_entities.py']) {
+    const py = readFileSync(new URL(rel, import.meta.url), 'utf8');
+    if (!py.includes('字表.json'))
+      bad.push(rel.replace('../', '') + ' 没读 data/字表.json，说明又另外攒了一张折叠表');
+  }
+  // 旧的那份必须不在——只要它还躺着，就总有人会去读它
+  if (existsSync(new URL('../data/variants.json', import.meta.url)))
+    bad.push('data/variants.json 又出现了——字表只许有 data/字表.json 一张');
 }
 
 const files = readdirSync(new URL('../src/core', import.meta.url)).filter(f => f.endsWith('.ts')).length;

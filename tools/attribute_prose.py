@@ -20,7 +20,8 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-_V = json.loads(Path("data/variants.json").read_text(encoding="utf-8"))
+# 全站唯一的一张字表（TS 那边 loadTables 读的是同一个键）
+_V = json.loads(Path("data/字表.json").read_text(encoding="utf-8"))["繁简异体"]["表"]
 fold = lambda s: "".join(_V.get(c, c) for c in (s or ""))
 NS = lambda s: fold("".join((s or "").split()).replace("　", ""))
 

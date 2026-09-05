@@ -27,16 +27,17 @@ import re
 from pathlib import Path
 from collections import defaultdict
 
-# ★ 繁简／异体折叠表——**全站只有这一张**，跟 src/core/variants.ts 同源。
-#   由 tools/build_variants.py 生成（Windows LCMapStringEx + 谱内实测异写），
-#   同时写出 data/variants.json 和 variants.ts。
+# ★ 繁简／异体折叠表——**全站只有这一张**：data/字表.json。
+#   由 tools/build_variants.py 生成（Windows LCMapStringEx + 谱内实测异写）。
+#   TS 那边（src/core/norm.ts 的 loadTables）读的是同一个文件同一个键。
 #
 #   早先这里手写了 19 条，与 TS 那张不一致：
 #     馀→余  Python 折、TS 不折　　彥→彦  TS 折、Python 不折
 #   壁馀（册3 p186）因此丢了父边：光表名单里写「壁馀」，
 #   TS 折不到「壁余」，两个字符串永远对不上。
-_VP = Path(__file__).resolve().parent.parent / "data" / "variants.json"
-VARIANTS: dict = json.loads(_VP.read_text(encoding="utf-8")) if _VP.exists() else {}
+_VP = Path(__file__).resolve().parent.parent / "data" / "字表.json"
+VARIANTS: dict = (json.loads(_VP.read_text(encoding="utf-8"))["繁简异体"]["表"]
+                  if _VP.exists() else {})
 
 EVIDENCE_RANK = {"claim_named": 1, "sole_homonym": 2, "stated_adopt": 3,
                  "honorific": 4, "homonym_one_of": 5}
