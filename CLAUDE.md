@@ -27,8 +27,34 @@ id 锚在**源行**上，所以解析器改进了、字段变了，id 也不动�
 | 题面 | 谱的原话，一字不改 | 解析器 | `parent_candidates`、名目的 `name`＋`字`、`raw_text` |
 | 答案 | 一个 pid | 判定层，配一次写回文件 | `parent_edges`、名目的 `pid` |
 
-写答案的是 `tools/writeback.mjs`（父子边）和 `tools/revlink.mjs`（修谱名目）。
+写答案的是 `tools/writeback.mjs`（父子边）、`tools/revlink.mjs`（修谱名目、序作者）
+和 `tools/relations.mjs`（**人际关系全表**）。
 **卡片只读答案。渲染路径里一处拿字符串配人都不许有。**
+
+### 人际关系一律读 `relations[]`，卡片一处都不算
+
+用户的原话（2026-09-05）：
+
+> 一个人的所有人际关系都应该在 json 文件里，**category 的穷举就是应该包含
+> 所有可能。而且每个人际关系都有 id。** 做不到或者错误是我们 json 文件的问题，
+> **卡片不允许计算任何东西，算了就会出错。**
+
+`relations.mjs` 给 **5,050 人全覆盖、21,606 条**，每条带 `对方`（pid／届次／段 id）：
+
+```
+生父·嗣父 3,696 ｜ 子·女·嗣子 3,612 ｜ 兄弟姐妹 10,004 ｜ 妻·侧室·聘·夫 3,166
+同一个人 78 ｜ 参与修谱 151 ｜ 写序 7 ｜ 被提到 972
+```
+
+附记之人（妻／女／无条目的子）在 people.json 里没有自己那一行，
+他的关系就写在**记到他的那个 `kin` 槽**上（`kin[].relations`），
+`persons.ts` 装载时原样搬到人身上——下游一律不必区分。
+
+**连「怎么把两条长得一样的分开」也在 json 里**（`分辨`／`又是`）。
+谱写「女二　適商　适商」是**真的两个女儿**，一繁一简；卡片显示的是归一化后的
+名字，两个都成了「适商」，读的人分不开。分辨怎么写由数据层定死，
+**卡片不许自己想办法**。两个坑：分组要按**卡片实际显示的那个名字**、
+按**卡片上落进哪一栏**（子／女／嗣子三类都印在「子女」栏里）。
 
 为什么这条最要紧：同一段配名字的代码，放在写 json 的时候和放在画卡片的时候，
 **答案可能一样，但性质完全不同**——
@@ -351,7 +377,7 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 **零依赖是硬要求**：没有 `package.json`，没有 `node_modules`。
 `node tools/xxx.mjs` 直接跑，`.ts` 也直接跑。装一个包就得有人维护它十年。
 
-打包出来 **18.5 MB**，
+打包出来 **24.0 MB**，
 微信文件上限 100 MB，能直接发。
 
 ### 明确不要用向量 / embedding
@@ -442,7 +468,7 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 界面含糊话          0 处（扫了 36,672 段用户能看见的文字）
 修谱名目            191 人 → 定到 pid 159，平摆着 32，死链 0
 九组闸              全过（node tools/check.mjs）
-打包                build/张氏宗谱.html  17.5 MB 离线单文件
+打包                build/张氏宗谱.html  24.0 MB 离线单文件
 ```
 
 ### 跑一遍全链
@@ -455,7 +481,8 @@ cp data/prose.json data/prose_ents.json
 python tools/extract_entities.py && python tools/attribute_prose.py
 python tools/build_burials.py && python tools/build_places.py
 node tools/writeback.mjs        # ★ 父子边：题面 → 答案（写 pid）
-node tools/revlink.mjs          # ★ 修谱名目：名字 → 答案（写 pid）
+node tools/revlink.mjs          # ★ 修谱名目 + 序作者：名字 → 答案（写 pid）
+node tools/relations.mjs        # ★ 人际关系表：14 类关系全写进 json，每条带对方 id
 node tools/check.mjs            # ★ 十组闸，必须全过
 node tools/bundle.mjs           # 打成单文件 HTML
 ```

@@ -77,7 +77,8 @@ cp data/prose.json data/prose_ents.json
 python tools/extract_entities.py && python tools/attribute_prose.py
 python tools/build_burials.py && python tools/build_places.py
 node tools/writeback.mjs      # ★ 父子边：题面 → 答案（写 pid）
-node tools/revlink.mjs        # ★ 修谱名目：名字 → 答案（写 pid）
+node tools/revlink.mjs        # ★ 修谱名目 + 序作者：名字 → 答案（写 pid）
+node tools/relations.mjs      # ★ 人际关系表：14 类关系全写进 json，每条带对方 id
 node tools/check.mjs          # ★ 十组闸，必须全过
 node tools/bundle.mjs
 ```
@@ -154,7 +155,7 @@ python tools/read_doc.py 图墓公先焕    # 按标题读卷首某一篇的全�
 卡片 ⟷ json        完全一致（5,050 张，cardcheck 报 0）
 界面含糊话          0 处（扫了 64,626 段用户能看见的文字）
 原文每一行都有交代    未归属 1,195 行（条目原文 35,037 行）
-打包                18.5 MB 单文件
+打包                24.0 MB 单文件
 ```
 
 「要人回谱面核的 75 人」「名目定不到人的 44 位」「序作者定不到的 7 篇」都列在
