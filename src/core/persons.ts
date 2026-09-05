@@ -52,6 +52,12 @@ export interface Kin {
   /** 谱写「未字」「未适」——还没出嫁 */
   unmarried?: boolean;
   line_seq: number;
+  /**
+   * ★ 他/她自己的人际关系，**跟有条目的人同一种格子**（tools/relations.mjs 写的）。
+   *   附记之人在 people.json 里没有自己那一行，所以他的关系存在**记到他的那个 kin 槽**上。
+   *   装载时原样搬到 Person.relations——下游一律不必区分。
+   */
+  relations?: unknown[];
   /** ★ 名单里的孩子也有自己的生卒葬——谱写在父亲条目里，解析层已经归到他名下 */
   birth?: { text: string; lines: number[] } | null;
   death?: { text: string; lines: number[] } | null;
@@ -177,6 +183,8 @@ export function materialize(
         is_heir: false,
         aliases: [{ form: name, why: k.role === '妻' ? '谱写的称呼' : '谱写的行次' }]
           .filter(a => a.form),
+        // ★ 他/她自己的关系表，从 kin 槽上原样搬过来
+        relations: (k.relations ?? []) as any,
         src: host.src,
         src_human: host.src_human,
         // 原文只留她/他那一行——不要把丈夫整条都算成她的

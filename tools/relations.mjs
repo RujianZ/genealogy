@@ -39,6 +39,10 @@ loadTables(D.tables);
 const R = makeRegistry(D);
 
 const byPid = new Map(D.people.map(p => [p.pid, p]));
+/** 每一类关系印在卡片的哪一栏——撞脸要按栏算，不是按类算 */
+const COLUMN = { 子: '子女', 女: '子女', 嗣子: '子女', 生父: '父', 嗣父: '父' };
+/** pid 末尾的源行号——同页同行印了几条时，用它排出谱面先后 */
+const srcSeq = pid => Number(String(pid).match(/L(\d+)/)?.[1] ?? 0);
 const CAN = pid => { const q = byPid.get(pid); return q ? canonical(D.people, q).pid : pid; };
 
 // ══ 全部清空，从头建 ══
@@ -47,11 +51,24 @@ for (const p of D.people) {
   for (const k of p.kin ?? []) delete k.relations;
 }
 
+/** kin 槽的索引：附记之人的 pid → 记到他的那个槽（他在 people.json 里没有自己那一行） */
+const KINSLOT = new Map();
+for (const p of D.people) for (const k of p.kin ?? []) {
+  const id = k.person || k.at;
+  if (id && !byPid.has(id)) KINSLOT.set(id, { host: p, k });
+}
+/**
+ * 写一条关系到某个人身上。
+ * ★ 有条目的人写在他自己那一行；**附记之人写在「记到他的那个 kin 槽」上**
+ *   （他在 people.json 里没有自己那一行，装载时才 materialize）。
+ *   两种人一样有 id、一样有关系表，下游一律不必区分。
+ */
 const add = (pid, row) => {
   const p = byPid.get(pid);
-  if (!p) return false;
-  (p.relations ??= []).push(row);
-  return true;
+  if (p) { (p.relations ??= []).push(row); return true; }
+  const slot = KINSLOT.get(pid);
+  if (slot) { (slot.k.relations ??= []).push(row); return true; }
+  return false;
 };
 /** 人对人的一条，两头各记各的那一头 */
 const pair = (a, b, 类a, 类b, extra = {}) => {
@@ -96,13 +113,33 @@ for (const p of D.people) {
     if (!R.idx.has(kid) || byPid.has(kid) || list.includes(kid)) continue;
     list.push(kid);
     add(p.pid, { 类: k.role === '女' ? '女' : '子', 对方类型: '人', 对方: kid,
-      对方名: (k.given || k.name_raw || '').replace(/[s　]/g, '')
+      对方名: (k.given || k.name_raw || '').replace(/[\s　]/g, '')
         || (k.ordinal ? k.ordinal + k.role : k.role),
       对方出处: p.src_human, 谱写的: (k.ordinal ?? '') + (k.name_raw ?? ''),
       注: '附记之人：谱把他/她写在他这一条的名单里，装载时 materialize（persons.ts）' });
     n.子女++;
   }
   KIDS.set(p.pid, list);
+}
+
+// ══ ①c 附记之人那一头：父 ／ 夫 ══
+//    谱把他们写在谁那一条里，谁就是——**那是外键，不是判断**。
+//    这几条写在 kin 槽上（他们没有自己那一行），装载时随人搬过去。
+for (const p of D.people) {
+  for (const k of p.kin ?? []) {
+    const id = k.person || k.at;
+    if (!id || byPid.has(id) || !R.idx.has(id)) continue;
+    if (k.role === '妻') {
+      add(id, { 类: '夫', 对方类型: '人', 对方: p.pid, 对方名: p.name,
+        对方出处: p.src_human, 谱写的: k.rel_raw, 凭什么: '谱把她写在他那一条里' });
+      n.配偶++;
+    } else {
+      add(id, { 类: '生父', 对方类型: '人', 对方: p.pid, 对方名: p.name,
+        对方出处: p.src_human, 判到哪一级: '原话',
+        凭什么: `谱把他/她写在${p.name}那一条的名单里` });
+      n.父++;
+    }
+  }
 }
 
 // ══ ② 兄弟姐妹 ══ 父亲的孩子，去掉自己。纯 id 配对，不碰名字。
@@ -118,17 +155,14 @@ for (const p of D.people) {
       const B = byPid.get(b);
       const kb = B ? null : (f.kin ?? []).find(k => (k.person || k.at) === b);
       const nameB = B ? B.name
-        : ((kb?.given || kb?.name_raw || '').replace(/[s　]/g, '')
+        : ((kb?.given || kb?.name_raw || '').replace(/[\s　]/g, '')
            || ((kb?.ordinal ?? '') + (kb?.role ?? '')) || '?');
       const kind = (f.children ?? []).find(c => CAN(c.child) === a)?.kind ?? '生父';
       const row = { 类: '兄弟姐妹', 对方类型: '人', 对方: b, 对方名: nameB,
         对方出处: B ? B.src_human : f.src_human,
         从谁那边论: f.pid, 那位是: f.name, 那边是: kind };
-      // a 有自己那一行就记在他行上；没有（附记之人）就记在他所在的 kin 槽上
-      if (!add(a, row)) {
-        const ka = (f.kin ?? []).find(k => (k.person || k.at) === a);
-        if (ka) ((ka.relations ??= []).push(row));
-      }
+      // add() 自己会挑：有条目的写在他那一行，附记之人写在他的 kin 槽上
+      add(a, row);
       n.兄弟姐妹++;
     }
   }
@@ -199,6 +233,64 @@ for (const p of D.people) {
   for (const k of p.kin ?? []) if (k.relations) k.relations = dedup(k.relations);
 }
 
+// ══ 同一个对方、两种关系 → 合成一条 ══
+//    光灼的壁银既是亲生子、又（兼祧）是嗣子，children 里本来就是两条边——
+//    那是对的数据（samepid 闸专门允许「承本身」）。但**子女栏不该列两遍**。
+//    合在数据层做，卡片只照着印。
+for (const p of D.people) {
+  if (!p.relations) continue;
+  const KID = new Set(['子', '女', '嗣子']);
+  const first = new Map();
+  p.relations = p.relations.filter(r => {
+    if (!KID.has(r['类'])) return true;
+    const k = r['对方'];
+    const had = first.get(k);
+    if (!had) { first.set(k, r); return true; }
+    // 「子」压「嗣子」：谱名那一档在前，另一档写进「又是」
+    if (had['类'] === '嗣子' && r['类'] !== '嗣子') { had['又是'] = '嗣子'; had['类'] = r['类']; }
+    else had['又是'] = r['类'];
+    return false;
+  });
+}
+
+// ══ 同一栏里会显示成一样的，写明怎么分辨 ══
+//    谱写「女二　適商　适商」——**真的是两个女儿**，都嫁商家，一个繁一个简。
+//    卡片上她们长得一模一样是谱的实情，不是 bug；可读的人得分得开。
+//    分辨用什么，**在这里定死写进 json**，卡片不许自己想办法。
+for (const p of D.people) {
+  const fix = xs => {
+    if (!xs) return;
+    const grp = new Map();
+    for (const r of xs) {
+      // ★ 按**卡片实际会显示的那个名字**分组，不是按谱写的原样。
+      //   谱写「女二　適商　适商」，一繁一简，原样是两个不同的字符串；
+      //   可卡片显示的是归一化后的名字，两个都是「适商」——读的人分不开。
+      //   分辨要不要写，得看显示出来一不一样。
+      const shown = R.idx.get(r['对方'])?.name ?? r['对方名'] ?? '';
+      // ★ 按**卡片上会落进哪一栏**分组，不是按 `类`——
+      //   子／女／嗣子三类都印在「子女」那一栏里，分开算就漏掉了跨类的撞脸。
+      const k = COLUMN[r['类']] ?? r['类'];
+      const key = k + '|' + String(shown);
+      (grp.get(key) ?? grp.set(key, []).get(key)).push(r);
+    }
+    for (const [, rows] of grp) {
+      if (rows.length < 2) continue;
+      // ① 出处不同就用出处
+      if (new Set(rows.map(r => r['对方出处'])).size === rows.length) {
+        for (const r of rows) r['分辨'] = String(r['对方出处'] ?? '');
+        continue;
+      }
+      // ② 出处也一样（同页同行印了几条）→ 按谱面源行号排，说清是第几条
+      rows.sort((a, b) => srcSeq(a['对方']) - srcSeq(b['对方']));
+      rows.forEach((r, i) => {
+        r['分辨'] = `${r['对方出处']}　谱上这一行的第 ${i + 1} 条`;
+      });
+    }
+  };
+  fix(p.relations);
+  for (const k of p.kin ?? []) fix(k.relations);
+}
+
 // 排一下序：按类、再按谱面坐标
 const ORD = ['生父', '嗣父', '子', '嗣子', '兄弟姐妹', '妻', '侧室', '聘',
              '同一个人', '参与修谱', '写序', '被提到'];
@@ -213,6 +305,10 @@ for (const p of D.people) {
 }
 
 writeFileSync(U('people'), JSON.stringify(D.people, null, 1), 'utf8');
-const tot = D.people.reduce((s, p) => s + (p.relations?.length ?? 0), 0);
-console.log(`人际关系表写回 ${D.people.length} 人 —— 共 ${tot} 条，每一条都带对方的 id`);
+const tot = D.people.reduce((s, p) => s + (p.relations?.length ?? 0)
+  + (p.kin ?? []).reduce((t, k) => t + (k.relations?.length ?? 0), 0), 0);
+const nkin = D.people.reduce((s, p) =>
+  s + (p.kin ?? []).filter(k => k.relations?.length).length, 0);
+console.log(`人际关系表写回 ${D.people.length} 人 ＋ ${nkin} 位附记之人`
+  + ` —— 共 ${tot} 条，每一条都带对方的 id`);
 for (const [k, v] of Object.entries(n)) console.log(`   ${k.padEnd(6)} ${v}`);
