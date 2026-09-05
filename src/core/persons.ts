@@ -47,7 +47,15 @@ export interface Kin {
   surname: string;      // 妻：娘家姓；女：夫家姓
   named: boolean;
   died_young: boolean;
+  /** 女儿嫁到哪——谱另起一行写的「适福建付家」 */
+  married?: string;
+  /** 谱写「未字」「未适」——还没出嫁 */
+  unmarried?: boolean;
   line_seq: number;
+  /** ★ 名单里的孩子也有自己的生卒葬——谱写在父亲条目里，解析层已经归到他名下 */
+  birth?: { text: string; lines: number[] } | null;
+  death?: { text: string; lines: number[] } | null;
+  burial?: { text: string; lines: number[] } | null;
 }
 
 /** 附记之人在表里多带的几格 */
@@ -77,6 +85,7 @@ function kinName(k: Kin): string {
     // 没名就叫「长女」「次女」——谱没写的不替它写。
     if (k.given) return flat(k.given);
     if (k.ordinal) return `${k.ordinal}女`;
+    if (k.unmarried) return '女';
     // 连行次都没有时，至少把夫家姓抬出来（谱写「适赵」）
     return k.surname ? `适${k.surname}` : '女';
   }
@@ -129,11 +138,19 @@ export function materialize(
       const name = kinName(k);
       // ★ 她的生卒葬写在丈夫那一条里（`spouses[]`）——跟着她走。
       //   不搬过来的话，她的卡片上什么都没有，而谱其实写了。
+      // 妻子的生卒葬谱写在 spouses[] 里；儿女的写在 kin 自己身上。
+      // 两边都得跟着人走——不搬过来，她/他的卡片上什么都没有，而谱其实写了。
       const sp = k.role === '妻'
         ? (host.spouses ?? []).find(x => (x as any).pid === k.person)
-        : undefined;
+        : { birth: k.birth ?? null, death: k.death ?? null, burial: k.burial ?? null };
       const marks: { tag: string; text: string }[] = [];
       if (k.died_young) marks.push({ tag: '无后', text: flat(k.name_raw) || '幼殁' });
+      // 谱另起一行写的「适福建付家」——那是她的事，摆在她自己那一页上
+      if (k.married) marks.push({ tag: '适', text: flat(k.married) });
+      if (k.unmarried) marks.push({ tag: '未字', text: flat(k.name_raw) || '未字' });
+      // 谱写「再樵」——他死后她改嫁了。那是她的事，摆在她自己那一页上。
+      if (k.role === '妻' && (sp as any)?.remarried)
+        marks.push({ tag: '改嫁', text: flat((sp as any).remarried) });
       out.push({
         ...EMPTY,
         birth: sp?.birth ?? null, death: sp?.death ?? null, burial: sp?.burial ?? null,
@@ -142,6 +159,18 @@ export function materialize(
         name,
         name_raw: k.name_raw || name,
         gen,
+        // ★ 附记之人的父边也写进 parent_edges——**跟有条目的人同一格**。
+        //   他们的父亲不用判：谱把他们写在谁那一条里，谁就是。那是外键，不是判断。
+        //   以前这一栏留空，卡片只好另走一条路去认宿主；两条路两个答案，
+        //   全谱 1,248 个妻女的「父」在卡片上时有时无。
+        parent_edges: k.role === '妻' ? [] : [{
+          child: pid, child_name: name,
+          parent: host.pid, parent_name: host.name,
+          parent_src: host.src_human,
+          kind: '生父',
+          level: '原话',
+          why: `谱把他/她写在${host.name}那一条的名单里`,
+        }] as any,
         father_name: k.role === '妻' ? '' : host.name,
         filiation: k.role === '妻' ? '' : (k.ordinal ? `${k.ordinal}${k.role}` : ''),
         father_src: k.role === '妻' ? '' : `记在${host.name}那一条里`,
@@ -153,6 +182,7 @@ export function materialize(
         // 原文只留她/他那一行——不要把丈夫整条都算成她的
         // 原文只留她/他那几行——不要把丈夫整条都算成她的
         raw_text: [k.rel_raw + (k.name_raw || name),
+                   k.married ?? '',
                    sp?.birth ? '生于' + String.fromCharCode(10) + sp.birth.text : '',
                    sp?.death ? '殁于' + String.fromCharCode(10) + sp.death.text : '',
                    sp?.burial ? sp.burial.text : ''].filter(Boolean).join(String.fromCharCode(10)),

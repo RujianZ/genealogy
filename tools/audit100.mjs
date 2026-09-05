@@ -16,6 +16,7 @@ import { readFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
 import { buildTree } from '../src/core/tree.ts';
 import { norm } from '../src/core/norm.ts';
+import { cardText, coveredByCard } from '../src/core/oncard.ts';
 import { fname } from '../src/core/fname.ts';
 // DATA=build/new 可把全部工具指向新解析的产物，旧数据不动
 const DIR = process.env.DATA || 'data';
@@ -83,7 +84,13 @@ for (const p of sample) {
     const w = bare(fname(p.father_name));
     const hit = shown.some(c => bare(c.person?.name) === w
       || (c.person?.aliases ?? []).some(a => bare(a.form) === w));
-    if (!hit) note(p, '卡片上的父亲跟原文写的父名对不上',
+    // ★ 谱自己把父名印岔了是常事（壁/梁、銑白/铣台 都是形近）。
+    //   判定层拿版面和名单定出正主，卡片上把**为什么**写出来了——
+    //   那不是错，那正是「可追溯」。跟 cardcheck 一个口径：说清了就不算。
+    const said = [...(e.facts ?? []).filter(f => String(f.label).startsWith('父'))
+      .flatMap(f => [f.note, f.raw, ...(f.links ?? []).flatMap(l => [l.note, l.raw])]),
+      ...(e.sections ?? []).map(x => x.text)].filter(Boolean).join(' ');
+    if (!hit && flat(said).length < 8) note(p, '卡片上的父亲跟原文写的父名对不上，卡片也没说为什么',
       `原文「${p.father_name}」→ 卡片 ${shown.map(c => c.person?.name).join('、')}`);
   }
   // ④ 子女：卡片列的必须在原文里
@@ -98,8 +105,17 @@ for (const p of sample) {
       const forms = new Set([nm, nm.replace(/公$/, ''),
         ...(q ? [q.name, q.name.replace(/公$/, ''), ...q.aliases.map(a => a.form)] : [])]
         .filter(Boolean).map(flat));
-      if (nm && ![...forms].some(x => raw.includes(x)))
-        note(p, '子女栏里的名字不在原文', `${l.label} → 「${nm}」`);
+      // ★ 谱没给女儿留名字（只写「长适刘」），卡片按行次叫她「长女」，
+      //   并在注里原样写着「谱上写『长适刘』」——那是显示用的称呼，不是编造。
+      //   注里带了谱的原话就算数。
+      const noteHasRaw = /谱上写「[^」]*」/.test(String(l.note ?? ''));
+      // ★ 谱常常只写一边：孩子那一条写「某某之子」，父亲的名单里没有他。
+      //   这时父亲的原文里当然找不到孩子的名字——那是谱的写法，不是我们编的。
+      //   孩子自己那一条写了这位父亲，就算数。
+      const wroteBack = q && bare(fname(q.father_name)) === bare(p.name);
+      if (nm && !noteHasRaw && !wroteBack && ![...forms].some(x => raw.includes(x)))
+        note(p, '子女栏里的名字不在原文，孩子那一条也没写这位父亲',
+             `${l.label} → 「${nm}」`);
     }
   }
   // ⑤ 树第一步 == 卡片的父
@@ -135,32 +151,20 @@ for (const p of sample) {
     }
   }
   // ⑦b 原文每一行，卡片上总得找得着。
-  //     配偶那一段除外——谱把妻子的生卒写在丈夫条目里，卡片把她做成链接，
-  //     日期在她自己那张卡上，不是丢。
+  //     ★ 判据**只有一处**：`src/core/oncard.ts`。以前这里一套、cardgap 一套，
+  //       同一份数据两个答案（40 条 vs 76 条）。
   {
-    const dz = R.dossier(p);
-    const spouseText = dz.cat['配'].map(i => flat(i.text)).join(' ');
-    const onCard = [
-      // 标签也算数：原文行是「字鸣九」，卡片拆成 标签「字」+ 值「鸣九」
-      ...e.facts.flatMap(f => [f.label, f.value, f.raw, (f.label ?? '') + (f.value ?? '')]),
-      ...(e.relations ?? []).map(r => r.heading),
-      ...(e.sections ?? []).map(x => x.text),
-      ...(e.relations ?? []).flatMap(r => r.items.flatMap(i => [i.label, i.note])),
-      e.title, e.subtitle,
-    ].filter(Boolean).map(flat).join(' ');
-    for (const ln of String(p.raw_text ?? '').split('\n')) {
-      const t = flat(ln);
-      if (t.length < 2) continue;
-      if (onCard.includes(t)) continue;
-      if (spouseText.includes(t)) continue;               // 妻子那一段，在她自己卡上
-      // 卡片把字段标记做成了标签（「娶黄氏」→ 标签「妻」＋ 值「黄氏」，
-      // 「学大公次子」→ 「父」那一栏的链接），剥掉引导词再比一次
-      const t2 = t.replace(/^(原|继|續|续|復|复|又|再|副|侧)?(娶|聘|妣|配|室|生于|生於|殁于|殁於|葬|字|讳|諱|号|號|名)/, '')
-                  .replace(/^[一-鿿]{1,4}公?(之子|[长次幼元三四五六七八九十]子|嗣子|祧子)$/, '');
-      if (!t2 || onCard.includes(t2)) continue;
-      // 谱把一句印成几行，卡片是接起来摆的；逐字查一遍再判
-      if ([...t].every(c => onCard.includes(c))) continue;
-      note(p, '原文有这一行，卡片上找不到', t.slice(0, 30));
+    // 「别处也算数」：配偶那一段在她自己卡上；名单里的孩子（女儿、无条目的子）
+    //   的生卒葬也在他们自己那一页上——都不是丢。
+    const elsewhere = [
+      ...R.dossier(p).cat['配'].map(i => i.text),
+      ...(p.kin ?? []).flatMap(k => [k.birth?.text, k.death?.text, k.burial?.text, k.age?.text, k.married]),
+      ...(p.spouses ?? []).flatMap(x => [x.birth?.text, x.death?.text, x.burial?.text, x.age?.text, x.remarried]),
+    ].filter(Boolean).map(flat).join(' ');
+    const onCard = cardText(e);
+    for (const ln of String(p.raw_text ?? '').split(String.fromCharCode(10))) {
+      if (coveredByCard(ln, onCard, elsewhere)) continue;
+      note(p, '原文有这一行，卡片上找不到', flat(ln).slice(0, 30));
     }
   }
 }

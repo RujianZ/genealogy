@@ -11,6 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
+import { canonical } from '../src/core/seealso.ts';
 import { norm } from '../src/core/norm.ts';
 const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url), 'utf8'));
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
@@ -68,6 +69,34 @@ for (const p of D.people) for (const a of p.adoptions ?? []) {
 
 console.log(`题面 parent_candidates ${cand} 条 → 答案 parent_edges ${edges} 条（收敛 ${cand - edges} 条）`);
 console.log(`过继语句 ${ad} 条：落到 pid 的 ${adPid} 条，其余 ${ad - adPid} 条各自写明了为什么落不了`);
+// ══ A→B 记了，B→A 也要记，两边一一对应 ══
+//
+// 父边在 json 里存两遍：孩子身上 parent_edges、父亲身上 children。
+// 只存一边，另一边就得在用的时候算；算的地方不止一处，
+// 一处算法不一样就出两个答案（重复子女、少列子女都是这么来的）。
+// 两边必须严格互为镜像——多一条少一条都算坏。
+{
+  // 「详前」条是记载不是人，它的边跟完整条上的一样——只按完整条比。
+  const CANP = (pid) => { const q = R.idx.get(pid); return q ? canonical(D.people, q).pid : pid; };
+  const fwd = new Set(), back = new Set();
+  for (const p of D.people) {
+    if (CANP(p.pid) !== p.pid) continue;
+    for (const e of p.parent_edges ?? []) fwd.add(`${e.parent}→${p.pid}|${e.kind}`);
+    for (const c of p.children ?? []) back.add(`${p.pid}→${c.child}|${c.kind}`);
+  }
+  const onlyF = [...fwd].filter(x => !back.has(x));
+  const onlyB = [...back].filter(x => !fwd.has(x));
+  if (onlyF.length || onlyB.length) {
+    bad.push(`父边正反不对称：只有 parent_edges 的 ${onlyF.length} 条，`
+           + `只有 children 的 ${onlyB.length} 条`);
+    for (const x of [...onlyF.slice(0, 4), ...onlyB.slice(0, 4)]) bad.push('     ' + x);
+  } else {
+    console.log(`父边正反两边一一对应　${fwd.size} 条（A→B 记了，B→A 也记）`);
+  }
+}
+
 if (!bad.length) console.log('\n  ✔ 每条边都指向一个真实 pid；生父不超一位；同一种关系里没有同名；文件与判定层一致');
 else { console.log(`\n  ✘ ${bad.length} 处：`); bad.slice(0, 20).forEach(b => console.log('     ' + b));
-       if (bad.length > 20) console.log(`     …还有 ${bad.length - 20} 处`); process.exitCode = 1; }
+       if (bad.length > 20) 
+
+console.log(`     …还有 ${bad.length - 20} 处`); process.exitCode = 1; }

@@ -36,10 +36,12 @@ RE_ZI = re.compile(r"^字\s*(.+)$")
 RE_HUI = re.compile(r"^讳\s*(.+)$")
 RE_HAO = re.compile(r"^号\s*(.+)$")
 RE_MING = re.compile(r"^名\s*(.+)$")
-RE_AGE = re.compile(r"^(?:年|享年|享寿)[一二三四五六七八九十百]+$")
+# 寿数的写法：「年五十二」「享寿七十四」「年六十岁」「寿五十一」——
+# 后面带不带「岁」、用「年」还是「寿」，谱里都有。以前只认三种。
+RE_AGE = re.compile(r"^(?:年|享年|享寿|寿|夀)[一二三四五六七八九十百零]+(?:岁|歲)?$")
 # 寿数和葬地挤在同一行：「年五十八俱葬蔡山陈埠港壬山丙向」（文道@册2 p1）。
 # 整行认不出，寿数和坟地就一起没了——那还是迁梅始祖那一页。
-RE_AGE_THEN = re.compile(r"^((?:年|享年|享寿)[一二三四五六七八九十百]+)(.+)$")
+RE_AGE_THEN = re.compile(r"^((?:年|享年|享寿|寿|夀)[一二三四五六七八九十百零]+(?:岁|歲)?)(.+)$")
 # ★ 引导词前面常带着「公」「妣」，说明下一行那个日期是谁的。
 #   早先只认光杆的「生于/殁于/葬」，于是「妣殁于」这一行不算引导词，
 #   后面那行日期就飘了。全谱 382 行这样的，每一行背后是一个丢掉的日期。
@@ -73,6 +75,16 @@ RE_DATE_TAIL = re.compile(
 # 这一行前半截是生年、末尾两个字是下一行的引导词。谱里 167 行这么写，
 # 於是那 167 个殁年全都飘着没人认。剥下来当引导词用，跟单起一行完全一样。
 RE_LEAD_TAILED = re.compile(r"^(.+?)(生于|生於|殁于|殁於)$")
+# 值的末尾还粘着下一位太太：继均@册3 p205 那一行是
+# 「二零一三年腊月十五日巳时葬云山水口西向西南**娶李氏雪梅**」——
+# 不切开，李氏雪梅就不成其为人，她下一行的生年还会落到丈夫头上。
+RE_VAL_SPOUSE = re.compile(
+    r"^(.{8,}?)(娶侧室|继娶|复娶|续娶|又娶|原娶|继配|原配|续配|原聘|继聘|元聘|娶|聘)"
+    r"([一-龥]{2,4})$")
+RE_NOT_SP_NAME = re.compile(r"[生殁葬缺未详祥年月日时時公妣]")
+# 一整句挤在一行：「嘉庆己未年正月十六日亥时**殁于**咸丰七年…葬云山向西南」。
+# 前半是生、后半是殁——谱自己用「殁于」两个字分的界，切在那儿不是猜。
+RE_VAL_SPLIT = re.compile(r"^(.{6,}?)(生于|生於|殁于|殁於)(.+)$")
 # 「阙其所未知」——谱自己写下的「这里没有记录」。
 # 「生殁缺」「公妣殁葬俱未详」「生年未详」…全谱 500 行左右。
 # 这不是缺数据，是**编谱人明确写下的一句话**，凡例里说得清清楚楚。
@@ -87,6 +99,8 @@ RE_LACK = re.compile(
 LACK_FIELD = {"生": "生", "殁": "殁", "歿": "殁", "卒": "殁", "葬": "葬"}
 # 同一条规矩的「只认开头」版：谱把好几句挤在一行时一条一条往下剥。
 RE_LACK_HEAD = re.compile(RE_LACK.pattern.rstrip("$"))
+# 「幼殁」「早殇」这一类：跟在名字后面就是对那个人的注，不是另一个人
+RE_DIED_YOUNG = re.compile(r"(幼|早|中|下)?(殁|殤|殇|夭|亡)(缺|未详)?")
 # 不带前缀的引导词——在名字后面找切点时用，带前缀会把姓也吃掉。
 RE_SP_LEAD = re.compile(r"^(生于|生於|殁于|殁於)(.+)$")
 # 一整行只有年号／干支／数字和年月日时——那就是个日期，没有别的读法。
@@ -225,6 +239,13 @@ RE_UNNAMED_KID = re.compile(r"^[长次幼三四五六七八九十元俱下]{0,2}
 # 「适居陕西…」里的「适」是「往」，不是「嫁」——那是迁徙
 # 姓不可能以这些字开头——「妣殁未详」「妣葬牌子山」里的那一段是字段，不是名字
 RE_NOT_A_NAME = re.compile(r"^(生|殁|歿|葬|年|未|俱|详|缺)")
+# ★ 名单那一格里写的**不一定是人**：
+#     「大专生」「初中生」——那是学历，谱把它写在孩子名字的位置上
+#     「望丁」「旺丁」——那是**盼儿子**的话，不是名字
+#   收下来就凭空多出七个人，各带一个 id、一张卡片、一条父边。
+RE_NOT_A_PERSON = re.compile(
+    r"^(大专生|大学生|初中生|高中生|中专生|研究生|小学生|本科生|博士生|硕士生"
+    r"|大专|本科|望丁|旺丁|盼丁|添丁|求丁)$")
 RE_MOVE_TO = re.compile(r"[迁遷徙]|适居|居陕|居江|居四川")
 
 ORD_CHARS = "长次幼三四五六七八九十元季末"
@@ -249,14 +270,42 @@ def split_daughters(t: str) -> list:
     return parts if len(parts) > 1 else [t]
 
 
+# 「长女凤平」「次女红平」「幼女春花」——〔排行〕女〔名〕。
+# 谱在近世条目里常这么写，跟「长适董」是同一件事，只是名字留下来了。
+# 以前不认，这几位女儿在卡片上完全看不见（开国@册4 p217 的凤平、红平）。
+# 整行就是「适…」——没有排行也没有名字在前面
+# 一行写完一个女儿：「次女俊生于一九七五年十月二十九日适胡」
+# ——名、生年、嫁到哪挤在一行。谱在近世条目里常这么写。
+RE_DAU_INLINE = re.compile(
+    r"^([一-龥]{1,5}?)(生于|生於)([^适適]{4,}?)([适適][一-龥]{1,12})?$")
+RE_NOT_DAU_HEAD = re.compile(r"[公妣氏字讳諱号號年月日时時生殁葬]")
+RE_MARRY_ONLY = re.compile(r"^[适適]([一-龥]{1,12})$")
+RE_DAU_ORD_NAME = re.compile(r"^([长次幼三四五六七八九十元])女([一-龥]{1,4})$")
+
+
+RE_UNMARRIED = re.compile(r"(未字|未適|未适|未婚|未許|未许)$")
+
+
 def make_daughter(p, t: str, seq: int) -> KinRec:
     """「长适董」「华荣适商」「四殇」——拆成排行、名、夫家姓。"""
     _at = kin_at(p, seq)
     k = KinRec(at=_at, person=_at, role="女", name_raw=t, line_seq=seq)
+    if RE_UNMARRIED.search(_ns(t)):
+        k.unmarried = True
+        t = RE_UNMARRIED.sub("", _ns(t))
+        if t in ("俱", "均", ""):
+            k.named = False
+            k.given = ""
+            return k
     if RE_UNNAMED_KID.match(t):
         k.died_young = True
         k.named = False
         k.ordinal = t[0] if t and t[0] in ORD_CHARS else ""
+        return k
+    m0 = RE_DAU_ORD_NAME.match(t)
+    if m0:
+        k.ordinal, k.given = m0.group(1), m0.group(2)
+        k.named = True
         return k
     m = RE_DAU_PARTS.match(t)
     if m:
@@ -332,6 +381,8 @@ def make_spouse(p, rel: str, name_raw: str, seq: int) -> KinRec:
 
 def is_daughter_item(t: str) -> bool:
     """谱写女儿的定式：〔排行〕〔名〕适〔夫家姓〕。「次适」尾字缺了也算。"""
+    if RE_NOT_A_PERSON.match(_ns(t)):
+        return False
     if not t or len(t) > 14 or RE_ADOPT_WORD.search(t) or RE_FIELD_MARK.match(t):
         return False
     if RE_MOVE_TO.search(t):
@@ -339,6 +390,8 @@ def is_daughter_item(t: str) -> bool:
     if RE_UNNAMED_KID.match(t):
         return True
     if RE_MARRY.search(t):          # 「华荣适商」「长适董」——带名字的四五字也是女儿
+        return True
+    if RE_DAU_ORD_NAME.match(t):    # 「长女凤平」——排行＋女＋名
         return True
     return bool(RE_BARE_NAME.match(t)) and not _func_only(t)
 
@@ -357,6 +410,8 @@ def strip_named(t: str) -> str:
 
 def is_son_item(t: str) -> bool:
     """儿子就是个名字。带「适」的是女儿，功能字堆出来的不是人。"""
+    if RE_NOT_A_PERSON.match(_ns(t)):
+        return False
     if not t or RE_MARRY.search(t) or RE_ADOPT_WORD.search(t) or RE_FIELD_MARK.match(t):
         return False
     if RE_MOVE_TO.search(t):
@@ -385,7 +440,7 @@ MARKS = {
     "殉难": r"捐躯|烈士|殉|阵亡|牺牲",
     "有碑": r"有碑",
     "无后": r"无出|未付后|幼殁|幼殇|殇",
-    "改嫁": r"再醮|再樵|再蘸",
+    "改嫁": r"再醮|再樵|再蘸",   # ★ 说的是配偶，归属见 _remarry_to_spouse
     "招赘": r"坐婿|招婿|招[\u4e00-\u9fa5]氏?",
     "旌表": r"给匾|旌其堂|旌表",
     "节烈": r"柏舟|矢志|完节|苦节|守节",
@@ -429,6 +484,21 @@ class KinRec:
     named: bool = True        # 名字是否留下来了
     died_young: bool = False  # 谱写「幼殁」「殇」
     line_seq: int = 0
+    # ★ 名单里的孩子也有自己的生卒葬。
+    #   谱把儿女的生年写在父亲条目里（「生女一　儒桢／生于二00三年四月五日巳时」），
+    #   以前没有格子接，那个日期就顺着位置落到**母亲**头上了——
+    #   开赛@册4 p202 的胡婷，生年后面被粘上了女儿儒桢的生日。
+    birth: "FieldVal | None" = None
+    death: "FieldVal | None" = None
+    burial: "FieldVal | None" = None
+    age: "FieldVal | None" = None
+    # ★ 女儿嫁到哪：谱另起一行写「适福建付家」「适小溪柳山屋杨家」。
+    #   那是上一行那位女儿的事，不是又一个女儿。以前当成新人收，
+    #   开国@册4 p217 的凤平、红平各自多出一个「妹妹」。
+    married: str = ""
+    # ★ 谱写「未字」「未适」「未婚」——还没出嫁。那是她的状态，不是名字。
+    #   不剥掉，承文的女儿就叫「芬荣未」（谱写的是「芬荣　未适」）。
+    unmarried: bool = False
 
 
 @dataclass
@@ -439,6 +509,12 @@ class SpouseRec:
     birth: FieldVal | None = None
     death: FieldVal | None = None
     burial: FieldVal | None = None
+    # ★ 谱写「再樵」「再醮」——他死后她改嫁了。这是**她的**事。
+    remarried: str = ""
+    # ★ 寿：谱在一条记录里可能写两个「年X」——本人一个、配偶一个。
+    #   以前只有本人有这一格，全谱 123 条配偶的寿数一条都没存下，
+    #   卡片只好回原文里按行位置捞（`owner.ts::agesOf`）——那是渲染时判断。
+    age: FieldVal | None = None
     line_seq: list = field(default_factory=list)
 
 
@@ -521,6 +597,8 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
     cont = None                # 上一行刚归到哪个字段——日期跨行时接着往下写
     sp_just = False            # 上一行刚立了一位配偶
     cur_sp: SpouseRec | None = None
+    cur_kin = None             # 上一行刚点到的名单里的那个孩子
+    kin_n = 0                  # 上一行处理前 p.kin 有多少条，用来看这一行有没有添人
     mode = None                # sons / daughters
     sons_kind = "生"           # 当前名单头那个字：生／养
     sons_want = 0              # 名单头声明的人数（「生子二」则为 2）
@@ -544,6 +622,17 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
         # 一走到别的行，这条线就断——不然会把后文的话粘到日期上。
         prev_cont, cont = cont, None
         prev_sp_just, sp_just = sp_just, False
+
+        # ★ 上一行有没有点到名单里的一个孩子？
+        #   名单收人的地方有十几处，不逐处埋钩子——就在这里看 p.kin 长没长。
+        #   谱把儿女的生卒写在父亲条目里（「生女一　儒桢／生于…」），
+        #   那是**那个孩子的**，不是母亲的。
+        prev_kin_just = False
+        if len(p.kin) > kin_n:
+            _last = p.kin[-1]
+            if _last.role in ("子", "女"):
+                cur_kin, prev_kin_just = _last, True
+        kin_n = len(p.kin)
 
         # 「殁」在行尾、「于」自己占一行——排版把引导词劈成了两半。
         # 泽悠@册3 p261 的吕氏：她的殁年因此整个飘着。
@@ -574,6 +663,9 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
             in_head = False        # 生于／殁于／葬一出现，条目的「头」就完了
             lead = (m_lead.group(2) or m_lead.group(3))[0]
             lead_who, lead_sur, _ = _lead_who(p, m_lead.group(1) or "")
+            if lead_who is None and lead_sur is None and prev_kin_just:
+                lead_who = "名单"          # 「儒桢／生于／二00三年…」
+                kin_n -= 1                 # 这一行不算打断，下一行还认得出 cur_kin
             take(l)
             continue
 
@@ -582,7 +674,9 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
             in_head = False
             _k = m_in.group(2)[0]
             _who, _sur, _ = _lead_who(p, m_in.group(1) or "", True)
-            cont = _assign(_whose(p, cur_sp, _k, _who, _sur), _k,
+            if _who is None and _sur is None and prev_kin_just:
+                _who = "名单"              # 「长娟／生于一九八七年…」
+            cont = _assign(_whose(p, cur_sp, _k, _who, _sur, cur_kin), _k,
                            m_in.group(3).strip(), l.seq)
             lead = lead_who = lead_sur = None
             take(l)
@@ -640,19 +734,35 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
                 # ★ 整条挤在一行时（「字宝荣生生于…生子一用兵」），
                 #   字只取到下一个字段词为止，不能把整段都当成他的字。
                 _v = RE_FIELD_CUT.split(mm.group(1).strip())[0].strip()
+                # ★ 「字五次生殁缺葬汤家塘岸」——字后面又挤了缺记和葬地。
+                #   RE_FIELD_CUT 只认「生于／娶／妣氏／生子N／殁于」，
+                #   缺记（生殁缺）和光杆的「葬X」它切不开，於是整串成了他的字
+                #   （光福@册3 p172）。用剥字段那一套再剥一次，剥出来各归各位。
+                for _i2 in range(1, len(_v)):
+                    _acts2, _left2 = _peel_plan(_v[_i2:])
+                    if _acts2 and not _left2:
+                        _peel_do([p], _acts2, l.seq)
+                        _v = _v[:_i2]
+                        break
                 setattr(p, attr, FieldVal(_v or mm.group(1).strip(), [l.seq]))
                 take(l); hit = True
                 break
         if hit:
             continue
 
+        # 寿数归谁：跟生殁葬同一套——谱点了名听谱的，没点名看这一段在写谁。
+        # 「妣某氏／生于…／殁于…／年七十四」那个七十四是**她的**。
+        _age_tgt = (cur_kin if prev_kin_just and cur_kin is not None
+                    else cur_sp if (cur_sp is not None and p.age is not None) else p)
         if RE_AGE.match(t):
-            p.age = p.age or FieldVal(t, [l.seq])
+            if _age_tgt.age is None:
+                _age_tgt.age = FieldVal(t, [l.seq])
             take(l)
             continue
         m_at = RE_AGE_THEN.match(t)
         if m_at and RE_BURIAL.match(m_at.group(2)):
-            p.age = p.age or FieldVal(m_at.group(1), [l.seq])
+            if _age_tgt.age is None:
+                _age_tgt.age = FieldVal(m_at.group(1), [l.seq])
             cont = _assign(_whose(p, cur_sp, "葬", None, None), "葬",
                            m_at.group(2), l.seq)
             take(l)
@@ -688,11 +798,23 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
                 if RE_LACK_HEAD.match(_r) or RE_SP_LEAD.match(_r) or RE_BURIAL.match(_r):
                     _nm, _sp_tail = _nm[:_i], _r
                     break
-            _k = make_spouse(p, ms.group(1), _nm, l.seq)
-            p.kin.append(_k)
-            cur_sp = SpouseRec(rel=ms.group(1), name_raw=_nm,
-                               pid=_k.person, line_seq=[l.seq])
-            p.spouses.append(cur_sp)
+            # ★ 同一条里**关系词和名字都一样**的，是谱把同一位写了两遍，
+            #   不是又娶了一位同名的。光程@册3 p123 的黎氏：谱在头上写一次
+            #   （带她的生年），在末尾又写一次（带她的殁和葬）；开北@册4 p147
+            #   那一段源文本身重复了。接着往同一条记录上写，不另立一个人。
+            #   ★ 关系词必须也一样——朝京@册2 p275 真有两位柳氏，
+            #     谱写的是「妣柳氏」和「复妣柳氏」，那是两个人。
+            _dup = next((x for x in p.spouses
+                         if x.rel == ms.group(1) and x.name_raw == _nm), None)
+            if _dup is not None:
+                cur_sp = _dup
+                cur_sp.line_seq.append(l.seq)
+            else:
+                _k = make_spouse(p, ms.group(1), _nm, l.seq)
+                p.kin.append(_k)
+                cur_sp = SpouseRec(rel=ms.group(1), name_raw=_nm,
+                                   pid=_k.person, line_seq=[l.seq])
+                p.spouses.append(cur_sp)
             if _sp_tail:
                 _acts, _sp_tail = _peel_plan(_sp_tail)
                 _peel_do([cur_sp], _acts, l.seq)
@@ -745,11 +867,33 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
         # 引导词之后的一行 = 日期 / 葬地
         if lead in ("生", "殁", "葬"):
             # 引导词写明了是谁的，就听谱的；没写才用位置推。
-            tgt = _whose(p, cur_sp, lead, lead_who, lead_sur)
+            tgt = _whose(p, cur_sp, lead, lead_who, lead_sur, cur_kin)
             val, nxt = t, None
             m_tl = RE_LEAD_TAILED.match(t)
             if m_tl:                       # 「…亥时殁于」：前半截是值，末尾是下一行的引导词
                 val, nxt = m_tl.group(1), m_tl.group(2)[0]
+            m_sp2 = RE_VAL_SPLIT.match(val)
+            if m_sp2 and nxt is None:
+                val = m_sp2.group(1)
+                nxt = m_sp2.group(2)[0]
+                # 后半截原样留着，下一轮当成那一格的值——这里直接归位
+                _tail2 = m_sp2.group(3).strip()
+                if _tail2:
+                    _t2 = _whose(p, cur_sp, nxt, lead_who, lead_sur, cur_kin)
+                    _assign(tgt, lead, val, l.seq)
+                    cont = _assign(_t2, nxt, _tail2, l.seq)
+                    lead = lead_who = lead_sur = None
+                    take(l)
+                    continue
+            m_vs = RE_VAL_SPOUSE.match(val)
+            if m_vs and not RE_NOT_SP_NAME.search(m_vs.group(3)):
+                val = m_vs.group(1)
+                _k = make_spouse(p, m_vs.group(2), m_vs.group(3), l.seq)
+                p.kin.append(_k)
+                cur_sp = SpouseRec(rel=m_vs.group(2), name_raw=m_vs.group(3),
+                                   pid=_k.person, line_seq=[l.seq])
+                p.spouses.append(cur_sp)
+                sp_just = True
             cont = _assign(tgt, lead, val, l.seq)
             lead = nxt
             lead_who = None
@@ -843,8 +987,31 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
                       #   枝公那一条后面紧跟着另一个人「公／漂公幼子」，
                       #   收了它名单就关不上，后面几行会一块儿串进来。
                       and any(len(k.given) >= 2 for k in sons_block))
+            # ★ 「开幼幼殁」——这一行是**对上一个人的注**，不是下一个人。
+            #   谱写「生子三／开毅／开祖／开幼／开幼幼殁」：三个儿子已经写完，
+            #   末一行重复了开幼的名字再加一句「幼殁」。当成第四个儿子收下，
+            #   子女栏里就出现两个开幼（继喜@册3 p211）。
+            #   判据是谱自己给的两样：名单头写的数目已经收满 ＋ 名字跟上一个一样。
+            if (mode == "sons" and sons_block and sons_want and sons_got >= sons_want):
+                # ★ 名单收满之后又冒出**同一个名字**，那是对上一个人的注，
+                #   不是又一个人——一份名单里名字不会重复。
+                #   继喜@册3 p211：「生子三／开毅／开祖／开幼／开幼幼殁」，
+                #   末行的「幼殁」上游已被 strip_died 剥掉，只剩「开幼」。
+                _prev = sons_block[-1]
+                _nm0 = _ns(_prev.given or _prev.name_raw)
+                if _nm0 and _ns(tn) == _nm0:
+                    if RE_DIED_YOUNG.search(_ns(t)):
+                        _prev.died_young = True
+                    take(l)
+                    continue
             if (is_son_item(tn) or single) and mode == "sons":
+                # ★ 「承旺幼殁」——上游 strip_died 已经把名字剥出来了（tn＝承旺），
+                #   `_dt` 记着「谱写了幼殁」。不把它传下去，那件事就丢了：
+                #   开茂@册4 p231 的承旺、承发，谱写着幼殁，卡片上看不出来。
                 _k = make_son(p, tn, l.seq, sons_kind)
+                if _dt:
+                    _k.died_young = True
+                    _k.name_raw = t
                 p.sons_claimed.append(_k.given or _k.name_raw)
                 p.kin.append(_k); sons_block.append(_k)
                 sons_got += 1
@@ -890,6 +1057,34 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
                         p.kin.append(_k); sons_block.append(_k)
                         sons_got += 1
                     take(l); continue
+            # ★ 光杆的「适X」（前面没有排行、没有名字）跟在一位有名字的女儿后面，
+            #   说的是**她嫁到哪**，不是又一个女儿。
+            # 一行写完一个女儿：名 ＋ 生年 ＋ 嫁到哪，各归各位
+            if mode == "daughters":
+                _mdi = RE_DAU_INLINE.match(_ns(t))
+                if _mdi and _mdi.group(1) and not RE_NOT_DAU_HEAD.search(_mdi.group(1)):
+                    _kd = make_daughter(p, _mdi.group(1), l.seq)
+                    _kd.birth = FieldVal(_mdi.group(3), [l.seq])
+                    if _mdi.group(4):
+                        _kd.married = _mdi.group(4)
+                        if not _kd.surname:
+                            _kd.surname = _mdi.group(4)[1:2]
+                    p.daughters_claimed.append(_kd.given or _kd.name_raw)
+                    p.kin.append(_kd)
+                    take(l)
+                    continue
+
+            if mode == "daughters" and RE_MARRY_ONLY.match(_ns(t)):
+                # 女儿收在 p.kin 里（不进 sons_block），从后往前找最近那位有名字的
+                _pd = next((k for k in reversed(p.kin)
+                            if k.role == "女" and k.given), None)
+                if _pd is not None and not _pd.married:
+                    _pd.married = t.strip()
+                    if not _pd.surname:
+                        _m2 = RE_MARRY_ONLY.match(_ns(t))
+                        _pd.surname = _m2.group(1)[:1]
+                    take(l)
+                    continue
             if is_daughter_item(tn) or is_daughter_item(t):
                 if is_daughter_item(tn) and not is_daughter_item(t):
                     t = tn
@@ -924,6 +1119,21 @@ def extract(seg: Segment, pointers: dict, seq_in_slot: int) -> PersonRec:
         tagged = False
         for tag, pat in MARKS.items():
             if re.search(pat, t):
+                # ★ 「再樵」「再醮」说的是**他死后妻子改嫁**，不是他改嫁。
+                #   谱把这句写在丈夫那一条里，标在他身上就成了
+                #   「二十个男人改嫁」。归到她名下——谱点了姓就按姓认
+                #   （「柳氏再樵」），没点名就是身边那位。
+                if tag == "改嫁":
+                    _rm = re.match(r"^([一-龥])氏", _ns(t))
+                    _to = None
+                    if _rm:
+                        _to = next((x for x in p.spouses
+                                    if _ns(x.name_raw).startswith(_rm.group(1))), None)
+                    _to = _to or cur_sp
+                    if _to is not None:
+                        _to.remarried = t.strip()
+                        tagged = True
+                        continue
                 p.marks.append((tag, t))
                 tagged = True
         p.unparsed.append({"seq": l.seq, "text": l.text,
@@ -1065,24 +1275,45 @@ def _lead_who(p, pre: str, inline: bool = False):
     for sp in p.spouses:
         if _ns(sp.name_raw).startswith(nm):
             return "配偶", nm, True
+    # ★ 谱点的是名单里的孩子：「承求殁于／二00一年五月二十日」——
+    #   承求就写在开奎的生子名单里。那一条是**他的**，不是父亲的、也不是母亲的。
+    for k in p.kin:
+        if k.role in ("子", "女") and _ns(k.given or k.name_raw) == nm:
+            return "名单项", k, True
     return None, None, False
 
 
-def _whose(p, cur_sp, lead: str, who: str | None, sur: str | None):
+def _whose(p, cur_sp, lead: str, who: str | None, sur: str | None,
+           kin=None):
     """这一条生／殁／葬该记到谁头上。
 
     顺序就是谱自己的顺序：**它点了名的**最硬（「王妣殁于」），
     其次是它写的前缀（「公」＝本人、「妣」＝当前那位配偶），
     都没写才按位置推（本人那一格已经填了，就该是身边这位配偶的）。
     """
-    if sur:
+    # 谱点了名单里那个孩子的名字（「承求殁于」）——最硬，先看这一条
+    if who == "名单项" and sur is not None:
+        return sur
+    if sur and isinstance(sur, str):
         named = next((s for s in p.spouses
                       if s.name_raw.strip().startswith(sur)), None)
         if named is not None:
             return named
+    if who == "名单" and kin is not None:
+        return kin                     # 上一行刚点了名单里的一个孩子，这条是他的
     if who == "本人":
         return p
     if who == "配偶" and cur_sp is not None:
+        return cur_sp
+    # ★ 「殁」这一格：谱的次序恒是先生后殁，一个人写完再写下一个。
+    #   所以只要**这位配偶的段已经开写**（她的生有了）而她的殁还空着，
+    #   这一条就是她的——哪怕丈夫的殁还空着。
+    #   开候@册4 p2 的李氏：谱写「复妣李氏／生缺／殁于／一九八二年四月」，
+    #   按「丈夫的格子空着就先给丈夫」会把她的殁年记到他头上。
+    #   ★ 只对「殁」这么办。「葬」不行——俱葬/合葬本来就是两个人一起，
+    #     全面改过一次：442 处变动，胜二公自己的坟都没了。
+    if (lead == "殁" and cur_sp is not None
+            and cur_sp.birth is not None and cur_sp.death is None):
         return cur_sp
     return cur_sp if (cur_sp is not None and _own_filled(p, lead)) else p
 

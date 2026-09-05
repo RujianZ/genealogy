@@ -10,11 +10,13 @@
  * onlynew    —— 有没有地方能绕过新系统（可选参数、兑底、旧路）
  * nowaffle   —— 界面上有没有「有两个同名，不知道是哪一个」这类含糊话
  * fk         —— parent_edges 里每一条是不是都指向一个真实 pid（外键）
+ * cardcheck  —— 卡片上印的，跟 json 里记的，是不是同一件事（网站只读不判）
  * nohardcode —— 判据里有没有针对某个人写死（有就不算函数了）
  */
 import { spawnSync } from 'node:child_process';
 let bad = 0;
-const GROUPS = ['verify_all', 'smoke', 'noloss', 'idcheck', 'samepid', 'onlynew', 'nowaffle', 'fk', 'nohardcode'];
+const GROUPS = ['verify_all', 'smoke', 'noloss', 'idcheck', 'samepid', 'onlynew',
+                'nowaffle', 'fk', 'cardcheck', 'nohardcode'];
 for (const f of GROUPS) {
   console.log(`\n${'█'.repeat(52)}\n█ ${f}\n${'█'.repeat(52)}`);
   const r = spawnSync(process.execPath,

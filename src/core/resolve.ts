@@ -955,5 +955,125 @@ export function resolveAll(
       ? { ...r, birth, heir, level, alsoNamed, conflicts: [...r.conflicts, ...notes] }
       : r);
   }
-  return out;
+  return foldSameOne(oneSlotOneChild(out, idx, F, canon), canon);
+}
+
+/**
+ * **兼祧的人谱上印了好几条，指向他一律折回完整那一条——在这里折完，下游不再折。**
+ *
+ * 凡例第十三则要求双记，双记的是**记载**，人只有一个。
+ * 以前卡片、子女栏、搜索各自折一遍，于是同一位父亲在三处是三个 id。
+ * 折叠是判定的一部分，判定只有一条路——所以放在判定层的出口。
+ */
+function foldSameOne(
+  res: Map<string, Resolved>, canon?: (pid: string) => string,
+): Map<string, Resolved> {
+  if (!canon) return res;
+  const fix = (xs: Pick[]) => {
+    const seen = new Set<string>();
+    return xs.map(x => ({ ...x, pid: canon(x.pid) }))
+             .filter(x => !seen.has(x.pid) && seen.add(x.pid));
+  };
+  const out2 = new Map<string, Resolved>();
+  for (const [k, r] of res)
+    out2.set(k, { ...r, birth: fix(r.birth), heir: fix(r.heir) });
+
+  // ★ 同一个人的几条记载，父边要**并起来**，不能只留完整条上的那几条。
+  //   泽久@册2 p331 的儿子梁珍：谱在 p331 那条写着他，完整条 p327 上没有。
+  //   折叠时若只保留完整条的边，泽久的子女栏里就没人了——
+  //   谱明明写着「生子一　梁珍」。折叠是认人，不是丢话。
+  const group = new Map<string, string[]>();
+  for (const k of out2.keys()) {
+    const c = canon(k);
+    (group.get(c) ?? group.set(c, []).get(c)!).push(k);
+  }
+  for (const [c, members] of group) {
+    if (members.length < 2) continue;
+    const mergeBy = (pick: (r: Resolved) => Pick[]) => {
+      const seen = new Set<string>(); const out: Pick[] = [];
+      for (const m of members) for (const x of pick(out2.get(m)!))
+        if (!seen.has(x.pid)) { seen.add(x.pid); out.push(x); }
+      return out;
+    };
+    const birth = mergeBy(r => r.birth), heir = mergeBy(r => r.heir);
+    for (const m of members) out2.set(m, { ...out2.get(m)!, birth, heir });
+    void c;
+  }
+  return out2;
+}
+
+/**
+ * **一个名单槽只能被一个人认领。**
+ *
+ * 谱写「生子六　开雄　开志　开兆　开群　开俊　开赛」——那是**六个槽**，
+ * 叫「开雄」的槽只有一个。可全谱有三位开雄，只要哪一位自己那一条没写父名，
+ * 反查就会凭名字把他也挂到继均名下——於是继均的子女栏里出现**两个开雄**。
+ * 全谱 50 处这样，都是这么来的。
+ *
+ * 这不是「说不清」，是**外键冲突**：槽位有限，认领的人超了。
+ * 判据仍旧是谱自己的：
+ *
+ *     ③ 本人那一条写了父名，而且就是这位父亲   ——两边都写，最硬
+ *     ② 谱把他印在这位父亲的正下一格           ——五世一图横着读
+ *     ① 至少同一房
+ *     ⓪ 什么都不占
+ *
+ * 有人分数严格更高，槽就归他，其余的**这条边直接去掉**（不是降级，是不成立）。
+ * 分数打平就谁也不动——那才是真的说不清，留给人看。
+ */
+function oneSlotOneChild(
+  res: Map<string, Resolved>, idx: Map<string, Person>,
+  F: Map<string, Facts>, canon?: (pid: string) => string,
+): Map<string, Resolved> {
+  const NS3 = (s: string) => norm(s ?? '').replace(/公$/, '');
+  const CAN = (x: string) => (canon ? canon(x) : x);
+
+  // 父 → 这个名字有几个人认他做生父
+  const claim = new Map<string, string[]>();
+  for (const [pid, r] of res)
+    for (const b of r.birth)
+      claim.set(`${CAN(b.pid)}|${NS3(idx.get(pid)?.name ?? '')}`,
+        [...(claim.get(`${CAN(b.pid)}|${NS3(idx.get(pid)?.name ?? '')}`) ?? []), pid]);
+
+  const drop = new Map<string, Set<string>>();     // 孩子 pid → 要去掉的父 pid
+  for (const [key, kids] of claim) {
+    if (kids.length < 2) continue;
+    const fpid = key.slice(0, key.lastIndexOf('|'));
+    const nm = key.slice(key.lastIndexOf('|') + 1);
+    const f = idx.get(fpid);
+    if (!f) continue;
+    const slots = (f.sons_claimed ?? []).filter(x => NS3(x) === nm).length;
+    if (slots >= kids.length) continue;            // 槽够用，不是冲突
+
+    const score = (c: string) => {
+      const q = idx.get(c)!;
+      const wrote = NS3(q.father_name ?? '');
+      if (wrote && (wrote === NS3(f.name)
+          || f.aliases.some(a => NS3(a.form) === wrote))) return 3;
+      if ((F.get(c)?.layout.above ?? []).map(CAN).includes(CAN(fpid))) return 2;
+      return q.src.section === f.src.section ? 1 : 0;
+    };
+    const scored = kids.map(c => [c, score(c)] as const)
+      .sort((a, b) => b[1] - a[1]);
+    const top = scored[0][1];
+    const winners = scored.filter(x => x[1] === top);
+    if (winners.length > slots) continue;           // 打平，谁也不动
+    for (const [c] of scored.filter(x => x[1] < top))
+      (drop.get(c) ?? drop.set(c, new Set()).get(c)!).add(fpid);
+  }
+  if (!drop.size) return res;
+
+  const out2 = new Map(res);
+  for (const [c, fs] of drop) {
+    const r = res.get(c)!;
+    const birth = r.birth.filter(b => !fs.has(CAN(b.pid)) && !fs.has(b.pid));
+    if (birth.length === r.birth.length) continue;
+    out2.set(c, {
+      ...r, birth,
+      level: birth.length ? r.level : (r.heir.length ? r.level : '谱未写'),
+      conflicts: [...r.conflicts,
+        `名单槽已被同名的另一位占住（${[...fs].map(x => idx.get(x)?.name).join('、')}）`],
+    });
+  }
+  return out2;
 }

@@ -199,8 +199,15 @@ console.log('\n══ 三、三条原则 ══\n');
 {
   // ★ 读**候选**（题面），不是 parent_edges（答案）。
   //   这条不变量问的是「谱面支持了候选，判据把人全排光了没有」。
+  // ★ 例外只有一种：**名单槽被同名的另一位占住了**。
+  //   谱写「生子六」，叫「开雄」的槽只有一个，而全谱有三位开雄。
+  //   槽归了谱指名的那一位之后，另一位的这条边**不成立**——不是被判据抹掉，
+  //   是它本来就不该有。判定层记了原因（conflicts），人进待核清单。
+  //   见 resolve.ts::oneSlotOneChild。
+  const slotTaken = p =>
+    (__RES.get(p.pid)?.conflicts ?? []).some(c => /名单槽已被同名的另一位占住/.test(c));
   const bad = people.filter(p => (p.parent_candidates ?? []).length &&
-    kept2(p).length === 0);
+    kept2(p).length === 0 && !slotTaken(p));
   ok(bad.length === 0, '**没有人被判据排空候选**（宁可说不清，不可把人抹掉）',
      bad.slice(0, 3).map(p => p.name).join('　'));
 }

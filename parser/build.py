@@ -49,10 +49,16 @@ def to_dict(p):
                  "ordinal": k.ordinal, "name_raw": k.name_raw,
                  "given": k.given, "surname": k.surname,
                  "named": k.named, "died_young": k.died_young,
-                 "line_seq": k.line_seq} for k in p.kin],
+                 "line_seq": k.line_seq,
+                 # ★ 名单里的孩子也有自己的生卒葬——谱把它们写在父亲条目里，
+                 #   以前没格子接，就顺着位置落到母亲头上了。
+                 "birth": fv(k.birth), "death": fv(k.death),
+                 "burial": fv(k.burial), "age": fv(k.age),
+                 "married": k.married, "unmarried": k.unmarried} for k in p.kin],
         "spouses": [{"pid": s.pid, "rel": s.rel, "name_raw": s.name_raw,
                      "birth": fv(s.birth), "death": fv(s.death),
-                     "burial": fv(s.burial)} for s in p.spouses],
+                     "burial": fv(s.burial), "age": fv(s.age),
+                     "remarried": s.remarried} for s in p.spouses],
         "sons_claimed": p.sons_claimed,
         "daughters_claimed": p.daughters_claimed,
         "unparsed": p.unparsed,

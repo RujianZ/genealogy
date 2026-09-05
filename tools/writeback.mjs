@@ -24,6 +24,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
+import { canonical } from '../src/core/seealso.ts';
 import { buildFacts } from '../src/core/facts.ts';
 import { sameAs } from '../src/core/seealso.ts';
 import { withBacklinks } from '../src/core/backlink.ts';
@@ -137,8 +138,56 @@ for (const p of D.people) {
   nHeir += ps.heir.length;
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// 反向边：**A→B 记了，B→A 也要记，两边同等效力。**
+//
+// 谱只单向写（孩子那一条写「某某之子」），但 json 不能只存一边。
+// 只存一边，另一边就得在**用的时候算**——而算的人不止一处
+// （卡片的子女栏、兄弟姐妹栏、世系树、关系计算器），
+// 一处算法不一样就出两个答案。今天的重复子女、少列子女，根子都在这。
+//
+// 现在父边写两遍：孩子身上 `parent_edges`，父亲身上 `children`。
+// 同一条边、同样的 kind/level/why，只是方向相反。
+// `tools/fk.mjs` 有一道闸盯着两边一一对应，谁也别想单方面改。
+// ══════════════════════════════════════════════════════════════════════
+const byPid = new Map(D.people.map(x => [x.pid, x]));
+for (const p of D.people) delete p.children;
+// ★ 兼祧的人谱上印了好几条（「生娶俱详前」），那是**同一个人**。
+//   孩子这一头也要折——不折，壁淮的子女栏里就有三个继荣（都是同一位）。
+//   父那一头判定层已经折过了（resolve.ts::foldSameOne），这里折孩子。
+const CAN = (pid) => {
+  const q = byPid.get(pid);
+  return q ? canonical(D.people, q).pid : pid;
+};
+let nBack = 0, orphan = 0, folded = 0;
+for (const p of D.people) {
+  // 「详前」条是**记载**，不是人。它那几条边跟完整条上的一模一样
+  //   （判定层已经折过），从它再建一遍反向边，父亲的子女栏里就多出一个同名的人。
+  if (CAN(p.pid) !== p.pid) { folded++; continue; }
+  for (const e of p.parent_edges ?? []) {
+    const f = byPid.get(e.parent);
+    if (!f) { orphan++; continue; }   // fk 那道闸会报，这里不吞
+    (f.children ??= []).push({
+      child: p.pid, child_name: p.name, child_src: p.src_human,
+      kind: e.kind, level: e.level, why: e.why,
+    });
+    nBack++;
+  }
+}
+// 排一下序：按谱面坐标，跟谱上名单的顺序一致
+for (const p of D.people) {
+  if (!p.children) continue;
+  p.children.sort((a, b) => {
+    const qa = byPid.get(a.child)?.src, qb = byPid.get(b.child)?.src;
+    if (!qa || !qb) return 0;
+    return (qa.page - qb.page) || (qa.row - qb.row) || (qa.col - qb.col);
+  });
+}
+
 writeFileSync(U('people'), JSON.stringify(D.people, null, 1), 'utf8');
 console.log(`写回 ${D.people.length} 人的 parent_edges —— 共 ${nEdge} 条边，每条指向一个 pid`);
+console.log(`   反向边 children　${nBack} 条（A→B 记了，B→A 也记，两边同等效力）`);
+if (folded) console.log(`   跳过 ${folded} 条「详前」记载——它们不是另一个人，边跟完整条一样`);
 console.log(`   生父恰好一位　${nOne} 人`);
 console.log(`   嗣父边　　　　${nHeir} 条`);
 console.log(`   谱没写父亲　　${nNone} 人`);

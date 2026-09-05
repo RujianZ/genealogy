@@ -41,19 +41,20 @@ for (const p of D.people) cardKids.set(p.pid, kidsOnCard(p.pid));
 
 const missA = [], missB = [];
 for (const c of D.people) {
-  const ps = R.parents(c);
-  const fathers = [...ps.birth, ...ps.heir].map(x => x.edge.parent);
-  // ① 父边有，父亲卡上却没这个孩子
-  for (const f of fathers) {
-    if (!cardKids.has(f)) continue;                 // 父亲不是有条目的人，另算
-    if (![...cardKids.get(f)].some(x => cid(x) === cid(c.pid)))
-      missA.push({ c, f, why: R.idx.get(f)?.name });
+  // ★ 只按**完整条**比：「详前」条是记载不是人，它的边跟完整条上的一样。
+  if (cid(c.pid) !== c.pid) continue;
+  // ① 库里写着他的父亲 → 那位父亲的卡片上必须有他
+  for (const e of c.parent_edges ?? []) {
+    if (!cardKids.has(e.parent)) continue;          // 父亲不是有条目的人，另算
+    if (![...cardKids.get(e.parent)].some(x => cid(x) === c.pid))
+      missA.push({ c, f: e.parent, why: R.idx.get(e.parent)?.name });
   }
-  // ② 父亲卡上列了他，他的父边里却没这个人
+  // ② 卡片上列了这个孩子 → 库里他那一条必须写着这位父亲
   for (const k of cardKids.get(c.pid) ?? []) {
-    const kp = R.parents(R.idx.get(k) ?? {});
-    const fs = [...(kp?.birth ?? []), ...(kp?.heir ?? [])].map(x => x.edge.parent);
-    if (!fs.some(x => cid(x) === cid(c.pid))) missB.push({ c, k, kn: R.idx.get(k)?.name });
+    const q = R.idx.get(k);
+    if (!q || q.attached) continue;                 // 附记之人的父边由 persons.ts 发
+    if (!(q.parent_edges ?? []).some(e => cid(e.parent) === c.pid))
+      missB.push({ c, k, kn: q.name });
   }
 }
 
