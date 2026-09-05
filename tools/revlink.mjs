@@ -35,7 +35,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
-import { norm, homophoneKey, loadTables } from '../src/core/norm.ts';
+import { norm, homophoneKey, editDistance, loadTables } from '../src/core/norm.ts';
 import { canonical } from '../src/core/seealso.ts';
 import { EraChart } from '../src/core/years.ts';
 
@@ -86,7 +86,30 @@ function decide(m, ad) {
   if (both.length === 1) return [both[0], '谱名和字都对上'];
   if (both.length > 1)   return [null, `谱名和字都对上的有 ${both.length} 位`];
   if (zz.length === 1)   return [zz[0], `字「${m['字']}」全谱只此一位`];
-  if (nm.length === 1)   return [nm[0], `谱名「${m.name}」全谱只此一位`];
+  // ★ 名目给了字，而这一位的字**另有其字**——那是谱在说「不是他」，
+  //   不能再拿「谱名全谱只此一位」硬认。
+  //   道光五那一届名目里四个「士成」，字分别是登甲、文德、灼桃、上庆
+  //   ——四个人。旧规则把后两个也认给了字登甲那一位，
+  //   等于说一个人同时字登甲、字文德、字灼桃。
+  //   ★ 但**一字之差不算**。谱在卷首和世系里同一个字常写得不一样：
+  //     笃生／笃牲 · 默齐／默济 · 怀茂／怀懋 · 连钧／运钧 · 耀宗／宗耀（前后颠倒）
+  //     ——那是异写，是同一位。差两个字以上才是谱在说「不是他」。
+  const near = (a, b) => {
+    if (a === b) return true;
+    if (a.length === b.length && [...a].sort().join('') === [...b].sort().join('')) return true;
+    return editDistance(a, b) <= 1;
+  };
+  const ziClash = (q) => {
+    if (!zi) return false;
+    const his = [q.zi, q.hui, q.hao, q.ming].filter(Boolean).map(x => norm(x.text));
+    return his.length > 0 && !his.some(h => near(h, zi));
+  };
+  if (nm.length === 1 && !ziClash(nm[0]))
+    return [nm[0], `谱名「${m.name}」全谱只此一位`];
+  if (nm.length === 1)
+    return [null, `谱名「${m.name}」全谱只此一位，可他字作「${
+      [nm[0].zi, nm[0].hui, nm[0].hao, nm[0].ming].filter(Boolean).map(x => x.text).join('／')
+    }」，跟名目写的「${m['字']}」不是一个人`];
   const homo = fold(zi ? byZiHomo.get(homophoneKey(zi)) : []);
   const bh = nm.filter(q => homo.some(x => x.pid === q.pid));
   if (bh.length === 1)   return [bh[0], `谱名对上，字同音（名目「${m['字']}」／条目「${bh[0].zi?.text ?? ''}」）`];
@@ -97,9 +120,19 @@ function decide(m, ad) {
 }
 
 /** 配出人来之后，再过一道年代关。过不去就退回，不硬认。 */
+// 辈字 → 世次。谱自己排的字辈（data/generations.json 从世次列头数出来），
+// 名目写「继祐」，「继」就是第 25 世——这是谱给的第三把钥匙。
+const GEN_BY_CHAR = new Map();
+for (const g of J('generations')) if (g.char && g.rate >= 90) GEN_BY_CHAR.set(g.char, g.gen);
+
 function decideChecked(m, ad) {
   const [q, why] = decide(m, ad);
   if (!q) return [q, why];
+  // ★ 名字头一个字是辈字的，世次就定死了；对不上就不是他。
+  const bz = GEN_BY_CHAR.get(norm(m.name ?? '').slice(0, 1));
+  if (bz != null && q.gen != null && q.gen !== bz)
+    return [null, `${why}，可名目写「${m.name}」——「${norm(m.name).slice(0, 1)}」是第 ${bz} 世的辈字，`
+                + `而他是第 ${q.gen} 世`];
   const dead = aliveAt(q, ad);
   if (dead) return [null, `${why}，可${dead}`];
   return [q, why];

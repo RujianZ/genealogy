@@ -39,6 +39,22 @@ ROLES = ["督修", "主修", "副主修", "编校", "编修", "对阅", "协修"
 ROLE_RE = re.compile(r"^(" + "|".join(sorted(ROLES, key=len, reverse=True)) + r")")
 
 
+# 排版把两栏挤到一行：「继发  字宏发  壁兴  字正兴」——那是**两个人**。
+# 不切开就只认后一个，前一个整个丢掉（一九九二那一届丢了继发、继华两位）。
+# 切点：一个「字X」写完之后，又出现「名字 字X」——那就是下一位。
+SPLIT2 = re.compile(r"(?<=[一-鿿])\s+(?=[一-鿿]{2,3}\s*字\s*[一-鿿])")
+
+
+def split_persons(line: str) -> list:
+    """一行里印了几个人就切成几段。只在「…字X　名字 字Y」这种形状上切。"""
+    s = line.strip()
+    if s.count("字") < 2:
+        return [s]
+    parts = [x for x in SPLIT2.split(s) if x.strip()]
+    # 切完每段都得自成一个人（带「字」），否则不切——宁可不动
+    return parts if len(parts) > 1 and all("字" in x for x in parts) else [s]
+
+
 def parse_person(line: str) -> dict | None:
     s = line.strip()
     if not s:
@@ -82,9 +98,10 @@ def main() -> None:
             role = None
             tail = re.sub(r"^.*?(修谱|续修谱?)名目", "", t).strip()
             if tail:
-                p = parse_person(tail)
-                if p:
-                    cur["members"].append({**p, "role": role})
+                for _seg in split_persons(tail):
+                    p = parse_person(_seg)
+                    if p:
+                        cur["members"].append({**p, "role": role})
             continue
         if not cur:
             continue
@@ -94,13 +111,15 @@ def main() -> None:
             role = rm.group(1)
             tail = t[t.find(role) + len(role):].strip() if role in t else ""
             if tail:
-                p = parse_person(tail)
-                if p:
-                    cur["members"].append({**p, "role": role})
+                for _seg in split_persons(tail):
+                    p = parse_person(_seg)
+                    if p:
+                        cur["members"].append({**p, "role": role})
             continue
-        p = parse_person(t)
-        if p:
-            cur["members"].append({**p, "role": role})
+        for _seg in split_persons(t):
+            p = parse_person(_seg)
+            if p:
+                cur["members"].append({**p, "role": role})
 
     # 连人：按**全部别名**找，不只按谱名。
     # 名目里写「国学生 号古岩 名国茂 字苍遂」——国茂是他的讳，谱名叫士硕。
