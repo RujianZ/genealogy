@@ -14,7 +14,7 @@ const chart = new EraChart(J('erachart'));
 const __D = { people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
   generations: J('generations'), images: J('images'), trans: J('translations'),
-  prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人') };
+  prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人'), classes: J('分类') };
 const PS = makeRegistry(__D).parents;
 
 const me = people.find(p => p.name === '承健' && p.gen === 27)

@@ -33,7 +33,7 @@ const D = {
   people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
   generations: J('generations'), images: J('images'), trans: J('translations'), prefaces: J('prefaces'),
-  tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人'),   // ★ 忘了带就等于在验「没有人工核定」的结果
+  tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人'), classes: J('分类'),   // ★ 忘了带就等于在验「没有人工核定」的结果
 };
 // ★ 字表先灌——core 里的 norm() 一开始是空表，灌之前折不出东西来。
 loadTables(D.tables);

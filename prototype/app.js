@@ -35,10 +35,10 @@ import { doubtList } from '../src/core/doubts.ts';
 
 // ★ 人工核定表（人工判定）一定要带上。
 //   早先这份清单里没它，于是 app 里人工核过的判定全部不生效。
-const [people, places, shou, era, passages, revisions, generations, images, trans, prefaces, tables, manual, sameone] = await Promise.all(
-  ['people', 'places', 'shou', 'erachart', 'prose_ents', 'revisions', 'generations', 'images', 'translations', 'prefaces', '字表', '人工判定', '同一个人'].map(n =>
+const [people, places, shou, era, passages, revisions, generations, images, trans, prefaces, tables, manual, sameone, classes] = await Promise.all(
+  ['people', 'places', 'shou', 'erachart', 'prose_ents', 'revisions', 'generations', 'images', 'translations', 'prefaces', '字表', '人工判定', '同一个人', '分类'].map(n =>
     fetch('../data/' + encodeURIComponent(n) + '.json').then(r => r.json())));
-const R = makeRegistry({ people, places, shou, era, passages, revisions, generations, images, trans, prefaces, tables, manual, sameone });
+const R = makeRegistry({ people, places, shou, era, passages, revisions, generations, images, trans, prefaces, tables, manual, sameone, classes });
 const cat = R.catalogue();
 
 const esc = s => (s ?? '').replace(/[<>&"]/g, c =>

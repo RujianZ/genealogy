@@ -34,7 +34,12 @@ const J = n => JSON.parse(readFileSync(U(n), 'utf8'));
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
   generations: J('generations'), images: J('images'), trans: J('translations'),
-  prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人') };
+  prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人'),
+  // ★ 这个脚本**就是 data/分类.json 的生产者**，所以它得能在文件还不存在时跑起来。
+  //   别处一律必填（Data.classes），不许兜底——只有生产者自己例外，
+  //   否则第一次生成就成了鸡生蛋。
+  classes: (() => { try { return J('分类'); }
+    catch { return { 房支: {}, 世次: {}, 头衔: {}, 标记: {} }; } })() };
 loadTables(D.tables);
 const R = makeRegistry(D);
 
@@ -316,6 +321,55 @@ for (const p of D.people) {
   };
   fix(p.relations);
   for (const k of p.kin ?? []) fix(k.relations);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 分类表：房支 · 世次 · 头衔 · 标记
+//
+// 卡片的「所属」栏要写「学义公世系（267 人）」，房支页／世次页要列出成员——
+// 原先这四样是 `entries.ts` 在建注册表时 `group()` 现分出来的。
+// **那也是画卡片时算。** 搬进 data/分类.json，卡片按 key 查表。
+//
+// 成员名单覆盖全部 5,050 人（含附记之人）——和原先 group(d.people) 同一个口径。
+// ══════════════════════════════════════════════════════════════════
+{
+  const ALL = [...R.idx.values()];
+  const mk = (keyOf) => {
+    const m = new Map();
+    for (const q of ALL) for (const k of keyOf(q)) {
+      if (!k) continue;
+      (m.get(k) ?? m.set(k, []).get(k)).push(q);
+    }
+    return m;
+  };
+  const NSk = x => String(x ?? '').replace(/[s　]/g, '');
+  const 房支 = mk(q => [q.src?.section]);
+  const 世次 = mk(q => [String(q.gen)]);
+  const 头衔 = mk(q => (q.titles ?? []).map(NSk));
+  const 标记 = mk(q => (q.marks ?? []).map(x => NSk(x.tag)));
+  const 成员 = ps => ps.map(q => q.pid);
+  const out = {
+    说明: '房支 / 世次 / 头衔 / 标记四张分类表。由 tools/relations.mjs 生成，勿手改。'
+      + '卡片的「所属」栏和这四类的列表页一律**按 key 查这里**，不在渲染时 group()。'
+      + '成员覆盖全部 5,050 人（含附记之人），跟原先 entries.ts 里 group(d.people) 同口径。',
+    房支: {}, 世次: {}, 头衔: {}, 标记: {},
+  };
+  for (const [k, ps] of 房支) {
+    const pages = ps.map(q => q.src?.page).filter(x => x != null);
+    out.房支[k] = { 名: k, 人数: ps.length, 成员: 成员(ps),
+      册卷: [...new Set(ps.map(q => `${q.src?.vol}·卷${q.src?.juan}`))],
+      页码: pages.length ? [Math.min(...pages), Math.max(...pages)] : null };
+  }
+  for (const [k, ps] of 世次) {
+    const bs = [...new Set(ps.map(q => q.src?.section).filter(Boolean))];
+    out.世次[k] = { 名: `第 ${k} 世`, 人数: ps.length, 成员: 成员(ps),
+      分布: bs.map(b => ({ 房支: b, 人数: ps.filter(q => q.src?.section === b).length })) };
+  }
+  for (const [k, ps] of 头衔) out.头衔[k] = { 名: k, 人数: ps.length, 成员: 成员(ps) };
+  for (const [k, ps] of 标记) out.标记[k] = { 名: k, 人数: ps.length, 成员: 成员(ps) };
+  writeFileSync(U('分类'), JSON.stringify(out, null, 1), 'utf8');
+  console.log(`分类表写出 data/分类.json —— 房支 ${房支.size} · 世次 ${世次.size}`
+    + ` · 头衔 ${头衔.size} · 标记 ${标记.size}（成员覆盖 ${ALL.length} 人）`);
 }
 
 // 排一下序：按类、再按谱面坐标

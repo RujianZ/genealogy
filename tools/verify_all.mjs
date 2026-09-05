@@ -63,7 +63,7 @@ const REG = makeRegistry({
   people: raw, places: J('places'), shou,
   era: J('erachart'), passages: prose, revisions,
   generations: J('generations'), images: J('images'), trans, prefaces: J('prefaces'),
-  tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人'),   // ★ 忘了带就等于在验「没有人工核定」的结果
+  tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人'), classes: J('分类'),   // ★ 忘了带就等于在验「没有人工核定」的结果
 });
 
 console.log('══ 一、原文完整性 ══\n');

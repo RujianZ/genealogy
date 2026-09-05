@@ -131,6 +131,25 @@ export interface Data {
   generations: GenChar[];
   trans: Trans;
   prefaces: Prefaces;
+  /**
+   * 房支／世次／头衔／标记四张分类表（data/分类.json，tools/relations.mjs 生成）。
+   *
+   * ★ 原先这四样是这里 `group(d.people, …)` **现分出来的**——那也是画卡片时算。
+   *   现在按 key 查表：`d.classes.房支['学义公世系'].人数`。
+   *   查表是读，不是算；跟 `idx.get(pid)` 同一回事。
+   */
+  classes: Classes;
+}
+
+/** 一类分类下的一格：成员名单 ＋ 计数 ＋ 谱面派生的那几样 */
+export interface ClassRow {
+  名: string; 人数: number; 成员: string[];
+  册卷?: string[]; 页码?: [number, number] | null;
+  分布?: { 房支: string; 人数: number }[];
+}
+export interface Classes {
+  房支: Record<string, ClassRow>; 世次: Record<string, ClassRow>;
+  头衔: Record<string, ClassRow>; 标记: Record<string, ClassRow>;
 }
 
 export function makeRegistry(d0: Data) {
@@ -232,10 +251,12 @@ export function makeRegistry(d0: Data) {
     }
     return m;
   };
-  const byBranch = group(d.people, p => [p.src.section]);
-  const byGenN = group(d.people, p => [String(p.gen)]);
-  const byTitle = group(d.people, p => p.titles.map(NS));
-  const byMark = group(d.people, p => p.marks.map(m => NS(m.tag)));
+  // ★ 房支／世次／头衔／标记四张表原先在这里 group() 现分——2026-09-05 搬进
+  //   data/分类.json（tools/relations.mjs 写）。这里只按 key 查。
+  const CL = d.classes;
+  /** 一格里的成员，取成人。名单是 pid，查 idx 就是了——外键读取，不是配名字 */
+  const memb = (row?: ClassRow): Person[] =>
+    (row?.成员 ?? []).map(x => idx.get(x)).filter((q): q is Person => !!q);
   // 姓：配偶娘家姓。**幽灵子不算**——build_referenced 给他们填了「张」，
   // 混进来会让「张」以 843 高居外姓第一，那是错的。
   // ★ 从**附记之人自己**建，不再读 referenced.json。
@@ -696,13 +717,13 @@ export function makeRegistry(d0: Data) {
     relations.push({
       heading: '所属', items: [
         { kind: 'branch', id: p.src.section, label: p.src.section,
-          note: `${byBranch.get(p.src.section)?.length ?? 0} 人` },
+          note: `${CL.房支[p.src.section]?.人数 ?? 0} 人` },
         { kind: 'gen', id: String(p.gen), label: `第 ${p.gen} 世`,
-          note: `${byGenN.get(String(p.gen))?.length ?? 0} 人` },
+          note: `${CL.世次[String(p.gen)]?.人数 ?? 0} 人` },
         ...uniq(p.titles.map(NS), t => t).map(t => ({ kind: 'title' as const, id: t, label: t,
-          note: `${byTitle.get(t)?.length ?? 0} 人` })),
+          note: `${CL.头衔[t]?.人数 ?? 0} 人` })),
         ...uniq(p.marks.map(m => NS(m.tag)), t => t).map(t => ({ kind: 'mark' as const, id: t, label: t,
-          note: `${byMark.get(t)?.length ?? 0} 人` })),
+          note: `${CL.标记[t]?.人数 ?? 0} 人` })),
       ],
     });
 
@@ -843,19 +864,19 @@ export function makeRegistry(d0: Data) {
   }
 
   function branch(sec: string): Entry | null {
-    const ps = byBranch.get(sec);
-    if (!ps) return null;
-    const vols = [...new Set(ps.map(p => `${p.src.vol}·卷${p.src.juan}`))];
-    const pages = ps.map(p => p.src.page);
+    const row = CL.房支[sec];
+    if (!row) return null;
+    const pg = row.页码 ? `　第 ${row.页码[0]}–${row.页码[1]} 页` : '';
     return listEntry('branch', sec, sec,
-      `${ps.length} 人　${vols.join('、')}　第 ${Math.min(...pages)}–${Math.max(...pages)} 页`, ps);
+      `${row.人数} 人　${(row.册卷 ?? []).join('、')}${pg}`, memb(row));
   }
 
   function gen(n: string): Entry | null {
-    const ps = byGenN.get(n);
-    if (!ps) return null;
+    const row = CL.世次[n];
+    if (!row) return null;
+    const ps = memb(row);
     const gc = d.generations.find(x => String(x.gen) === n);
-    const branches = [...new Set(ps.map(p => p.src.section))];
+    const branches = (row.分布 ?? []).map(x => x.房支);
     const paiNote = gc && gc.rate >= 60
       ? `字辈「${gc.char}」——${gc.total} 人里 ${gc.n} 人的名字以它开头（${gc.rate}%）`
         // 对上了就不写，只有对不上才写
@@ -863,22 +884,22 @@ export function makeRegistry(d0: Data) {
            ? `。卷首《新取字派》这一位排的是「${gc.pai}」，和数出来的不一样` : '')
       : gc ? `这一世没有统一字辈——最常见的首字「${gc.char}」也只占 ${gc.rate}%` : '';
     return listEntry('gen', n, `第 ${n} 世`,
-      `${ps.length} 人，分在 ${branches.length} 个房支` + (paiNote ? '　' + paiNote : ''), ps,
-      [rel('分布在这些房支', branches.map(b => ({
-        kind: 'branch' as const, id: b, label: b,
-        note: `${ps.filter(p => p.src.section === b).length} 人` })))]);
+      `${row.人数} 人，分在 ${branches.length} 个房支` + (paiNote ? '　' + paiNote : ''), ps,
+      [rel('分布在这些房支', (row.分布 ?? []).map(x => ({
+        kind: 'branch' as const, id: x.房支, label: x.房支,
+        note: `${x.人数} 人` })))]);
   }
 
   function title(t: string): Entry | null {
-    const ps = byTitle.get(t);
-    if (!ps) return null;
-    return listEntry('title', t, t, `谱上记了 ${ps.length} 人有这个身份`, ps);
+    const row = CL.头衔[t];
+    if (!row) return null;
+    return listEntry('title', t, t, `谱上记了 ${row.人数} 人有这个身份`, memb(row));
   }
 
   function mark(t: string): Entry | null {
-    const ps = byMark.get(t);
-    if (!ps) return null;
-    return listEntry('mark', t, t, `谱上给 ${ps.length} 人打了这个标记`, ps);
+    const row = CL.标记[t];
+    if (!row) return null;
+    return listEntry('mark', t, t, `谱上给 ${row.人数} 人打了这个标记`, memb(row));
   }
 
   function surname(id: string): Entry | null {
@@ -1113,12 +1134,15 @@ export function makeRegistry(d0: Data) {
     const cnt = (m: Map<string, unknown[]>) =>
       [...m.entries()].map(([k, v]) => ({ id: k, label: k, n: v.length }))
         .sort((a, b) => b.n - a.n);
+    // 四张分类表的目录也读 data/分类.json，不再自己数
+    const cls = (rec: Record<string, ClassRow>, lab?: (k: string) => string) =>
+      Object.entries(rec).map(([k, v]) => ({ id: k, label: lab ? lab(k) : k, n: v.人数 }))
+        .sort((a, b) => b.n - a.n);
     return {
-      branch: cnt(byBranch),
-      gen: [...byGenN.entries()].map(([k, v]) => ({ id: k, label: `第${k}世`, n: v.length }))
-        .sort((a, b) => +a.id - +b.id),
-      title: cnt(byTitle),
-      mark: cnt(byMark),
+      branch: cls(CL.房支),
+      gen: cls(CL.世次, k => `第${k}世`).sort((a, b) => +a.id - +b.id),
+      title: cls(CL.头衔),
+      mark: cls(CL.标记),
       surname: cnt(bySurname).map(x => ({ ...x, label: x.label + '氏' })),
       husbandSurname: cnt(byHusbandSurname).map(x => ({ ...x, id: '适' + x.id, label: '嫁到' + x.label + '家' })),
       place: [...placeTree.values()].map(n => ({ id: n.full, label: n.name, n: n.count }))

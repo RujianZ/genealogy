@@ -18,7 +18,7 @@ import { stripTypeScriptTypes } from 'node:module';
 const SRC = 'src/core';
 const DATA = ['people', 'places', 'shou', 'erachart', 'prose_ents',
               'revisions', 'generations', 'images', 'translations', 'prefaces',
-              '字表', '人工判定', '同一个人'];
+              '字表', '人工判定', '同一个人', '分类'];
 // ★ 字表＝繁简/误字/同音，人工判定＝核定表。漏了就等于折叠和核定都没生效。
 const AS = { prose_ents: 'passages' };   // app.js 里这份数据叫 passages
 

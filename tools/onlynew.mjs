@@ -90,7 +90,29 @@ for (const need of ['人工判定', '同一个人', 'people'])
     bad.push('data/variants.json 又出现了——字表只许有 data/字表.json 一张');
 }
 
+// ★ 卡片不许现算关系。
+//   人际关系（14 类）在 data/people.json 的 relations[]，
+//   房支／世次／头衔／标记四张分类表在 data/分类.json，
+//   都由 tools/relations.mjs 配一次写进去。渲染路径里再 group() 一次
+//   就是两套实现两个答案——2026-09-05 之前正是这样，
+//   「被提到」在 json 里有 972 条，而卡片读的是自己现建的索引。
+{
+  const ent = readFileSync(new URL('../src/core/entries.ts', import.meta.url), 'utf8');
+  const banned = [
+    ['byPassageHost', '他这一条里的文字'], ['byAuthor', '他写的文字'],
+    ['byEntTarget', '别人的条目里提到他'], ['byBranch', '房支'],
+    ['byGenN', '世次'], ['byTitle', '头衔'], ['byMark', '标记'],
+    ['kidsOf', '子女／兄弟姐妹'], ['kidsIdx', '子女索引'], ['fullRecordOf', '同一个人'],
+  ];
+  for (const [name, what] of banned)
+    if (new RegExp(`\b${name}\b`).test(ent))
+      bad.push(`entries.ts 又出现了 ${name}——「${what}」该读 relations[]／分类.json，不许在渲染时算`);
+  // 关系表和分类表必须在
+  for (const [file, what] of [['../data/分类.json', '分类表']])
+    if (!existsSync(new URL(file, import.meta.url)))
+      bad.push(`${what} ${file} 不在——跑一遍 node tools/relations.mjs`);
+}
 const files = readdirSync(new URL('../src/core', import.meta.url)).filter(f => f.endsWith('.ts')).length;
 console.log(`扫了 src/core 下 ${files} 个模块；上游豁免 ${[...UPSTREAM].join('、')}`);
-if (!bad.length) console.log('\n  ✔ 判定只有一条路：resolve.ts。没有可选、没有兜底、没有旁路');
+if (!bad.length) console.log('\n  ✔ 判定只有一条路：resolve.ts。没有可选、没有兜底、没有旁路；卡片不现算关系');
 else { console.log(`\n  ✘ ${bad.length} 处还能绕过新系统：`); bad.forEach(b => console.log('     ' + b)); process.exitCode = 1; }
