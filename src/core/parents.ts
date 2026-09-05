@@ -76,6 +76,15 @@ export interface Cand {
   status: 'ok';
   /** 凭什么——照抄谱上的话，或说明是哪一条定式 */
   note: string;
+  /**
+   * **这一条边**判到哪一级——不是这个人判到哪一级。
+   *
+   * 一个人的生父和嗣父可以来自完全不同的判据：生父是人工核定的，
+   * 嗣父可能只是别人那句立嗣语句按名字扭过来的。早先 writeback 给两条边
+   * 都盖上**这个人**的 level，於是人工只核了生父，嗣父也顶着「人工核定」——
+   * 最高一级的标签盖在没人看过的边上，页面上跟真核过的长得一模一样。
+   */
+  level: string;
   conflict?: string;
   layoutNote: string;
   /** 谱把他印在本人正上方那一格里（五世一图的读法） */
@@ -153,6 +162,7 @@ export function parentsFrom(
       person: q,
       status: 'ok',
       note: pick.why,
+      level: pick.level,
       layoutNote: '',
       printedAbove: pick.level === '定式',
     };

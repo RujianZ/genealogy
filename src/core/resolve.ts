@@ -955,7 +955,93 @@ export function resolveAll(
       ? { ...r, birth, heir, level, alsoNamed, conflicts: [...r.conflicts, ...notes] }
       : r);
   }
-  return foldSameOne(oneSlotOneChild(out, idx, F, canon), canon);
+  return foldSameOne(oneStatementOneHeir(oneSlotOneChild(out, idx, F, canon), idx, F, canon), canon);
+}
+
+
+/**
+ * **一句立嗣语句只立一个人。**
+ *
+ * 谱写「立弟长子开国为嗣」——那是**一个嗣子**。可这句话是按名字扭到
+ * 每一个同名者头上的（`facts.ts` 里 `ADOPT_IN` 拿名字去全谱找同世同名），
+ * 於是继营那一句同时落在**八个**开国头上，八个人的卡片上都写着「嗣父继营」。
+ * 全谱 33 处这样，最多的一句扭到 8 个人。
+ *
+ * 这不是「说不清」，跟 `oneSlotOneChild` 是同一回事：**槽位有限，认领的人超了**。
+ * 判据也还是谱自己的原话次序，一条都不新增：
+ *
+ *     ② 两边都写   本人那一条题「X嗣子」，或生父那一条的出嗣句去处就是这位
+ *     ⓪ 只有一边   只有嗣父那句立嗣语句按名字扭过来
+ *
+ * ② 严格高於 ⓪ 时槽归他，其余那几条边**去掉**（不是降级，是不成立）——
+ * 因为那句话本来就没说他。都在 ⓪ 上打平就谁也不动，那才是真的说不清，
+ * 留着进待核清单。
+ *
+ * 实例（都回谱面核过）：
+ *   继良（册3 p28）「立亲兄长子开发为嗣」→ 开发（册4 p48／p50）自己题「继良公嗣子」、
+ *     生父继动那一条又写「长子开发出嗣亲弟继良」——两边都写；
+ *     而开发（册4 p89，字金苟）题「继垣长子」，是被名字扭过来的。
+ *   继营（册3 p229）「立弟长子开国为嗣」→ 开国（册4 p217）自己题「继营嗣子」，
+ *     另外七位各有各的父亲。
+ *   铣豁（册2 p63）「立四弟长子泽富为嗣」→ 泽富（册2 p334）自己题「铣豁嗣子」；
+ *     泽富（册3 p238）题「铣鸣长子」，跟这句话无关。
+ */
+function oneStatementOneHeir(
+  res: Map<string, Resolved>, idx: Map<string, Person>,
+  F: Map<string, Facts>, canon?: (pid: string) => string,
+): Map<string, Resolved> {
+  const CAN = (x: string) => (canon ? canon(x) : x);
+  const NS4 = (x: string) => norm(x ?? '').replace(/公$/, '');
+
+  // 嗣父（折过）＋孩子的名字 → 认领的人
+  const claim = new Map<string, Map<string, string>>();
+  for (const [pid, r] of res)
+    for (const h of r.heir) {
+      const k = `${CAN(h.pid)}|${NS4(idx.get(pid)?.name ?? '')}`;
+      (claim.get(k) ?? claim.set(k, new Map()).get(k)!).set(CAN(pid), pid);
+    }
+
+  /** 两边都写：本人自己题「X嗣子」，或生父那一条的出嗣句去处就是 X */
+  const twoSided = (childPid: string, heirPid: string): boolean => {
+    const q = idx.get(childPid), h = idx.get(heirPid);
+    if (!q || !h) return false;
+    const hn = NS4(h.name);
+    if (q.is_heir && q.father_name && NS4(q.father_name) === hn) return true;
+    if (h.aliases.some(a => NS4(a.form) === NS4(q.father_name ?? '')) && q.is_heir) return true;
+    // 生父那一条写的出嗣句，去处点名这位嗣父
+    const f = F.get(childPid);
+    if (!f) return false;
+    const dads = new Set((res.get(childPid)?.birth ?? []).map(b => CAN(b.pid)));
+    return f.mentions.some(m => m.kind === '出嗣语句' && dads.has(CAN(m.by))
+      && (!m.to_father || m.to_father.startsWith(hn) || hn.startsWith(m.to_father)
+          || h.aliases.some(a => NS4(a.form) === m.to_father)));
+  };
+
+  const drop = new Map<string, Set<string>>();
+  for (const [key, kids] of claim) {
+    if (kids.size < 2) continue;
+    const hp = key.slice(0, key.lastIndexOf('|'));
+    const scored = [...kids].map(([c, orig]) => [c, orig, twoSided(c, hp)] as const);
+    const won = scored.filter(x => x[2]);
+    if (won.length !== 1) continue;              // 打平就谁也不动
+    for (const [c] of scored.filter(x => !x[2]))
+      for (const orig of [...kids.values()].filter(o => CAN(o) === c))
+        (drop.get(orig) ?? drop.set(orig, new Set()).get(orig)!).add(hp);
+  }
+  if (!drop.size) return res;
+
+  const out2 = new Map(res);
+  for (const [c, hs] of drop) {
+    const r = res.get(c); if (!r) continue;
+    const heir = r.heir.filter(h => !hs.has(CAN(h.pid)) && !hs.has(h.pid));
+    if (heir.length === r.heir.length) continue;
+    out2.set(c, {
+      ...r, heir,
+      conflicts: [...r.conflicts,
+        `那句立嗣语句说的是同名的另一位（${[...hs].map(x => idx.get(x)?.name).join('、')}那一条）`],
+    });
+  }
+  return out2;
 }
 
 /**

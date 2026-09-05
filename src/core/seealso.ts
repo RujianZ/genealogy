@@ -37,7 +37,11 @@ export function loadSameOne(rows: SameOne[]): void {
 }
 
 const NS = (s: string | null | undefined) => (s ?? '').replace(/[\s　]/g, '');
-const SEEALSO = /详前|詳前|详上|詳上|俱详|俱詳|同前|见前|見前/;
+// ★ 谱也往**后**指：「承先／开銮公祧子／字先良／**生娶详后**」——
+//   一子三祧，前两条只写题名和字，生庚娶氏写在第三条上。全谱 3 处（详后 3 次），
+//   跟「详前」是同一个词，只是方向相反。早先漏了这个词，三条各成一人，
+//   於是开荣名下挂着三个「承先」，其实是同一个人承了三房。
+const SEEALSO = /详前|詳前|详上|詳上|详后|詳后|詳後|详後|俱详|俱詳|同前|见前|見前/;
 
 /** 这一条是不是「详前」条 */
 export const isSeeAlso = (p: Person): boolean => SEEALSO.test(NS(p.raw_text));

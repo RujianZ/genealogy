@@ -121,7 +121,30 @@ console.log(`过继语句 ${ad} 条：落到 pid 的 ${adPid} 条，其余 ${ad 
   }
 }
 
-if (!bad.length) console.log('\n  ✔ 每条边都指向一个真实 pid；生父不超一位；同一种关系里没有同名；文件与判定层一致');
+// ══ 过继：三方各记一份，一份都不许少 ══
+//
+// 一句过继语句牵着三个人：说的是谁（本人）· 写话人 · 去处（嗣父）。
+// **认了的事，每个当事人的 json 里都得有它和对方的 id**——不然要用就得
+// 在渲染时回头扫全谱找，那又变成「用的时候算」，两处算法两个答案。
+{
+  const key = a => [a.写在谁那一条, a.说的是谁, a.原话, a.去处 ?? ''].join('|');
+  const has = new Map();
+  for (const p of D.people)
+    for (const a of p.adoptions ?? [])
+      (has.get(p.pid) ?? has.set(p.pid, new Set()).get(p.pid)).add(key(a));
+  let nAd = 0;
+  for (const p of D.people) for (const a of p.adoptions ?? []) {
+    nAd++;
+    for (const [who, lab] of [[a.说的是谁, '说的是谁'], [a.写在谁那一条, '写在谁那一条'], [a.去处, '去处']]) {
+      if (!who) continue;
+      if (!R.idx.get(who)) { bad.push(`过继记录的「${lab}」指向不存在的 pid：${who}（${p.name} ${p.src_human}）`); continue; }
+      if (!has.get(who)?.has(key(a)))
+        bad.push(`过继「${a.原话}」在 ${p.name} 那里记了，${lab} ${R.idx.get(who).name} 那里没记`);
+    }
+  }
+  console.log(`过继三方对账　${nAd} 条记录（本人 · 写话人 · 去处，各存一份）`);
+}
+if (!bad.length) console.log('\n  ✔ 每条边都指向一个真实 pid；生父不超一位；同一种关系里没有同名；文件与判定层一致；过继三方各记一份');
 else { console.log(`\n  ✘ ${bad.length} 处：`); bad.slice(0, 20).forEach(b => console.log('     ' + b));
        if (bad.length > 20) 
 

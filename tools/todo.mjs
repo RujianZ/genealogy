@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
 import { norm, loadTables } from '../src/core/norm.ts';
+import { canonical } from '../src/core/seealso.ts';
 const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url), 'utf8'));
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
@@ -14,11 +15,13 @@ const D = { people: J('people'), places: J('places'), shou: J('shou'),
   prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人') };
 // ★ 字表先灌——core 里的 norm() 一开始是空表，灌之前折不出东西来。
 loadTables(D.tables);
+const D0 = D;
 const R = makeRegistry(D);
 const T = JSON.parse(readFileSync(new URL('../work/台账.json', import.meta.url), 'utf8'));
 const NS = s => norm(String(s ?? ''));
 const flat = s => String(s ?? '').replace(/[\s　]+/g, '');
 const page = p => `python tools/page.py ${p.src.vol} ${p.src.page}`;
+const BT = String.fromCharCode(96);
 const L = [];
 const P = (...x) => L.push(...x);
 
@@ -86,5 +89,37 @@ for (const r of T.谱自己对不上) {
     `  - 核：\`${page(p)}\``);
 }
 P('');
+// ── 四、一句立嗣语句认不到唯一一个人 ────────────────
+//
+// 谱写「立胞弟长子开东为嗣」，而同世叫开东的有三位。判定层的口径是：
+// 谁那一条自己题「X嗣子」、或谁的生父写了「出嗣X」，就归谁（两边都写）；
+// 都只有一边撑着就**谁也不动**——那才是真的说不清，摆在这里等人回谱面。
+{
+  const CAN = pid => { const q = R.idx.get(pid); return q ? canonical(D0.people, q).pid : pid; };
+  const flat2 = x => NS(String(x ?? "")).replace(/公$/, "");
+  const m = new Map();
+  for (const p of D0.people) for (const e of p.parent_edges ?? []) if (e.kind === "嗣父") {
+    const k = CAN(e.parent) + "|" + flat2(p.name);
+    (m.get(k) ?? m.set(k, new Map()).get(k)).set(CAN(p.pid), p.pid);
+  }
+  const rows = [...m].filter(([, kids]) => kids.size > 1);
+  P("## 四、一句立嗣语句认不到唯一一个人（" + rows.length + " 组）", "",
+    "谱写了立嗣句，同世同名的却有好几位，而**两边都写**的证据不止一位（或一位都没有）。",
+    "判定层不猜：这几位的嗣父边全部保留，等人回谱面定。定了就写进 `data/人工判定.json`。", "");
+  for (const [k, kids] of rows) {
+    const fp = k.slice(0, k.lastIndexOf("|")), nm = k.slice(k.lastIndexOf("|") + 1);
+    const f2 = R.idx.get(fp); if (!f2) continue;
+    const say = (flat(f2.raw_text).match(/立[^生殁葬娶妣女]{2,20}(为嗣|承嗣|承祧)/g) ?? []).join(" ／ ");
+    P(`- **${f2.gen}世 ${f2.name}**　${f2.src_human}`,
+      `  - 他那一条写：${say || "（本条没有立嗣句）"}`,
+      `  - 同世叫「${nm}」而挂在他名下的有 ${kids.size} 位：`);
+    for (const [c] of kids) {
+      const q = R.idx.get(c); if (!q) continue;
+      P("    - " + q.name + (q.zi?.text ? "（字" + flat(q.zi.text) + "）" : "") + "　本人题「" + q.father_name + q.filiation + "」　" + q.src_human + "　" + BT + page(q) + BT);
+    }
+    P("  - 核：" + BT + page(f2) + BT);
+  }
+  P("");
+}
 writeFileSync(new URL('../work/待核清单.md', import.meta.url), L.join('\n'), 'utf8');
 console.log(`写出 work/待核清单.md —— 谱没写 ${T.谱没写父亲.length} · 靠定式 ${L2.length}（其中只有版面撑着 ${layoutOnly.length}）· 有冲突 ${T.谱自己对不上.length}`);
