@@ -15,6 +15,7 @@ import { buildFacts } from '../src/core/facts.ts';
 import { parentsFrom } from '../src/core/parents.ts';
 import { buildTree } from '../src/core/tree.ts';
 import { doubtList } from '../src/core/doubts.ts';
+import { loadTables } from '../src/core/norm.ts';
 import { makeRegistry } from '../src/core/entries.ts';
 import { roster as rosterOf } from '../src/core/roster.ts';
 // ★ 名字比对一律用 norm（947 条繁简异体折叠）。
@@ -40,6 +41,9 @@ const ok = (cond, name, detail = '') => {
   else { fail++; console.log(`  ✘ ${name}${detail ? '\n      ' + detail : ''}`); }
 };
 
+// ★ 字表先灌——这个脚本在 makeRegistry 之前就自己建了一条判定管道，
+//   那时 core 里的 norm() 还是空表，繁简异体一个都折不出来。
+loadTables(J('字表'));
 const raw = J('people');
 const people = withBacklinks(raw);
 const idx = buildIndex(people);
@@ -59,7 +63,7 @@ const REG = makeRegistry({
   people: raw, places: J('places'), shou,
   era: J('erachart'), passages: prose, revisions,
   generations: J('generations'), images: J('images'), trans, prefaces: J('prefaces'),
-  manual: J('人工判定'), sameone: J('同一个人'),   // ★ 忘了带就等于在验「没有人工核定」的结果
+  tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人'),   // ★ 忘了带就等于在验「没有人工核定」的结果
 });
 
 console.log('══ 一、原文完整性 ══\n');
@@ -147,7 +151,7 @@ console.log('══ 一、原文完整性 ══\n');
 // 曾经有两对字是互相映射的——才→纔 而 纔→才，峰→峯 而 峯→峰。
 // 那不是合并，是对调：写「继才」的和写「继纔」的永远匹配不上。
 {
-  const { TRAD2SIMP } = await import('../src/core/variants.ts');
+  const TRAD2SIMP = J('字表').繁简异体.表;
   const bad = Object.entries(TRAD2SIMP)
     .filter(([, v]) => TRAD2SIMP[v] && TRAD2SIMP[v] !== v)
     .map(([k, v]) => `${k}→${v}→${TRAD2SIMP[v]}`);

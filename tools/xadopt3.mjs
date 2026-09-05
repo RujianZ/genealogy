@@ -1,12 +1,14 @@
 /** 27 句里，孩子到底有没有嗣父——分「异写假警报」和「真没有」。 */
 import { readFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
-import { norm } from '../src/core/norm.ts';
+import { norm, loadTables } from '../src/core/norm.ts';
 const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url), 'utf8'));
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
   generations: J('generations'), images: J('images'), trans: J('translations'),
-  prefaces: J('prefaces'), manual: J('人工判定'), sameone: J('同一个人') };
+  prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人') };
+// ★ 字表先灌——core 里的 norm() 一开始是空表，灌之前折不出东西来。
+loadTables(D.tables);
 const R = makeRegistry(D);
 const bare = s => norm(s ?? '').replace(/公$/, '');
 const RE = /(立[\u4e00-\u9fff]{1,14}?为[嗣子]|出[继嗣][\u4e00-\u9fff]{0,10}|承祧|兼祧|承嗣|过继[\u4e00-\u9fff]{0,10}|抚[\u4e00-\u9fff]{1,8}为子)/g;

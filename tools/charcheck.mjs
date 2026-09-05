@@ -25,7 +25,7 @@ for (const f of readdirSync(new URL('../parser/jsonl', import.meta.url)))
 // 判据里合法却不会出现在谱面上的字（界面措辞、类目名、说明）
 // 异体表里的每一个字都是「要折回来的写法」，天生可以不在谱面上。
 // 同理解析器故意写的 OCR 容错形（兼[祧挑]、出[嗣祠]）。
-for (const c of readFileSync(new URL('../src/core/variants.ts', import.meta.url), 'utf8'))
+for (const c of JSON.stringify(JSON.parse(readFileSync(new URL('../data/字表.json', import.meta.url), 'utf8'))))
   if (c >= String.fromCharCode(0x3400)) corpus.add(c);
 const OK = new Set([...'；／｜？！：（）【】《》—…·　'
   ,...'龥鿿㐀'                      // 正则里的汉字区间端点

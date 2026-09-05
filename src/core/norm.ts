@@ -1,18 +1,36 @@
-/** 字形归一 + 同音折叠。翻译自 parser/link.py 的 norm() 与 parser/search.py。 */
-import { TRAD2SIMP, VARIANT_SOURCE } from './variants.ts';
-// 排版误字，和繁简异体分开放，每条有依据。见 typos.ts。
-import { TYPOS, TYPO_SOURCE } from './typos.ts';
-
 /**
- * 繁简 + 异体归一表。94 条，自动生成，见 tools/build_variants.py。
+ * 字形归一 + 同音折叠。翻译自 parser/link.py 的 norm() 与 parser/search.py。
  *
- * 上一版是手写的 18 条，有两个毛病：
- *   1. 漏字 —— 没有「適→适」，导致 300 多条「適陈」「長適孙」的女儿解析不出来。
- *   2. 有一半（壽 遷 驥 錫 鳳 餘 後 楨）在这部谱里根本没出现过，是想当然写的。
- * 现在改成 Windows 内核 LCMapStringEx 生成 + 谱内实证的异体字，每条有依据。
+ * ★ 三张字表**全部来自 `data/字表.json`，代码里一条都不写死。**
+ *   以前繁简表在 `src/core/variants.ts` 和 `data/variants.json` 各存一份、
+ *   误字表和同音表只写在代码里——改一处另一处不动，同一个名字两边能折出
+ *   不同的结果（馀/彥 就这么漂过一次）。表是**关於这部谱的事实**，
+ *   事实归数据，代码只管怎么用它。
+ *
+ *   `makeRegistry()` 装载时调 `loadTables()` 灌进来。没灌之前三张表都是空的，
+ *   `norm()` 就只去空格——**不会悄悄用一份过期的内置表**。
  */
-export const VARIANTS = TRAD2SIMP;
-export { VARIANT_SOURCE, TYPOS, TYPO_SOURCE };
+
+type Tables = {
+  繁简异体: { 表: Record<string, string>; 依据: Record<string, string> };
+  排版误字: { 表: Record<string, string>; 依据: Record<string, string> };
+  同音: { 组: { 字: string }[] };
+};
+
+export let VARIANTS: Record<string, string> = {};
+export let VARIANT_SOURCE: Record<string, string> = {};
+export let TYPOS: Record<string, string> = {};
+export let TYPO_SOURCE: Record<string, string> = {};
+let HOMOPHONE_GROUPS: Set<string>[] = [];
+
+/** 装载三张字表。全站只调一次，在 `makeRegistry()` 里。 */
+export function loadTables(t: Tables): void {
+  VARIANTS = t.繁简异体?.表 ?? {};
+  VARIANT_SOURCE = t.繁简异体?.依据 ?? {};
+  TYPOS = t.排版误字?.表 ?? {};
+  TYPO_SOURCE = t.排版误字?.依据 ?? {};
+  HOMOPHONE_GROUPS = (t.同音?.组 ?? []).map(g => new Set([...g.字]));
+}
 
 /**
  * 去掉排版空格 + 繁简异体归一 + 已查实的排版误字。
@@ -32,10 +50,6 @@ export function foldingsUsed(a: string, b: string): string[] {
   }
   return out;
 }
-
-/** 黄梅话里常互换的音。来源：parser/search.py HOMOPHONE_GROUPS */
-const HOMOPHONE_GROUPS = ['翠三山', '齐祁', '镕融容', '彦彥', '蘭兰岚', '辉煇晖', '荣榮蓉']
-  .map(g => new Set([...g]));
 
 export function homophoneKey(s: string): string {
   return [...norm(s)].map(ch => {

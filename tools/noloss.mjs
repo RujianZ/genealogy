@@ -13,12 +13,15 @@
  */
 import { readFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
+import { loadTables } from '../src/core/norm.ts';
 import { canonical } from '../src/core/seealso.ts';
 const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url), 'utf8'));
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
   generations: J('generations'), images: J('images'), trans: J('translations'),
-  prefaces: J('prefaces'), manual: J('人工判定'), sameone: J('同一个人') };
+  prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人') };
+// ★ 字表先灌——core 里的 norm() 一开始是空表，灌之前折不出东西来。
+loadTables(D.tables);
 const R = makeRegistry(D);
 // ★ 兼祠的人在谱上有好几条（继华：p361・p362・p363），
 //   卡片上一律折回完整那一条。这一层比对也得先折，

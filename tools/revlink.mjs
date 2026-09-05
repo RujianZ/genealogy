@@ -35,7 +35,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { makeRegistry } from '../src/core/entries.ts';
-import { norm, homophoneKey } from '../src/core/norm.ts';
+import { norm, homophoneKey, loadTables } from '../src/core/norm.ts';
 import { canonical } from '../src/core/seealso.ts';
 import { EraChart } from '../src/core/years.ts';
 
@@ -43,7 +43,9 @@ const J = n => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.
 const D = { people: J('people'), places: J('places'), shou: J('shou'),
   era: J('erachart'), passages: J('prose_ents'), revisions: J('revisions'),
   generations: J('generations'), images: J('images'), trans: J('translations'),
-  prefaces: J('prefaces'), manual: J('人工判定'), sameone: J('同一个人') };
+  prefaces: J('prefaces'), tables: J('字表'), manual: J('人工判定'), sameone: J('同一个人') };
+// ★ 字表先灌——core 里的 norm() 一开始是空表，灌之前折不出东西来。
+loadTables(D.tables);
 const R = makeRegistry(D);
 const people = D.people;
 
@@ -103,6 +105,51 @@ function decideChecked(m, ad) {
   return [q, why];
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// 序的作者。**判据比名目还硬：署名带世次。**
+//
+//   「二十五世孙　继颜」   世次 25 ＋ 谱名继颜
+//   「第二十七世孙　成祥」 世次 27 ＋ 字成祥
+//
+// 世次是原书自己用「第一世…第五世」列头标死的（CLAUDE.md 第四节），
+// 拿它当第一把钥匙，剩下的只要名字对上一样就够——不用同音、不用猜。
+// 配不上的照样进待核清单：谱在 2016 年署了「成祥」，而全谱字作成祥的
+// 那一位殁于 1994——要么谱写的是别人，要么这是谱面误录，**不判**。
+const CN2 = { '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10 };
+function genOf(t) {
+  const m = /第?([一二三四五六七八九十]+)世/.exec(t ?? '');
+  if (!m) return null;
+  const cs = [...m[1]].map(c => CN2[c]);
+  if (cs.some(v => v == null)) return null;
+  const i = cs.indexOf(10);
+  if (i < 0) return cs.length === 1 ? cs[0] : null;
+  const tens = i === 0 ? 1 : cs[i - 1];
+  const ones = i === cs.length - 1 ? 0 : cs[i + 1];
+  return tens * 10 + ones;
+}
+function authorPid(a) {
+  const gen = genOf(a.author);
+  if (!gen) return [null, '署名里没写世次'];
+  const tail = String(a.author).replace(/第?[一二三四五六七八九十]+世孙?/, '');
+  const uniq = fold(people.filter(q => q.gen === gen &&
+    [q.name, q.zi?.text, q.hui?.text, q.hao?.text, q.ming?.text]
+      .filter(Boolean).some(x => String(x).length >= 2 && tail.includes(String(x)))));
+  if (uniq.length !== 1)
+    return [null, uniq.length ? `第${gen}世里对得上的有 ${uniq.length} 位` : `第${gen}世里没找到`];
+  const dead = aliveAt(uniq[0], yearOf((a.round ?? '') + '年'));
+  if (dead) return [null, `第${gen}世只此一位，可${dead}`];
+  return [uniq[0], `署名写着第${gen}世，名字对得上，全世只此一位`];
+}
+let nPre = 0; const preMiss = [];
+for (const a of (D.prefaces.list ?? [])) {
+  const [q, why] = authorPid(a);
+  a.author_why = why;
+  if (q) { a.author_pid = q.pid; nPre++; } else delete a.author_pid;
+  if (!q) preMiss.push({ '届': a.round, '序': a.title, '署名': a.author, '为什么': why });
+}
+writeFileSync(new URL('../data/prefaces.json', import.meta.url),
+  JSON.stringify(D.prefaces, null, 1), 'utf8');
+
 let hit = 0, miss = [];
 for (const r of D.revisions) {
   for (const m of r.members) {
@@ -122,3 +169,9 @@ for (const m of miss) console.log(`  ${m.era}　${m.raw}　—— ${m.match}`);
 writeFileSync(new URL('../work/名目待核.json', import.meta.url),
   JSON.stringify(miss, null, 1), 'utf8');
 console.log(`\n待核清单写入 work/名目待核.json`);
+
+console.log(`
+卷首十四篇序 → 作者定到唯一 id 的 ${nPre} 篇，交人工的 ${preMiss.length} 篇`);
+for (const m of preMiss) console.log(`  ${m['届'] ?? '—'}　${m['序']}　署「${m['署名']}」　—— ${m['为什么']}`);
+writeFileSync(new URL('../work/序作者待核.json', import.meta.url),
+  JSON.stringify(preMiss, null, 1), 'utf8');

@@ -19,7 +19,7 @@ import { withBacklinks, backlinkCount } from './backlink.ts';
 import { parentsFrom, type Parents } from './parents.ts';
 // ★ entry.ts 里那个 NS 只去空格，**不带 947 条繁简异体折叠**。
 //   名字比对一律用这个 norm，别用那个。这个坑前后踩过五次。
-import { norm as NSx } from './norm.ts';
+import { norm as NSx, loadTables } from './norm.ts';
 import { continued } from './continued.ts';
 import { roster } from './roster.ts';
 import { ownerAt, burialOwner, trimBleed, agesOf } from './owner.ts';
@@ -89,6 +89,9 @@ export interface Trans {
 /** 一届修谱的序：谁、什么时候、为什么写。全文逐句配今译。 */
 export interface Preface {
   doc: string; title: string; era: string; author: string;
+  /** 署名定到的那个人（tools/revlink.mjs 配一次写进 data/prefaces.json） */
+  author_pid?: string;
+  author_why?: string;
   round: string | null; outsider?: boolean;
   /** 为什么修这一届——本站的概括 */
   why: string;
@@ -117,6 +120,8 @@ export interface Data {
   manual: ManualTable;
   /** 人工核定的同人表（data/同一个人.json）——**必填**，理由同上 */
   sameone: { 条目: SameOne[] };
+  /** 三张字表：繁简异体 / 排版误字 / 同音。见 data/字表.json */
+  tables: any;
   places: PlaceRec[];
   shou: ShouDoc[];
   era: EraRow[];
@@ -132,6 +137,8 @@ export function makeRegistry(d0: Data) {
   // 先把断掉的链接回去（父亲的生子名单点了名，只是名字写法不同）。
   // people.json 不动，补出来的边只活在内存里。见 backlink.ts。
   // ★ 人工核定的同人表先装上——它比任何算法都先。
+  // ★ 字表先灌进去——norm() 一开始是空表，灌之前折不出东西来。
+  loadTables(d0.tables);
   loadSameOne(d0.sameone.条目);
   const d0b: Data = { ...d0, people: withBacklinks(d0.people) };
   const idx0 = buildIndex(d0b.people);
@@ -1137,6 +1144,15 @@ export function makeRegistry(d0: Data) {
           label: '这一届的序',
           links: pres.map(x => ({ kind: 'doc' as const, id: x.doc.split('#')[0],
             label: x.title, note: `${x.era}　${x.author}` })),
+        }] : []),
+        // ★ 序的署名带世次（「二十五世孙　继颜」），定得到人就把 id 连过去。
+        //   pid 是 tools/revlink.mjs 配一次写进 data/prefaces.json 的，这里只读。
+        ...(pres.some(x => x.author_pid) ? [{
+          label: '写序的人',
+          links: pres.filter(x => x.author_pid).map(x => ({
+            kind: 'person' as const, id: x.author_pid!,
+            label: idx.get(x.author_pid!)?.name ?? x.author,
+            note: `谱上署「${x.author}」`, raw: x.author_why })),
         }] : []),
       ],
       // 为什么修这一届 + 序的原文与今译
