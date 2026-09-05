@@ -73,8 +73,8 @@ pid 写死之后卡片只读，**一个错的 pid 和一个对的 pid 在页面�
 所以闸不是可选项，是**架构的价钱**：
 
 ```
-node tools/check.mjs        九组一起跑
-verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk · nohardcode
+node tools/check.mjs        十组一起跑
+verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk · cardcheck · nohardcode
 ```
 
 `idcheck` 查每一处指向人的引用**以及写在别处的 pid**（revisions.json 曾经整份
@@ -99,7 +99,7 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 上溯到南宋 1227 年的迁梅始祖张胜二，到今天二十七世，跨 772 年。
 
 解析（`parser/`）、判定（`src/core/resolve.ts`）、闸（`tools/check.mjs`）都已跑通，
-产出 `data/people.json` ＋ 全表 5,065 个唯一 id。**剩下的是 app：桌面 + 手机两套布局。**
+产出 `data/people.json` ＋ 全表 5,050 个唯一 id。**剩下的是 app：桌面 + 手机两套布局。**
 
 用户是家族成员，年龄跨度从二十几到八十几。
 **做给自己家人用，不是产品，不做商业化。**
@@ -137,7 +137,7 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 ## 三、数据契约
 
 `data/people.json`，**2,233 条有独立条目的人**。加上妻／女／无条目的子，
-全表 **5,065 个唯一 id**（附记之人由 `kin` 在装载时 materialize，见 `src/core/persons.ts`）。
+全表 **5,050 个唯一 id**（附记之人由 `kin` 在装载时 materialize，见 `src/core/persons.ts`）。
 核心数据不到 1 MB，全部塞进 app——不需要服务器、不需要联网。
 
 ```jsonc
@@ -223,14 +223,17 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 
 | level | 含义 | 人数 |
 |---|---|---|
-| `原话` | 谱自己写的话判出来的（两头都写、或全谱同名唯一、或过继语句写明） | 2,150 |
+| `原话` | 谱自己写的话判出来的（两头都写、或全谱同名唯一、或过继语句写明） | 2,097 |
 | `人工核定` | 我逐案翻回谱面核定并写下依据（`data/人工判定.json`） | 21 |
-| `定式` | 第一级判不出，靠谱自己的版面规矩（正上一格／同房／夹在兄弟中间）定的 | 40 |
-| `谱未写` | 谱上连父名都没有 | 3 |
+| `原话·有冲突` | 原话判了，但版面/房支对不上——**谱自己前后不一致** | 36 |
+| `定式` | 第一级判不出，靠谱自己的版面规矩（正上一格／同房／夹在兄弟中间）定的 | 39 |
+| `谱未写` | 谱上连父名都没有 | 10 |
 | `说不清` | 判定层没能定案 | **0** |
 
-**「定式」和「版面/房支对不上」的要在界面上能一眼看出来**——那不是谱的原话。
-这两类合计 59 人，全部列在**疑点页**和 `work/待核清单.md`，等人回谱面核。
+**分档相加必须等于 2,233（全谱有条目的人数）**——这个等式本身是闸的一部分。
+
+**「定式」和「原话·有冲突」的要在界面上能一眼看出来**——那不是谱的原话。
+这两类合计 **75 人**，全部列在**疑点页**和 `work/待核清单.md`，等人回谱面核。
 
 `parent_candidates` 里的 `rank`／`evidence` 是**解析层的初判**，
 只做判定层的输入，**界面不要读它**——要读就读 `parent_edges[].level` 和 `.why`。
@@ -282,7 +285,7 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 没有条目的    →  id 用「记到他/她的那一行」（parser 的 kin[]，装载时 materialize）
 ```
 
-    有条目 2,233  ＋  附记之人 2,832（妻 1,583 · 女 · 无条目的子）  ＝  5,065
+    有条目 2,233  ＋  附记之人 2,817（妻 1,583 · 女 · 无条目的子）  ＝  5,050
 
 名字没留下来的照样有页。「妣　氏」——谱连她娘家姓都没印；「四殇」——
 第四个儿子，夭折，没名字。他们的卡片会大片空白，**那正是谱的实情**，
@@ -315,12 +318,12 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 | 界面 | **原生 DOM** | `prototype/app.js` 就是全部。**没有 React，没有框架**——这份文档以前写着 React，那是没做的方案 |
 | 桌面 | **Tauri** | Rust 壳几 MB。**不要 Electron**，100MB+ 起步 |
 | 手机 | **PWA** | 加到主屏就是图标。**最好的安装方式是不用安装** |
-| 搜索 | **本地确定性算法** | 5,065 人暴力比对是毫秒级 |
+| 搜索 | **本地确定性算法** | 5,050 人暴力比对是毫秒级 |
 
 **零依赖是硬要求**：没有 `package.json`，没有 `node_modules`。
 `node tools/xxx.mjs` 直接跑，`.ts` 也直接跑。装一个包就得有人维护它十年。
 
-打包出来 **17.5 MB**（数据 6.0 MB ＋ 谱页照片 36 张 6.2 MB），
+打包出来 **18.5 MB**，
 微信文件上限 100 MB，能直接发。
 
 ### 明确不要用向量 / embedding
@@ -371,7 +374,7 @@ verify_all · smoke · noloss · idcheck · samepid · onlynew · nowaffle · fk
 - **取色**从封面图采样正红，配宣纸米色 + 墨黑。别自己调"中国红"，会调成塑料感
 - **字体**思源宋体 / Noto Serif SC。**族谱就该是宋体**，黑体像政府网站
 - **别竖排**——手机上竖排中文可读性极差。竖向的是世系链的方向，不是文字方向
-- **别做全族树状图**——5,065 人画出来是一团糊
+- **别做全族树状图**——5,050 人画出来是一团糊
 - **别加水墨动效、卷轴展开、毛笔笔触**。一次就够，多了变廉价古风
 
 用户明确讨厌圆角、大留白、字少的通用 AI dashboard 风格。
@@ -425,7 +428,7 @@ python tools/extract_entities.py && python tools/attribute_prose.py
 python tools/build_burials.py && python tools/build_places.py
 node tools/writeback.mjs        # ★ 父子边：题面 → 答案（写 pid）
 node tools/revlink.mjs          # ★ 修谱名目：名字 → 答案（写 pid）
-node tools/check.mjs            # ★ 九组闸，必须全过
+node tools/check.mjs            # ★ 十组闸，必须全过
 node tools/bundle.mjs           # 打成单文件 HTML
 ```
 
