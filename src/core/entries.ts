@@ -260,19 +260,12 @@ export function makeRegistry(d0: Data) {
   //   已经建好的 passage 条目也照样打得开（旧链接不会断）。
   //   这里只决定**摆不摆出来当事迹**。见 story.ts。
   const stories = d.passages.filter(isStory);
-  const byPassageHost = group(stories, x => [x.host]);
-  // 一段文字**按 id** 指到了谁——抽取要素那一步已经解析成 pid 了。
-  // 「别人的条目里提到他」只认这个，不做字符串扫描。
-  const byEntTarget = group(stories, x => {
-    const pids = new Set<string>();
-    for (const e of x.ents ?? []) for (const t of e.targets) if (t.pid) pids.add(t.pid);
-    return [...pids];
-  });
   const byPassageKind = group(stories, x => x.kinds);
-  // 谁写过文字——署名认得出的才算。「男寿堂谨撰」→ 壁万（字寿堂）写的。
-  const byAuthor = group(
-    stories.filter(x => x.author?.targets?.some(t => t.strong)),
-    x => x.author!.targets.filter(t => t.strong).map(t => t.pid));
+  // ★ 这里原先还有三个索引：`byPassageHost`（他这一条里的文字）、
+  //   `byAuthor`（他写的文字）、`byEntTarget`（别人的条目里提到他）。
+  //   2026-09-05 删——它们是在建注册表时**现分组**的，那还是「画卡片时算」，
+  //   而且 `relations.mjs` 已经把这三类写进 json 了（901 ＋ 972 条），
+  //   两套并存就是两个答案。人 ⟷ 文字的三栏现在一律读 `relations[]`。
 
   /**
    * 某个人的全部子女，男女都在。**一处算好，子女栏和兄弟姐妹栏共用。**
@@ -642,22 +635,25 @@ export function makeRegistry(d0: Data) {
         ? `从${r['那边是']}${r['那位是']}这边论` : undefined);
       if (rows.length) relations.push(rel('兄弟姐妹', rows));
     }
-    const ps = byPassageHost.get(pid);
-    if (ps?.length) relations.push(rel('他这一条里的文字', ps.map(x => ({
-      kind: 'passage' as const, id: x.id,
-      label: x.flat.slice(0, 20) + (x.chars > 20 ? '…' : ''),
-      note: [x.kinds.filter(k => k !== '未分类').join('・') || `${x.chars}字`,
-             x.about2 && !x.about2.who.startsWith('本人') ? '写的是' + x.about2.who : '',
-             x.cn ? '有今译' : ''].filter(Boolean).join('　'),
-    }))));
+    // ★ 人 ⟷ 文字的三栏也读 relations——原先 byPassageHost／byAuthor／byEntTarget
+    //   三个索引是在建注册表时现分组的，那还是「画卡片时算」。
+    {
+      const rows = (byCat.get('他这一条里的文字') ?? []).map(x => ({
+        kind: 'passage' as const, id: String(x['对方']), label: String(x['对方名']),
+        note: [x['分类'] || `${x['字数']}字`,
+               x['写的是'] ? '写的是' + x['写的是'] : '',
+               x['有今译'] ? '有今译' : ''].filter(Boolean).join('　'),
+      }));
+      if (rows.length) relations.push(rel('他这一条里的文字', rows));
+    }
     // ★ 他写的文字——谱上署了他的名。这是名片上从来没有过的一栏。
-    const wrote = byAuthor.get(pid);
-    if (wrote?.length) relations.push(rel('他写的文字', wrote.map(x => ({
-      kind: 'passage' as const, id: x.id,
-      label: x.flat.slice(0, 22) + (x.chars > 22 ? '…' : ''),
-      note: `写给${x.host_name}（第${x.gen}世）`
-          + `　谱上署「${x.author!.rel}${x.author!.name}${x.author!.verb}」`,
-    }))));
+    {
+      const rows = (byCat.get('他写的文字') ?? []).map(x => ({
+        kind: 'passage' as const, id: String(x['对方']), label: String(x['对方名']),
+        note: `写给${x['写给谁']}（第${x['写给谁的世次']}世）　谱上署「${x['署名']}」`,
+      }));
+      if (rows.length) relations.push(rel('他写的文字', rows));
+    }
     // ★ 参与修谱：哪一届的名目上有他。也在 json 里（`类`＝参与修谱，`对方`＝届次）
     {
       const rv = byCat.get('参与修谱') ?? [];
@@ -680,19 +676,18 @@ export function makeRegistry(d0: Data) {
     //   一段文字提到了谁，是抽取要素那一步解析好的，结果就是 targets 里的 pid。
     //   没解析出 pid 的，就是没认出来，不该算成关系。
     //   父、子这些也不必在这里重复——上面「父」「子女」两栏本来就是按边建的。
-    const cited = (byEntTarget.get(pid) ?? []).filter(x => x.host !== pid);
-    if (cited.length) relations.push(rel('别人的条目里提到他', cited.map(x => {
-      // 同一段文字里指到本人的那几处要素，把同名候选数一并说清楚
-      const hits = (x.ents ?? []).filter(e => e.targets.some(t => t.pid === pid));
-      const many = hits.some(e => e.targets.length > 1);
-      return {
-        kind: 'passage' as const, id: x.id,
-        label: x.flat.slice(0, 22) + (x.chars > 22 ? '…' : ''),
-        note: `${x.host_name}（第${x.gen}世）那一条里`
-          + (many ? `　这个名字全谱不止一位，都列着` : ''),
-        warn: many,
-      };
-    })));
+    {
+      const rows = (byCat.get('被提到') ?? []).map(x => {
+        const many = Number(x['同名候选几位'] ?? 1) > 1;
+        return {
+          kind: 'passage' as const, id: String(x['对方']), label: String(x['对方名']),
+          note: `${x['写在谁那一条的名']}那一条里`
+            + (many ? '　这个名字全谱不止一位，都列着' : ''),
+          warn: many,
+        };
+      });
+      if (rows.length) relations.push(rel('别人的条目里提到他', rows));
+    }
     // 一个人可能有两条「有碑」（本人一条、配偶一条），归属栏里只算一次
     const uniq = <T>(xs: T[], k: (x: T) => string) => {
       const seen = new Set<string>();

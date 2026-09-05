@@ -78,7 +78,7 @@ const pair = (a, b, 类a, 类b, extra = {}) => {
   add(b, { 类: 类b, 对方类型: '人', 对方: a, 对方名: A.name, 对方出处: A.src_human, ...extra });
 };
 
-let n = { 父: 0, 子女: 0, 兄弟姐妹: 0, 配偶: 0, 同一个人: 0, 参与修谱: 0, 写序: 0, 被提到: 0 };
+let n = { 父: 0, 子女: 0, 兄弟姐妹: 0, 配偶: 0, 同一个人: 0, 参与修谱: 0, 写序: 0, 文字: 0, 被提到: 0 };
 
 // ══ ① 父 ⟷ 子女 ══ 已经是双向的（parent_edges / children），这里只是搬进统一的表
 for (const p of D.people) {
@@ -211,7 +211,31 @@ for (const r of D.revisions) {
   }
 }
 
-// ══ ⑦ 别人的文字里提到他 ⟷ 他这一条里的文字 ══
+// ══ ⑦ 人 ⟷ 文字：他这一条里的 · 他写的 · 别人的文字里提到他 ══
+//    这三类的对方不是人，是**段**（prose_ents 的 id）。一样要写进 json——
+//    卡片里 byPassageHost／byAuthor／byEntTarget 三个现建的索引就是为它们，
+//    留着就是「画卡片时算」。
+for (const seg of D.passages ?? []) {
+  const host = seg.host && CAN(seg.host);
+  const label = (seg.flat ?? seg.text ?? '').replace(/[s　]/g, '');
+  const base = { 对方类型: '段', 对方: seg.id, 对方名: label.slice(0, 24),
+    字数: seg.chars ?? label.length,
+    分类: (seg.kinds ?? []).filter(k => k !== '未分类').join('・'),
+    有今译: !!seg.cn };
+  // 他这一条里的文字
+  if (host && add(host, { ...base, 类: '他这一条里的文字',
+    写的是: seg.about2 && !String(seg.about2.who).startsWith('本人') ? seg.about2.who : '' }))
+    n.文字++;
+  // 他写的文字——谱上署了他的名。**只认强命中**（抽取那一步定死的）
+  for (const t of (seg.author?.targets ?? []).filter(t => t.strong && t.pid)) {
+    if (add(CAN(t.pid), { ...base, 类: '他写的文字',
+      写给谁: seg.host_name ?? '', 写给谁的id: host ?? '',
+      署名: `${seg.author.rel ?? ''}${seg.author.name ?? ''}${seg.author.verb ?? ''}`,
+      写给谁的世次: seg.gen ?? null })) n.文字++;
+  }
+}
+
+// ══ ⑧ 别人的文字里提到他 ══
 for (const seg of D.passages ?? []) {
   const host = seg.host && CAN(seg.host);
   for (const e of seg.ents ?? []) for (const t of e.targets ?? []) {
@@ -220,7 +244,10 @@ for (const seg of D.passages ?? []) {
     if (who === host) continue;
     if (add(who, { 类: '被提到', 对方类型: '段', 对方: seg.id,
       对方名: (seg.text ?? '').replace(/[\s　]/g, '').slice(0, 20),
-      写在谁那一条: host ?? '', 谱写作: e.text ?? '', 怎么对上的: t.note ?? '' })) n.被提到++;
+      写在谁那一条: host ?? '', 写在谁那一条的名: seg.host_name ?? '',
+      谱写作: e.text ?? '', 怎么对上的: t.note ?? '',
+      // 这个名字在谱里不止一位时，抽取那一步就把候选都留着了——照实说
+      同名候选几位: (e.targets ?? []).length })) n.被提到++;
   }
 }
 
@@ -292,8 +319,8 @@ for (const p of D.people) {
 }
 
 // 排一下序：按类、再按谱面坐标
-const ORD = ['生父', '嗣父', '子', '嗣子', '兄弟姐妹', '妻', '侧室', '聘',
-             '同一个人', '参与修谱', '写序', '被提到'];
+const ORD = ['生父', '嗣父', '子', '女', '嗣子', '兄弟姐妹', '妻', '侧室', '聘', '夫',
+             '同一个人', '他这一条里的文字', '他写的文字', '参与修谱', '写序', '被提到'];
 for (const p of D.people) {
   if (!p.relations) continue;
   p.relations.sort((a, b) => {
